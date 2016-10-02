@@ -31,7 +31,7 @@ void mess_recieve::run()
         else if(lenread < len)
             msg[lenread] = '\0';
         else
-            msg[len] = '\0';
+            msg[len-1] = '\0';
         char form_mess[len - 12] = "";
         for(int i = 0; i <= lenread; i++)
         {

@@ -80,9 +80,9 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *ipaddr)
     {
         full_mess[i]=' ';
     }
-    strcpy(full_mess, fhost);
+    strncpy(full_mess, fhost, strlen(fhost));
     int len2 = strlen(fhost);
-    for(int i = len2; i < (len2 + len); i++)
+    for(int i = len2; i < len; i++)
     {
         full_mess[i] = msg[i-len2];
     }
