@@ -37,7 +37,6 @@ int mess_serv::listener()
     int new_fd;
     struct sockaddr_storage their_addr;
     struct addrinfo hints, *res;
-    char buf[256];
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -62,6 +61,7 @@ int mess_serv::listener()
     fdmax = socketfd;
     while(1)
     {
+        char buf[256] = {};
         read_fds = master;
         if(select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1){
             perror("select:");
@@ -104,10 +104,11 @@ int mess_serv::listener()
                     }
                     else
                     {
-                        char hostn[12];
-                        char mes[244];
+                        char hostn[12] = {};
+                        char mes[244] = {};
                         strncat(hostn, buf, 12);
-                        for(int k = 0; k < strlen(hostn); k++)
+                        int hostnLen = strlen(hostn);
+                        for(int k = 0; k < hostnLen; k++)
                         {
                             if(hostn[k] == ' ')
                             {

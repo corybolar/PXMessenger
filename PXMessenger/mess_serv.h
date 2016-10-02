@@ -14,8 +14,8 @@ public:
     int listener();
     //static void * t_recieve(void *arguments);
     int accept_new(int socketfd, sockaddr_storage *their_addr);
-    void run();
     int socketfd;
+    void run();
 
     std::vector<int> socketDesc;
 signals:
