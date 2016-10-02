@@ -154,11 +154,13 @@ void Window::sortPeers()
 
              strcpy(temp1, (peers[i].hostname.toStdString().c_str()));
              strcpy(temp2, (peers[i-1].hostname.toStdString().c_str()));
-             for(int i = 0; i < strlen(temp1); i++)
+             int temp1Len = strlen(temp1);
+             int temp2Len = strlen(temp2);
+             for(int i = 0; i < temp1Len; i++)
              {
                  temp1[i] = tolower(temp1[i]);
              }
-             for(int i = 0; i < strlen(temp2); i++)
+             for(int i = 0; i < temp2Len; i++)
              {
                  temp2[i] = tolower(temp2[i]);
              }
@@ -181,7 +183,6 @@ void Window::closeEvent(QCloseEvent *event)
     {
         ::close(peers[i].socketdescriptor);
     }
-    m_serv2->closeThreads();
 }
 
 /*Display peers array of hostnames to the QComboBox, m_combobox
@@ -236,7 +237,7 @@ void Window::discoverClicked()
  * this will only send to computers in the 255.255.255.0 subnet*/
 void Window::udpSend(const char* msg)
 {
-    int status;
+    //int status;
     int port2 = 3491;
     struct sockaddr_in broadaddr;
     int socketfd2;
@@ -253,7 +254,7 @@ void Window::udpSend(const char* msg)
     //char *msg = "/discover";
     int len = strlen(msg);
 
-    status = sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
+    sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
 }
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
 void Window::buttonClicked()

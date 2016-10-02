@@ -3,7 +3,6 @@
 #include <sys/socket.h>
 #include <QtCore>
 #include <QThread>
-#include <mess_recieve.h>
 #include <vector>
 
 
@@ -16,8 +15,6 @@ public:
     //static void * t_recieve(void *arguments);
     int accept_new(int socketfd, sockaddr_storage *their_addr);
     void run();
-    int closeThreads();
-    QVector<mess_recieve*> threads;
     int socketfd;
 
     std::vector<int> socketDesc;
