@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET = formtest
+TARGET = PXMessenger
 
 QT = core gui widgets
 
