@@ -10,6 +10,7 @@
 #include <mess_client.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <QListWidget>
 #include <QComboBox>
 #include <peerlist.h>
 #include <mess_serv.h>
@@ -20,11 +21,11 @@ class Window : public QWidget
 
 public:
     explicit Window(QWidget *parent = 0);
-    void print(QString str);
+    void print(QString str, int peerindex);
     void udpSend(const char *msg);
 private slots:
     void buttonClicked();
-    void prints(QString str);
+    void prints(QString str, int s);
     void listpeers(QString hname, QString ipaddr);
     void discoverClicked();
     void debugClicked();
@@ -42,7 +43,10 @@ private:
     QComboBox *m_combobox;
     QLineEdit *m_sendDebug;
     QPushButton *m_sendDebugButton;
+    QListWidget *m_listwidget;
     mess_client *m_client;
+    std::vector<QListWidgetItem> qlistpeers;
+    std::vector<QString> textWindow;
     int socketfd;
     QStringList whname, wipaddr;
     peerlist peers[255];

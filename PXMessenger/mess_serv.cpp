@@ -163,7 +163,7 @@ int mess_serv::listener()
                         {
                             mes[k-12] = buf[k];
                         }
-                        emit mess_rec(QString::fromUtf8(hostn, strlen(hostn)) + ": " + QString::fromUtf8(mes, strlen(mes)) + " on socket: " + QString::number(i));
+                        emit mess_rec(QString::fromUtf8(hostn, strlen(hostn)) + ": " + QString::fromUtf8(mes, strlen(mes)) + " on socket: " + QString::number(i), i);
                     }
                     skiptest:
                     int debug = 0;
@@ -192,5 +192,5 @@ int mess_serv::listener()
 void mess_serv::mess_rec3(const QString s)
 {
     qDebug() << s;
-    emit mess_rec(s);
+    //emit mess_rec(s);
 }

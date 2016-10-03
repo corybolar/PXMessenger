@@ -53,15 +53,17 @@ Window::Window(QWidget *parent) : QWidget(parent)
     m_button->setGeometry(10,370,80,30);
     //m_button->setCheckable(true);
     m_button2 = new QPushButton("Discover", this);
-    m_button2->setGeometry(10, 450, 80, 30);
+    m_button2->setGeometry(10, 430, 80, 30);
 
     m_combobox = new QComboBox(this);
     m_combobox->setGeometry(410, 50, 200, 30);
     m_combobox->setDuplicatesEnabled(false);
     //m_combobox->addItem(tr("item 1"));
 
-    m_sendDebug = new QLineEdit(this);
-    m_sendDebug->setGeometry(410, 100, 200, 30);
+    m_listwidget = new QListWidget(this);
+    m_listwidget->setGeometry(410, 100, 200, 300);
+    //m_sendDebug = new QLineEdit(this);
+    //m_sendDebug->setGeometry(410, 100, 200, 30);
 
     m_sendDebugButton = new QPushButton("Send Debug", this);
     m_sendDebugButton->setGeometry(200, 370, 80, 30);
@@ -80,7 +82,7 @@ Window::Window(QWidget *parent) : QWidget(parent)
     m_disc->start();
 
     m_serv2 = new mess_serv();
-    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString)), this, SLOT (prints(const QString)) );
+    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, int)), this, SLOT (prints(const QString, int)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
     m_serv2->start();
@@ -94,7 +96,7 @@ void Window::potentialReconnect(QString ipaddr)
     {
         if( ( (QString::fromUtf8(peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
         {
-            this->print(peers[i].hostname + " on " + ipaddr + " reconnected");
+            this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i);
         }
     }
 }
@@ -107,7 +109,7 @@ void Window::peerQuit(int s)
         {
             peers[i].isConnected = 0;
             peers[i].socketisValid = 0;
-            this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected");
+            this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i);
             this->assignSocket(&peers[i]);
         }
     }
@@ -155,7 +157,7 @@ void Window::debugClicked()
     //const char * ipaddr = m_sendDebug->text().toStdString().c_str();
     if(m_client->c_connect(s_socket, m_sendDebug->text().toStdString().c_str()) < 0)
     {
-        this->print("Could not connect to " + m_sendDebug->text());
+        //this->print("Could not connect to " + m_sendDebug->text(), peers);
         return;
     }
 
@@ -225,6 +227,8 @@ void Window::sortPeers()
                 struct peerlist p = peers[i-1];
                 peers[i-1] = peers[i];
                 peers[i] = p;
+                peers[i].comboindex = i;
+                peers[i-1].comboindex = ( i - 1 );
             }
         }
     }
@@ -253,6 +257,8 @@ void Window::displayPeers()
         for(int i = 0; i < peersLen; i++)
         {
             m_combobox->setItemText(i, peers[i].hostname);
+            //qlistpeers[i].setText(peers[i].hostname);
+            m_listwidget->item(i)->setText(peers[i].hostname);
         }
     }
     if(peersLen < m_combobox->count())
@@ -260,16 +266,24 @@ void Window::displayPeers()
         for(int i = 0; i < peersLen; i++)
         {
             m_combobox->setItemText(i, peers[i].hostname);
+            m_listwidget->item(i)->setText(peers[i].hostname);
         }
         m_combobox->removeItem(peersLen+1);
+        m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
     if(peersLen > m_combobox->count())
     {
         for(int i = 0; i < peersLen-1; i++)
         {
             m_combobox->setItemText(i, peers[i].hostname);
+            m_listwidget->item(i)->setText(peers[i].hostname);
         }
         m_combobox->addItem(peers[peersLen-1].hostname);
+        m_listwidget->addItem(peers[peersLen-1].hostname);
+        if(m_listwidget->count() == 1)
+        {
+            m_listwidget->setCurrentItem(m_listwidget->item(0));
+        }
     }
     return;
 
@@ -318,11 +332,12 @@ void Window::buttonClicked()
 {
     std::string str = m_textedit->toPlainText().toStdString();
     const char* c_str = str.c_str();
-    int index = m_combobox->currentIndex();
-    //const char* ipstr = (wipaddr[(m_combobox->currentIndex())]).toStdString().c_str();
+
+    int index = m_listwidget->currentRow();
+
     int s_socket = peers[index].socketdescriptor;
-    //std::cout << optval << std::endl;
     m_client->setHost(m_lineedit->text().toStdString().c_str());
+
     if(peers[index].socketisValid)
     {
         if(!(peers[index].isConnected))
@@ -330,7 +345,7 @@ void Window::buttonClicked()
             //s_socket = socket(AF_INET, SOCK_STREAM, 0);
             if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
             {
-                this->print("Could not connect to " + peers[index].hostname + " on socket " + QString::number(peers[index].socketdescriptor));
+                this->print("Could not connect to " + peers[index].hostname + " on socket " + QString::number(peers[index].socketdescriptor), index);
                 return;
             }
             peers[index].isConnected = true;
@@ -340,24 +355,41 @@ void Window::buttonClicked()
         {
             if((m_client->send_msg(s_socket, c_str, peers[index].c_ipaddr)) == -5)
             {
-                this->print("Peer has closed connection, send failed");
+                this->print("Peer has closed connection, send failed", index);
                 return;
             }
-            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " on socket: " + QString::number(peers[index].socketdescriptor));
+            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " on socket: " + QString::number(peers[index].socketdescriptor), index);
             m_textedit->setText("");
         }
     }
-        else
+    else
+    {
+        this->print("Peer Disconnected", index);
+        this->assignSocket(&peers[index]);
+    }
+    return;
+}
+void Window::print(const QString str, int peerindex)
+{
+    //peers[peerindex].textBox = peers[peerindex].textBox + str + "\n";
+    peers[peerindex].textBox.append(str);
+    if(peerindex == m_listwidget->currentRow())
+    {
+        //m_textbrowser->setText(m_textbrowser->toPlainText() + str + "\n");
+        m_textbrowser->append(str);
+    }
+    return;
+}
+void Window::prints(const QString str, int s)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(s == peers[i].socketdescriptor)
         {
-            this->print("Peer Disconnected");
-            this->assignSocket(&peers[index]);
+            this->print(str, i);
+            return;
         }
-}
-void Window::print(const QString str)
-{
-    m_textbrowser->setText(m_textbrowser->toPlainText() + str + "\n");
-}
-void Window::prints(const QString str)
-{
-    m_textbrowser->setText(m_textbrowser->toPlainText() + str + "\n");
+    }
+    qDebug() << "finding socket in peers failed Window::prints.  Slot from mess_serv";
+    return;
 }

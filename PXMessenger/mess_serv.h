@@ -24,7 +24,7 @@ public:
     int fdmax;
     void new_fds(int s);
 signals:
-    void mess_rec(const QString);
+    void mess_rec(const QString, int);
     void new_client(int, const QString);
     void peerQuit(int);
 private slots:
