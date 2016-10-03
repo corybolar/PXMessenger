@@ -12,6 +12,7 @@ public:
     void d_listener();
 signals:
     void mess_peers(QString hname, QString ipaddr);
+    void potentialReconnect(QString);
 };
 
 #endif // MESS_DISCOVER_H

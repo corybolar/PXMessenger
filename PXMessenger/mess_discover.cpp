@@ -47,7 +47,7 @@ void mess_discover::d_listener()
         recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &slen);
         inet_ntop(si_other.sin_family, (struct sockaddr_in *)&si_other.sin_addr, ipstr, sizeof(ipstr));
         std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
-        if (strcmp(buf, "/discover") == 0)
+        if (strncmp(buf, "/discover", 9) == 0)
         {
             struct sockaddr_in addr;
             int socket1;
@@ -65,6 +65,7 @@ void mess_discover::d_listener()
             int len = strlen(fname);
 
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
+            emit potentialReconnect(QString::fromUtf8(ipstr));
             close(socket1);
         }
         int status;

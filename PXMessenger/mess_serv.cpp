@@ -142,6 +142,7 @@ int mess_serv::listener()
                             perror("recv");
                         }
                         //goto skiptest;
+                        emit peerQuit(i);
                         close(i);
                         FD_CLR(i, &master);
                     }

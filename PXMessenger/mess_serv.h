@@ -26,6 +26,7 @@ public:
 signals:
     void mess_rec(const QString);
     void new_client(int, const QString);
+    void peerQuit(int);
 private slots:
     void mess_rec3(const QString s);
 };

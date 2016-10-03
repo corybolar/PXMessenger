@@ -30,6 +30,8 @@ private slots:
     void debugClicked();
     void quitClicked();
     void new_client(int s, QString ipaddr);
+    void peerQuit(int s);
+    void potentialReconnect(QString ipaddr);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
@@ -50,9 +52,6 @@ private:
     int peersLen = 0;
     void closeEvent(QCloseEvent *event);
     mess_serv *m_serv2;
-
-
-
 signals:
 
 public slots:

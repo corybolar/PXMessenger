@@ -76,16 +76,43 @@ Window::Window(QWidget *parent) : QWidget(parent)
 
     mess_discover *m_disc = new mess_discover();
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
+    QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
     m_disc->start();
 
     m_serv2 = new mess_serv();
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString)), this, SLOT (prints(const QString)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
+    QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
     m_serv2->start();
 
     sleep(1);
     this->udpSend("/discover");
 }
+void Window::potentialReconnect(QString ipaddr)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if( ( (QString::fromUtf8(peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
+        {
+            this->print(peers[i].hostname + " on " + ipaddr + " reconnected");
+        }
+    }
+}
+
+void Window::peerQuit(int s)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(peers[i].socketdescriptor == s)
+        {
+            peers[i].isConnected = 0;
+            peers[i].socketisValid = 0;
+            this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected");
+            this->assignSocket(&peers[i]);
+        }
+    }
+}
+
 void Window::new_client(int s, QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -163,7 +190,7 @@ void Window::listpeers(QString hname, QString ipaddr)
     displayPeers();
 
     qDebug() << "hostname: " << peers[i].hostname << " @ ip:" << QString::fromUtf8(peers[i].c_ipaddr);
-    donehere:
+donehere:
     return;
 }
 /* This function sorts the peers array by alphabetical order of the hostname
@@ -178,27 +205,27 @@ void Window::sortPeers()
         int i = peersLen-1;
         for( ; i > 0; i-- )
         {
-             char temp1[28];
-             char temp2[28];
+            char temp1[28];
+            char temp2[28];
 
-             strcpy(temp1, (peers[i].hostname.toStdString().c_str()));
-             strcpy(temp2, (peers[i-1].hostname.toStdString().c_str()));
-             int temp1Len = strlen(temp1);
-             int temp2Len = strlen(temp2);
-             for(int i = 0; i < temp1Len; i++)
-             {
-                 temp1[i] = tolower(temp1[i]);
-             }
-             for(int i = 0; i < temp2Len; i++)
-             {
-                 temp2[i] = tolower(temp2[i]);
-             }
-             if( strcmp(temp1, temp2) < 0 )
-             {
-                 struct peerlist p = peers[i-1];
-                 peers[i-1] = peers[i];
-                 peers[i] = p;
-             }
+            strcpy(temp1, (peers[i].hostname.toStdString().c_str()));
+            strcpy(temp2, (peers[i-1].hostname.toStdString().c_str()));
+            int temp1Len = strlen(temp1);
+            int temp2Len = strlen(temp2);
+            for(int i = 0; i < temp1Len; i++)
+            {
+                temp1[i] = tolower(temp1[i]);
+            }
+            for(int i = 0; i < temp2Len; i++)
+            {
+                temp2[i] = tolower(temp2[i]);
+            }
+            if( strcmp(temp1, temp2) < 0 )
+            {
+                struct peerlist p = peers[i-1];
+                peers[i-1] = peers[i];
+                peers[i] = p;
+            }
         }
     }
 }
@@ -253,7 +280,8 @@ void Window::assignSocket(struct peerlist *p)
     p->socketdescriptor = socket(AF_INET, SOCK_STREAM, 0);
     if(p->socketdescriptor < 0)
         perror("socket:");
-
+    else
+        p->socketisValid = 1;
     return;
 }
 /* dummy function to allow discoverSend to be called on its own */
@@ -295,27 +323,35 @@ void Window::buttonClicked()
     int s_socket = peers[index].socketdescriptor;
     //std::cout << optval << std::endl;
     m_client->setHost(m_lineedit->text().toStdString().c_str());
-    if(!(peers[index].isConnected))
+    if(peers[index].socketisValid)
     {
-        //s_socket = socket(AF_INET, SOCK_STREAM, 0);
-        if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
+        if(!(peers[index].isConnected))
         {
-            this->print("Could not connect to " + QString::number(peers[index].socketdescriptor));
-            return;
+            //s_socket = socket(AF_INET, SOCK_STREAM, 0);
+            if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
+            {
+                this->print("Could not connect to " + peers[index].hostname + " on socket " + QString::number(peers[index].socketdescriptor));
+                return;
+            }
+            peers[index].isConnected = true;
+            m_serv2->update_fds(s_socket);
         }
-        peers[index].isConnected = true;
-        m_serv2->update_fds(s_socket);
-    }
-    if(strcmp(c_str, "") != 0)
-    {
-        if((m_client->send_msg(s_socket, c_str, peers[index].c_ipaddr)) == -5)
+        if(strcmp(c_str, "") != 0)
         {
-            this->print("Peer has closed connection, send failed");
-            return;
+            if((m_client->send_msg(s_socket, c_str, peers[index].c_ipaddr)) == -5)
+            {
+                this->print("Peer has closed connection, send failed");
+                return;
+            }
+            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " on socket: " + QString::number(peers[index].socketdescriptor));
+            m_textedit->setText("");
         }
-        this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " on socket: " + QString::number(peers[index].socketdescriptor));
-        m_textedit->setText("");
     }
+        else
+        {
+            this->print("Peer Disconnected");
+            this->assignSocket(&peers[index]);
+        }
 }
 void Window::print(const QString str)
 {

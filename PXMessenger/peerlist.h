@@ -10,6 +10,7 @@ struct peerlist{
     int socketdescriptor = 0;
     bool isValid = false;
     bool isConnected = false;
+    bool socketisValid = false;
 };
 
 #endif // PEERLIST_H
