@@ -65,6 +65,7 @@ void mess_discover::d_listener()
             int len = strlen(fname);
 
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
+            close(socket1);
         }
         int status;
         if ((status = strncmp(buf, "/name:", 6)) == 0)

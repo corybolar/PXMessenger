@@ -93,6 +93,7 @@ void Window::new_client(int s, QString ipaddr)
         if(strcmp(peers[i].c_ipaddr, ipaddr.toStdString().c_str()) == 0)
         {
             peers[i].socketdescriptor = s;
+            this->assignSocket(&(peers[i]));
             peers[i].isConnected = true;
             return;
         }
@@ -110,7 +111,20 @@ void Window::debugClicked()
     const char* c_str = str.c_str();
     //int index = m_combobox->currentIndex();
     //const char* ipstr = (wipaddr[(m_combobox->currentIndex())]).toStdString().c_str();
-    int s_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    int s_socket = socket(AF_INET, SOCK_STREAM, 0);
+    int optval;
+    int s5;
+    socklen_t optlen;
+    s5 = getsockopt(s_socket, SOL_SOCKET, SO_PROTOCOL, &optval, &optlen);
+    switch (optval)
+    {
+    case IPPROTO_TCP:
+        std::cout << "IPPROTO_TCP" << std::endl;
+        break;
+    default:
+        std::cout << "not" << std::endl;
+        break;
+    }
     //const char * ipaddr = m_sendDebug->text().toStdString().c_str();
     if(m_client->c_connect(s_socket, m_sendDebug->text().toStdString().c_str()) < 0)
     {
@@ -236,7 +250,7 @@ void Window::displayPeers()
 /* Assign sockets to peers added to the peers array*/
 void Window::assignSocket(struct peerlist *p)
 {
-    p->socketdescriptor = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    p->socketdescriptor = socket(AF_INET, SOCK_STREAM, 0);
     if(p->socketdescriptor < 0)
         perror("socket:");
 
@@ -279,13 +293,14 @@ void Window::buttonClicked()
     int index = m_combobox->currentIndex();
     //const char* ipstr = (wipaddr[(m_combobox->currentIndex())]).toStdString().c_str();
     int s_socket = peers[index].socketdescriptor;
-
+    //std::cout << optval << std::endl;
     m_client->setHost(m_lineedit->text().toStdString().c_str());
     if(!(peers[index].isConnected))
     {
+        s_socket = socket(AF_INET, SOCK_STREAM, 0);
         if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
         {
-            this->print("Could not connect to " + m_sendDebug->text() + peers[index].socketdescriptor);
+            this->print("Could not connect to " + QString::number(peers[index].socketdescriptor));
             return;
         }
         peers[index].isConnected = true;
@@ -297,7 +312,7 @@ void Window::buttonClicked()
             this->print("Peer has closed connection, send failed");
             return;
         }
-        this->print(m_lineedit->text() + ": " + m_textedit->toPlainText());
+        this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " on socket: " + QString::number(peers[index].socketdescriptor));
         m_textedit->setText("");
     }
 }
