@@ -29,6 +29,7 @@ private slots:
     void discoverClicked();
     void debugClicked();
     void quitClicked();
+    void new_client(int s, QString ipaddr);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;

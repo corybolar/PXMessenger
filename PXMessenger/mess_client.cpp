@@ -110,5 +110,8 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *ipaddr)
 }
 int mess_client::partialSend(int socketfd, const char *msg, int len)
 {
-    return send(socketfd, msg, len, MSG_NOSIGNAL);
+    int status = send(socketfd, msg, len, MSG_NOSIGNAL);
+    if(status < 1)
+        perror("send:");
+    return status;
 }

@@ -10,11 +10,12 @@
 #include <unistd.h>
 #include <QtCore>
 #include <iostream>
+#include <sys/select.h>
 
 #define PORT "3490"
 #define BACKLOG 20
-fd_set master;
-fd_set read_fds;
+//fd_set master;
+//fd_set read_fds;
 int fdmax;
 mess_serv::mess_serv()
 {
@@ -24,12 +25,40 @@ void mess_serv::run()
 {
     this->listener();
 }
+void mess_serv::new_fds(int s)
+{
+    FD_SET(s, &master);
+    return;
+}
+
 int mess_serv::accept_new(int socketfd, sockaddr_storage *their_addr)
 {
     int result;
     socklen_t addr_size = sizeof(their_addr);
     result = (accept(socketfd, (struct sockaddr *)&their_addr, &addr_size));
+    char ipstr[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(((struct sockaddr_in*)&their_addr)->sin_addr), ipstr, sizeof(ipstr));
+    emit new_client(socketfd, QString::fromUtf8(ipstr, strlen(ipstr)));
     return result;
+}
+
+void mess_serv::update_fds(int s)
+{
+    if( !( FD_ISSET(s, &master) ) )
+    {
+        FD_SET(s, &master);
+        this->set_fdmax(s);
+    }
+}
+
+int mess_serv::set_fdmax(int m)
+{
+    if(m > fdmax)
+    {
+        fdmax = m;
+        return 0;
+    }
+    return -1;
 }
 
 int mess_serv::listener()
@@ -57,14 +86,25 @@ int mess_serv::listener()
     FD_ZERO(&read_fds);
     FD_SET(socketfd, &master);
     int nbytes;
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 250000;
 
     fdmax = socketfd;
     while(1)
     {
         char buf[256] = {};
         read_fds = master;
-        if(select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1){
-            perror("select:");
+        int status = 0;
+        while( ( (status  ==  0) | (status == -1) ) )
+        {
+            if(status == -1){
+                perror("select:");
+            }
+            read_fds = master;
+            status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
+            tv.tv_sec = 0;
+            tv.tv_usec = 250000;
         }
         for(int i = 0; i <= fdmax; i++)
         {
@@ -79,10 +119,7 @@ int mess_serv::listener()
                     }
                     else
                     {
-                        FD_SET(new_fd, &master);
-                        if(new_fd > fdmax){
-                            fdmax = new_fd;
-                        }
+                        this->update_fds(new_fd);
                         std::cout << "new connection" << std::endl;
                     }
                 }

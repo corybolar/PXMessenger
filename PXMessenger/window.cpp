@@ -80,11 +80,25 @@ Window::Window(QWidget *parent) : QWidget(parent)
 
     m_serv2 = new mess_serv();
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString)), this, SLOT (prints(const QString)) );
+    QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     m_serv2->start();
 
     sleep(1);
     this->udpSend("/discover");
 }
+void Window::new_client(int s, QString ipaddr)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(strcmp(peers[i].c_ipaddr, ipaddr.toStdString().c_str()) == 0)
+        {
+            peers[i].socketdescriptor = s;
+            //peers[i].isConnected = false;
+            return;
+        }
+    }
+}
+
 void Window::quitClicked()
 {
     close();
@@ -130,6 +144,7 @@ void Window::listpeers(QString hname, QString ipaddr)
     strcpy(peers[i].c_ipaddr, ipstr);
     peersLen++;
     assignSocket(&(peers[i]));
+    m_serv2->new_fds(peers[i].socketdescriptor);
     sortPeers();
     displayPeers();
 
