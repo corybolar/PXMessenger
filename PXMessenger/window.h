@@ -33,6 +33,7 @@ private slots:
     void new_client(int s, QString ipaddr);
     void peerQuit(int s);
     void potentialReconnect(QString ipaddr);
+    void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
@@ -40,15 +41,15 @@ private:
     QTextEdit *m_textedit;
     QTextBrowser *m_textbrowser;
     QLineEdit *m_lineedit;
-    QComboBox *m_combobox;
+    //QComboBox *m_combobox;
     QLineEdit *m_sendDebug;
     QPushButton *m_sendDebugButton;
     QListWidget *m_listwidget;
     mess_client *m_client;
-    std::vector<QListWidgetItem> qlistpeers;
+    //std::vector<QListWidgetItem> qlistpeers;
     std::vector<QString> textWindow;
     int socketfd;
-    QStringList whname, wipaddr;
+    //QStringList whname, wipaddr;
     peerlist peers[255];
     void sortPeers();
     void displayPeers();

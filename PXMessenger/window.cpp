@@ -55,9 +55,9 @@ Window::Window(QWidget *parent) : QWidget(parent)
     m_button2 = new QPushButton("Discover", this);
     m_button2->setGeometry(10, 430, 80, 30);
 
-    m_combobox = new QComboBox(this);
-    m_combobox->setGeometry(410, 50, 200, 30);
-    m_combobox->setDuplicatesEnabled(false);
+    //m_combobox = new QComboBox(this);
+    //m_combobox->setGeometry(410, 50, 200, 30);
+    //m_combobox->setDuplicatesEnabled(false);
     //m_combobox->addItem(tr("item 1"));
 
     m_listwidget = new QListWidget(this);
@@ -75,6 +75,7 @@ Window::Window(QWidget *parent) : QWidget(parent)
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
     QObject::connect(m_sendDebugButton, SIGNAL (clicked()), this, SLOT (debugClicked()));
     QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
+    QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
 
     mess_discover *m_disc = new mess_discover();
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
@@ -90,6 +91,12 @@ Window::Window(QWidget *parent) : QWidget(parent)
     sleep(1);
     this->udpSend("/discover");
 }
+void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
+{
+    m_textbrowser->setText(peers[m_listwidget->row(item1)].textBox);
+    return;
+}
+
 void Window::potentialReconnect(QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -252,33 +259,33 @@ void Window::closeEvent(QCloseEvent *event)
  * */
 void Window::displayPeers()
 {
-    if(peersLen == m_combobox->count())
+    if(peersLen == m_listwidget->count())
     {
         for(int i = 0; i < peersLen; i++)
         {
-            m_combobox->setItemText(i, peers[i].hostname);
+            //m_combobox->setItemText(i, peers[i].hostname);
             //qlistpeers[i].setText(peers[i].hostname);
             m_listwidget->item(i)->setText(peers[i].hostname);
         }
     }
-    if(peersLen < m_combobox->count())
+    if(peersLen < m_listwidget->count())
     {
         for(int i = 0; i < peersLen; i++)
         {
-            m_combobox->setItemText(i, peers[i].hostname);
+            //m_combobox->setItemText(i, peers[i].hostname);
             m_listwidget->item(i)->setText(peers[i].hostname);
         }
-        m_combobox->removeItem(peersLen+1);
+        //m_combobox->removeItem(peersLen+1);
         m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
-    if(peersLen > m_combobox->count())
+    if(peersLen > m_listwidget->count())
     {
         for(int i = 0; i < peersLen-1; i++)
         {
-            m_combobox->setItemText(i, peers[i].hostname);
+            //m_combobox->setItemText(i, peers[i].hostname);
             m_listwidget->item(i)->setText(peers[i].hostname);
         }
-        m_combobox->addItem(peers[peersLen-1].hostname);
+        //m_combobox->addItem(peers[peersLen-1].hostname);
         m_listwidget->addItem(peers[peersLen-1].hostname);
         if(m_listwidget->count() == 1)
         {
@@ -372,7 +379,7 @@ void Window::buttonClicked()
 void Window::print(const QString str, int peerindex)
 {
     //peers[peerindex].textBox = peers[peerindex].textBox + str + "\n";
-    peers[peerindex].textBox.append(str);
+    peers[peerindex].textBox.append(str + "\n");
     if(peerindex == m_listwidget->currentRow())
     {
         //m_textbrowser->setText(m_textbrowser->toPlainText() + str + "\n");
