@@ -172,25 +172,5 @@ int mess_serv::listener()
             }
         }
     }
-    /*while((new_fd = accept_new(socketfd, &their_addr))){
-    char s[INET_ADDRSTRLEN];
-
-    socklen_t addr_size2 = sizeof(their_addr);
-    getpeername(new_fd, (struct sockaddr*)&their_addr, &addr_size2);
-    struct sockaddr_in *socketfd2 = (struct sockaddr_in *)&their_addr;
-    inet_ntop(AF_INET, &socketfd2->sin_addr, s, sizeof s);
-
-    mess_recieve *p = new mess_recieve(QString::fromUtf8(s), new_fd);
-    threads << p;
-    socketDesc.push_back(new_fd);
-    QObject::connect(p, SIGNAL (mess_rec2(const QString)), this, SLOT (mess_rec3(const QString)));
-    p->start();
-    }
-    */
     return 0;
-}
-void mess_serv::mess_rec3(const QString s)
-{
-    qDebug() << s;
-    //emit mess_rec(s);
 }

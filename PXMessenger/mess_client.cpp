@@ -18,12 +18,6 @@ mess_client::mess_client()
 {
 
 }
-void mess_client::setMsg(const char *msg)
-{
-    fmsg = new char[strlen(msg)];
-    strncpy(fmsg, msg, strlen(msg));
-    return;
-}
 void mess_client::setHost(const char *host)
 {
 

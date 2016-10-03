@@ -9,10 +9,10 @@ class mess_discover : public QThread
 public:
     mess_discover();
     void run();
-    void d_listener();
+    void d_listener();								//Listen for UDP packets
 signals:
-    void mess_peers(QString hname, QString ipaddr);
-    void potentialReconnect(QString);
+    void mess_peers(QString hname, QString ipaddr);	//return info of discovered peers hostname and ip address
+    void potentialReconnect(QString);				//return hostname of a potential reconnected peer
 };
 
 #endif // MESS_DISCOVER_H
