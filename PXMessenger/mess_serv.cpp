@@ -103,16 +103,16 @@ int mess_serv::listener()
             }
             read_fds = master;
             write_fds = master;
-            status = select(fdmax+1, &read_fds, &write_fds, NULL, &tv);
+            status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
             tv.tv_sec = 0;
             tv.tv_usec = 250000;
         }
         for(int i = 0; i <= fdmax; i++)
         {
-            if(FD_ISSET(i, &write_fds))
+            /*if(FD_ISSET(i, &write_fds))
             {
                 std::cout << "socket number: " << i << " is ready to write!" << std::endl;
-            }
+            }*/
             if(FD_ISSET(i, &read_fds))
             {
                 if(i == socketfd)

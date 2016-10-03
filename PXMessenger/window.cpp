@@ -93,7 +93,7 @@ void Window::new_client(int s, QString ipaddr)
         if(strcmp(peers[i].c_ipaddr, ipaddr.toStdString().c_str()) == 0)
         {
             peers[i].socketdescriptor = s;
-            this->assignSocket(&(peers[i]));
+            //this->assignSocket(&(peers[i]));
             peers[i].isConnected = true;
             return;
         }
