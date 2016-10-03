@@ -16,7 +16,6 @@
 #define BACKLOG 20
 //fd_set master;
 //fd_set read_fds;
-int fdmax;
 mess_serv::mess_serv()
 {
 
@@ -38,7 +37,7 @@ int mess_serv::accept_new(int socketfd, sockaddr_storage *their_addr)
     result = (accept(socketfd, (struct sockaddr *)&their_addr, &addr_size));
     char ipstr[INET6_ADDRSTRLEN];
     inet_ntop(AF_INET, &(((struct sockaddr_in*)&their_addr)->sin_addr), ipstr, sizeof(ipstr));
-    emit new_client(socketfd, QString::fromUtf8(ipstr, strlen(ipstr)));
+    emit new_client(result, QString::fromUtf8(ipstr, strlen(ipstr)));
     return result;
 }
 
@@ -84,6 +83,7 @@ int mess_serv::listener()
         perror("listen error: ");
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
     FD_SET(socketfd, &master);
     int nbytes;
     struct timeval tv;
@@ -102,12 +102,17 @@ int mess_serv::listener()
                 perror("select:");
             }
             read_fds = master;
-            status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
+            write_fds = master;
+            status = select(fdmax+1, &read_fds, &write_fds, NULL, &tv);
             tv.tv_sec = 0;
             tv.tv_usec = 250000;
         }
         for(int i = 0; i <= fdmax; i++)
         {
+            if(FD_ISSET(i, &write_fds))
+            {
+                std::cout << "socket number: " << i << " is ready to write!" << std::endl;
+            }
             if(FD_ISSET(i, &read_fds))
             {
                 if(i == socketfd)

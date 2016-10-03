@@ -20,7 +20,8 @@ public:
     std::vector<int> socketDesc;
     int set_fdmax(int m);
     void update_fds(int s);
-    fd_set master, read_fds;
+    fd_set master, read_fds, write_fds;
+    int fdmax;
     void new_fds(int s);
 signals:
     void mess_rec(const QString);
