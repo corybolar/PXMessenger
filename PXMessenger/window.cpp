@@ -158,7 +158,7 @@ void Window::listpeers(QString hname, QString ipaddr)
     strcpy(peers[i].c_ipaddr, ipstr);
     peersLen++;
     assignSocket(&(peers[i]));
-    m_serv2->update_fds(peers[i].socketdescriptor);
+    //m_serv2->update_fds(peers[i].socketdescriptor);
     sortPeers();
     displayPeers();
 
@@ -297,13 +297,14 @@ void Window::buttonClicked()
     m_client->setHost(m_lineedit->text().toStdString().c_str());
     if(!(peers[index].isConnected))
     {
-        s_socket = socket(AF_INET, SOCK_STREAM, 0);
+        //s_socket = socket(AF_INET, SOCK_STREAM, 0);
         if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
         {
             this->print("Could not connect to " + QString::number(peers[index].socketdescriptor));
             return;
         }
         peers[index].isConnected = true;
+        m_serv2->update_fds(s_socket);
     }
     if(strcmp(c_str, "") != 0)
     {

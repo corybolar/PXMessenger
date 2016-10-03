@@ -141,6 +141,7 @@ int mess_serv::listener()
                         {
                             perror("recv");
                         }
+                        //goto skiptest;
                         close(i);
                         FD_CLR(i, &master);
                     }
@@ -163,6 +164,9 @@ int mess_serv::listener()
                         }
                         emit mess_rec(QString::fromUtf8(hostn, strlen(hostn)) + ": " + QString::fromUtf8(mes, strlen(mes)));
                     }
+                    skiptest:
+                    int debug = 0;
+                    debug = i;
                 }
             }
         }
