@@ -23,22 +23,14 @@
 
 #define PORT "3490"
 #define BACKLOG 20
-//Q_DECLARE_METATYPE(plistNS::plist);
 
 Window::Window(QWidget *parent) : QWidget(parent)
 {
-    //qRegisterMetaType<plist>("plist");
     setFixedSize(700,500);
-    //socketfd = m_client->c_connect();
 
     char name[128];
     gethostname(name, sizeof name);
 
-    //char hostnames[28];
-    //char comps[256][28];
-    //discover();
-    //strcpy(comps[0], "hello");
-    //qDebug() << comps[0];
     m_textedit = new QTextEdit(this);
     m_textedit->setGeometry(10, 250, 380, 100);
 
@@ -51,19 +43,12 @@ Window::Window(QWidget *parent) : QWidget(parent)
 
     m_button = new QPushButton("Send", this);
     m_button->setGeometry(10,370,80,30);
-    //m_button->setCheckable(true);
     m_button2 = new QPushButton("Discover", this);
     m_button2->setGeometry(10, 430, 80, 30);
 
-    //m_combobox = new QComboBox(this);
-    //m_combobox->setGeometry(410, 50, 200, 30);
-    //m_combobox->setDuplicatesEnabled(false);
-    //m_combobox->addItem(tr("item 1"));
 
     m_listwidget = new QListWidget(this);
     m_listwidget->setGeometry(410, 100, 200, 300);
-    //m_sendDebug = new QLineEdit(this);
-    //m_sendDebug->setGeometry(410, 100, 200, 30);
 
     m_sendDebugButton = new QPushButton("Send Debug", this);
     m_sendDebugButton->setGeometry(200, 370, 80, 30);
