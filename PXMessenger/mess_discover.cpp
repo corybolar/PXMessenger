@@ -57,15 +57,21 @@ void mess_discover::d_listener()
             addr.sin_family = AF_INET;
             addr.sin_addr.s_addr = si_other.sin_addr.s_addr;
             addr.sin_port = htons(PORT);
-            char name[28];
+            char name[28] = {};
             gethostname(name, sizeof name);
-            char fname[34];
-            strcpy(fname, "/name:");
+            char fname[34] = {};
+            strcpy(fname, "/name:\0");
             strcat(fname, name);
             int len = strlen(fname);
 
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
             emit potentialReconnect(QString::fromUtf8(ipstr));
+            char tname[strlen(buf)-9] = {};
+            for(int i = 9; i < strlen(buf);i++)
+            {
+                tname[i-9] = buf[i];
+            }
+            emit mess_peers(QString::fromUtf8(tname), QString::fromUtf8(ipstr));
             close(socket1);
         }
         int status;

@@ -89,7 +89,10 @@ Window::Window(QWidget *parent) : QWidget(parent)
     m_serv2->start();
 
     sleep(1);
-    this->udpSend("/discover");
+    char discovermess[138];
+    strncpy(discovermess, "/discover\0", 10);
+    strcat(discovermess, name);
+    this->udpSend(discovermess);
 }
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {

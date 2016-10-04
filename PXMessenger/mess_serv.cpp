@@ -14,8 +14,6 @@
 
 #define PORT "3490"
 #define BACKLOG 20
-//fd_set master;
-//fd_set read_fds;
 mess_serv::mess_serv()
 {
 
@@ -63,6 +61,7 @@ int mess_serv::set_fdmax(int m)
 int mess_serv::listener()
 {
     int new_fd;
+    int yes = 1;
     struct sockaddr_storage their_addr;
     struct addrinfo hints, *res;
 
@@ -75,16 +74,17 @@ int mess_serv::listener()
 
     if((socketfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
         perror("socket error: ");
-    int yes = 1;
     setsockopt(socketfd, SOL_SOCKET,SO_REUSEADDR, &yes, sizeof(int));
     if(bind(socketfd, res->ai_addr, res->ai_addrlen) < 0)
         perror("bind error: ");
     if(listen(socketfd, BACKLOG) < 0)
         perror("listen error: ");
+
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
     FD_SET(socketfd, &master);
+
     int nbytes;
     struct timeval tv;
     tv.tv_sec = 0;
@@ -109,10 +109,6 @@ int mess_serv::listener()
         }
         for(int i = 0; i <= fdmax; i++)
         {
-            /*if(FD_ISSET(i, &write_fds))
-            {
-                std::cout << "socket number: " << i << " is ready to write!" << std::endl;
-            }*/
             if(FD_ISSET(i, &read_fds))
             {
                 if(i == socketfd)
@@ -141,7 +137,6 @@ int mess_serv::listener()
                         {
                             perror("recv");
                         }
-                        //goto skiptest;
                         emit peerQuit(i);
                         close(i);
                         FD_CLR(i, &master);
@@ -165,9 +160,6 @@ int mess_serv::listener()
                         }
                         emit mess_rec(QString::fromUtf8(hostn, strlen(hostn)) + ": " + QString::fromUtf8(mes, strlen(mes)) + " on socket: " + QString::number(i), i);
                     }
-                    skiptest:
-                    int debug = 0;
-                    debug = i;
                 }
             }
         }
