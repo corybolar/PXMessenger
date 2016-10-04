@@ -107,6 +107,9 @@ void Window::potentialReconnect(QString ipaddr)
         if( ( (QString::fromUtf8(peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
         {
             this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i);
+            QFont mfont = m_listwidget->item(i)->font();
+            mfont.setItalic(false);
+            m_listwidget->item(i)->setFont(mfont);
         }
     }
 }
@@ -118,6 +121,10 @@ void Window::peerQuit(int s)
         if(peers[i].socketdescriptor == s)
         {
             peers[i].isConnected = 0;
+            QFont mfont = m_listwidget->item(i)->font();
+            mfont.setItalic(true);
+            m_listwidget->item(i)->setFont(mfont);
+            //m_listwidget->item(i)->font().setItalic(true);
             peers[i].socketisValid = 0;
             this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i);
             this->assignSocket(&peers[i]);
