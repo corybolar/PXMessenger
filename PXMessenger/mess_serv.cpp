@@ -155,7 +155,7 @@ int mess_serv::listener()
                         struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
                         inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
 
-                        emit mess_rec(QString::fromUtf8(mes, strlen(mes)) + " on socket: " + QString::number(i), ipstr2);
+                        emit mess_rec(QString::fromUtf8(mes, strlen(mes)) + " | on socket: " + QString::number(i), ipstr2);
                     }
                 }
             }

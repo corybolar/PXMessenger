@@ -245,27 +245,22 @@ void Window::displayPeers()
     {
         for(int i = 0; i < peersLen; i++)
         {
-            //m_combobox->setItemText(i, peers[i].hostname);
             m_listwidget->item(i)->setText(peers[i].hostname);
         }
-        //m_combobox->removeItem(peersLen+1);
         m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
     if(peersLen > m_listwidget->count())
     {
         for(int i = 0; i < peersLen-1; i++)
         {
-            //m_combobox->setItemText(i, peers[i].hostname);
             m_listwidget->item(i)->setText(peers[i].hostname);
         }
-        //m_combobox->addItem(peers[peersLen-1].hostname);
         m_listwidget->addItem(peers[peersLen-1].hostname);
         if(m_listwidget->count() == 1)
         {
             m_listwidget->setCurrentItem(m_listwidget->item(0));
         }
     }
-    std::cout << sizeof(peers[0]) << std::endl;
     return;
 
 }
@@ -325,7 +320,6 @@ void Window::buttonClicked()
     {
         if(!(peers[index].isConnected))
         {
-            //s_socket = socket(AF_INET, SOCK_STREAM, 0);
             if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
             {
                 this->print("Could not connect to " + peers[index].hostname + " on socket " + QString::number(peers[index].socketdescriptor), index);
@@ -354,11 +348,9 @@ void Window::buttonClicked()
 }
 void Window::print(const QString str, int peerindex)
 {
-    //peers[peerindex].textBox = peers[peerindex].textBox + str + "\n";
     peers[peerindex].textBox.append(str + "\n");
     if(peerindex == m_listwidget->currentRow())
     {
-        //m_textbrowser->setText(m_textbrowser->toPlainText() + str + "\n");
         m_textbrowser->append(str);
     }
     return;
