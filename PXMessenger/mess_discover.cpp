@@ -66,8 +66,8 @@ void mess_discover::d_listener()
 
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
             emit potentialReconnect(QString::fromUtf8(ipstr));
-            char tname[strlen(buf)-9] = {};
-            for(int i = 9; i < strlen(buf);i++)
+            char tname[strlen(buf)-8] = {};
+            for(int i = 9; i < strlen(buf)+1;i++)
             {
                 tname[i-9] = buf[i];
             }
