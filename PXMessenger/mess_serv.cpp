@@ -80,6 +80,7 @@ int mess_serv::listener()
     if(listen(socketfd, BACKLOG) < 0)
         perror("listen error: ");
 
+    freeaddrinfo(res);
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);

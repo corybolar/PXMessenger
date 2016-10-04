@@ -55,8 +55,10 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
     if( (status = connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
     {
         std::cout << strerror(errno) << std::endl;
+        freeaddrinfo(res);
         return -1;
     }
+    freeaddrinfo(res);
     return socketfd;
 }
 int mess_client::send_msg(int socketfd, const char *msg, const char *ipaddr)

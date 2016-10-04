@@ -49,11 +49,10 @@ Window::Window(QWidget *parent) : QWidget(parent)
     m_listwidget = new QListWidget(this);
     m_listwidget->setGeometry(410, 100, 200, 300);
 
-    m_sendDebugButton = new QPushButton("Send Debug", this);
-    m_sendDebugButton->setGeometry(200, 370, 80, 30);
-
     m_quitButton = new QPushButton("Quit Debug", this);
     m_quitButton->setGeometry(200, 430, 80, 30);
+
+    m_client = new mess_client();
 
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
@@ -64,16 +63,20 @@ Window::Window(QWidget *parent) : QWidget(parent)
     m_disc = new mess_discover();
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
     QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
+    QObject::connect(m_disc, SIGNAL (finished()), m_disc, SLOT (deleteLater()));
     m_disc->start();
 
     m_serv2 = new mess_serv();
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, int)), this, SLOT (prints(const QString, int)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
+    QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     m_serv2->start();
+
 
     sleep(1);
     char discovermess[138];
+    memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
     this->udpSend(discovermess);
@@ -135,36 +138,6 @@ void Window::quitClicked()
     close();
 }
 
-void Window::debugClicked()
-{
-    std::string str = m_textedit->toPlainText().toStdString();
-    const char* c_str = str.c_str();
-    //int index = m_combobox->currentIndex();
-    //const char* ipstr = (wipaddr[(m_combobox->currentIndex())]).toStdString().c_str();
-    int s_socket = socket(AF_INET, SOCK_STREAM, 0);
-    int optval;
-    int s5;
-    socklen_t optlen;
-    s5 = getsockopt(s_socket, SOL_SOCKET, SO_PROTOCOL, &optval, &optlen);
-    switch (optval)
-    {
-    case IPPROTO_TCP:
-        std::cout << "IPPROTO_TCP" << std::endl;
-        break;
-    default:
-        std::cout << "not" << std::endl;
-        break;
-    }
-    //const char * ipaddr = m_sendDebug->text().toStdString().c_str();
-    if(m_client->c_connect(s_socket, m_sendDebug->text().toStdString().c_str()) < 0)
-    {
-        //this->print("Could not connect to " + m_sendDebug->text(), peers);
-        return;
-    }
-
-    m_client->setHost(m_lineedit->text().toStdString().c_str());
-    m_client->send_msg(s_socket, c_str, m_sendDebug->text().toStdString().c_str());
-}
 /* This is the function called when mess_discover recieves a udp packet starting with "/name:"
  * here we check to see if the ip of the selected host is already in the peers array and if not
  * add it.  peers is then sorted and displayed to the gui.  QStrings are used for ease of
@@ -246,6 +219,7 @@ void Window::closeEvent(QCloseEvent *event)
     }
     m_serv2->quit();
     m_disc->quit();
+    delete m_client;
 }
 
 /*Display peers array of hostnames to the QComboBox, m_combobox

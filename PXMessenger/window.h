@@ -32,7 +32,6 @@ private slots:
     void prints(QString str, int s);										//calls print, currently identifys recipient based on socket descriptor, needs revision
     void listpeers(QString hname, QString ipaddr);							//Add new peers to the peerlist struct array and call the sort/display functions
     void discoverClicked();													//Discover button event
-    void debugClicked();													//obsolete
     void quitClicked();														//quit button, used to test the various destructors and close event
     void new_client(int s, QString ipaddr);									//Networking
     void peerQuit(int s);													//Connected client disconnected
@@ -45,7 +44,6 @@ private:
     QTextEdit *m_textedit;
     QTextBrowser *m_textbrowser;
     QLineEdit *m_lineedit;
-    QLineEdit *m_sendDebug;
     QPushButton *m_sendDebugButton;
     QListWidget *m_listwidget;
     mess_client *m_client;
@@ -59,7 +57,7 @@ private:
     int peersLen = 0;														//Length of peers array
     void closeEvent(QCloseEvent *event);									//Close event handler
     mess_serv *m_serv2;
-    char name[128];
+    char name[128] = {};
 signals:
 
 public slots:
