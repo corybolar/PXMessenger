@@ -57,7 +57,7 @@ Window::Window(QWidget *parent) : QWidget(parent)
 
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
-    QObject::connect(m_sendDebugButton, SIGNAL (clicked()), this, SLOT (debugClicked()));
+    //QObject::connect(m_sendDebugButton, SIGNAL (clicked()), this, SLOT (debugClicked()));
     QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
     QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
 
