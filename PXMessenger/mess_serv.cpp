@@ -144,22 +144,18 @@ int mess_serv::listener()
                     }
                     else
                     {
-                        char hostn[12] = {};
-                        char mes[244] = {};
-                        strncat(hostn, buf, 12);
-                        int hostnLen = strlen(hostn);
-                        for(int k = 0; k < hostnLen; k++)
-                        {
-                            if(hostn[k] == ' ')
-                            {
-                                hostn[k] = '\0';
-                            }
-                        }
-                        for(int k = 12; ( ( k < 255) && (buf[k] != '\0') ); k++)
-                        {
-                            mes[k-12] = buf[k];
-                        }
-                        emit mess_rec(QString::fromUtf8(hostn, strlen(hostn)) + ": " + QString::fromUtf8(mes, strlen(mes)) + " on socket: " + QString::number(i), i);
+                        char mes[nbytes] = {};
+                        struct sockaddr_storage addr;
+                        socklen_t socklen = sizeof(addr);
+                        char ipstr2[INET6_ADDRSTRLEN];
+
+                        strcpy(mes, buf);
+
+                        getpeername(i, (struct sockaddr*)&addr, &socklen);
+                        struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
+                        inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
+
+                        emit mess_rec(QString::fromUtf8(mes, strlen(mes)) + " on socket: " + QString::number(i), ipstr2);
                     }
                 }
             }

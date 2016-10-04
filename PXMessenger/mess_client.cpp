@@ -12,8 +12,8 @@
 #include "mess_client.h"
 #define PORT "3490"
 
-char *fmsg;
-char fhost[13];
+//char *fmsg;
+char fhost[12];
 mess_client::mess_client()
 {
 
@@ -21,7 +21,7 @@ mess_client::mess_client()
 void mess_client::setHost(const char *host)
 {
 
-    for(int i = 0; i < 13; i++)
+    for(int i = 0; i < 12; i++)
     {
         fhost[i] = ' ';
     }
@@ -61,28 +61,22 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
     freeaddrinfo(res);
     return socketfd;
 }
-int mess_client::send_msg(int socketfd, const char *msg, const char *ipaddr)
+int mess_client::send_msg(int socketfd, const char *msg, const char *host)
 {
     //this->c_connect(socketfd, ipaddr);
-    int len, bytes_sent;
+    int len, bytes_sent, sendcount = 0;
 
-    if( strcmp(msg, "exit") == 0 )
+    if( ( strcmp(msg, "exit") == 0 ) && ( strlen(msg) == 4 ) )
     {
         return -1;
     }
-    len = strlen(msg) + 13;
-    char full_mess[len];
-    for(int i = 0; i < len; i++)
-    {
-        full_mess[i]=' ';
-    }
-    strncpy(full_mess, fhost, strlen(fhost));
-    int len2 = strlen(fhost);
-    for(int i = len2; i < len; i++)
-    {
-        full_mess[i] = msg[i-len2];
-    }
-    bytes_sent = this->partialSend(socketfd, full_mess, len);
+    len = strlen(msg) + strlen(host) + 3;
+    char full_mess[len] = {};
+    strncpy(full_mess, host, strlen(host));
+    full_mess[strlen(host)] = ':';
+    full_mess[strlen(host)+1] = ' ';
+    strcat(full_mess, msg);
+    bytes_sent = this->partialSend(socketfd, full_mess, len, sendcount);
     if(bytes_sent >= 0)
     {
         if(bytes_sent >= len)
@@ -91,7 +85,7 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *ipaddr)
         }
         else
         {
-            //ADD code to resend partial send; while loop needed
+            std::cout << "Partial Send has failed not all bytes sent" << std::endl;
         }
     }
     else
@@ -104,10 +98,22 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *ipaddr)
     }
     return bytes_sent;
 }
-int mess_client::partialSend(int socketfd, const char *msg, int len)
+/*This function recursively sends all data in case the kernel fails to do so in one pass*/
+/*Recieving this has not yet been implemented, sending a constant buffer size could help fix this in the future.*/
+int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
 {
+    int status2 = 0;
     int status = send(socketfd, msg, len, MSG_NOSIGNAL);
+    if( ( status != len ) && ( count < 10 ) )
+    {
+        int len2 = len - status;
+        char msg2[len2];
+        strncpy(msg2, &msg[status], len2);
+        count++;
+
+        status2 = partialSend(socketfd, msg2, len2, count);
+    }
     if(status < 1)
         perror("send:");
-    return status;
+    return status + status2;
 }

@@ -68,7 +68,7 @@ Window::Window()
     m_disc->start();
 
     m_serv2 = new mess_serv();
-    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, int)), this, SLOT (prints(const QString, int)) );
+    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString)), this, SLOT (prints(const QString, const QString)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
@@ -210,6 +210,8 @@ void Window::sortPeers()
 }
 void Window::closeEvent(QCloseEvent *event)
 {
+    m_serv2->quit();
+    m_disc->quit();
     for(int i = 0; i < 3; i++)
     {
         this->udpSend("/exit");
@@ -218,8 +220,6 @@ void Window::closeEvent(QCloseEvent *event)
     {
         ::close(peers[i].socketdescriptor);
     }
-    m_serv2->quit();
-    m_disc->quit();
     delete m_client;
     event->accept();
 }
@@ -336,7 +336,7 @@ void Window::buttonClicked()
         }
         if(strcmp(c_str, "") != 0)
         {
-            if((m_client->send_msg(s_socket, c_str, peers[index].c_ipaddr)) == -5)
+            if((m_client->send_msg(s_socket, c_str, peers[index].hostname.toStdString().c_str())) == -5)
             {
                 this->print("Peer has closed connection, send failed", index);
                 return;
@@ -363,11 +363,11 @@ void Window::print(const QString str, int peerindex)
     }
     return;
 }
-void Window::prints(const QString str, int s)
+void Window::prints(const QString str, const QString ipstr)
 {
     for(int i = 0; i < peersLen; i++)
     {
-        if(s == peers[i].socketdescriptor)
+        if(ipstr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
         {
             this->print(str, i);
             return;
