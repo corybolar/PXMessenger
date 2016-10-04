@@ -61,7 +61,7 @@ Window::Window(QWidget *parent) : QWidget(parent)
     QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
     QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
 
-    mess_discover *m_disc = new mess_discover();
+    m_disc = new mess_discover();
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
     QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
     m_disc->start();
@@ -244,6 +244,8 @@ void Window::closeEvent(QCloseEvent *event)
     {
         ::close(peers[i].socketdescriptor);
     }
+    m_serv2->quit();
+    m_disc->quit();
 }
 
 /*Display peers array of hostnames to the QComboBox, m_combobox
