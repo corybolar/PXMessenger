@@ -1,15 +1,26 @@
 # PXMessenger
-P2P cross platform home or small office instant messenger.  Written in QT.
+=============
+###P2P cross platform home or small office instant messenger.  Written in QT.
 
-Dependencies:
+
+####Dependencies:
+
 qt5
+
 gcc
 
-BUILD INSTRUCTIONS
+
+####BUILD INSTRUCTIONS
+
 git clone
+
 cd ./PXMessenger/PXMessenger
+
 qmake
+
 make
+
 ./PXMessenger
 
-UNDER HEAVY DEVELOPMENT
+
+##UNDER HEAVY DEVELOPMENT
