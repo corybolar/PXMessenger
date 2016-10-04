@@ -20,11 +20,12 @@
 #include <resolv.h>
 #include <sys/fcntl.h>
 #include <peerlist.h>
+#include <QCloseEvent>
 
 #define PORT "3490"
 #define BACKLOG 20
 
-Window::Window(QWidget *parent) : QWidget(parent)
+Window::Window()
 {
     setFixedSize(700,500);
 
@@ -220,6 +221,7 @@ void Window::closeEvent(QCloseEvent *event)
     m_serv2->quit();
     m_disc->quit();
     delete m_client;
+    event->accept();
 }
 
 /*Display peers array of hostnames to the QComboBox, m_combobox

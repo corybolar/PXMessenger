@@ -24,9 +24,12 @@ class Window : public QWidget
     Q_OBJECT
 
 public:
-    explicit Window(QWidget *parent = 0);
+    Window();
     void print(QString str, int peerindex);									//Updates the main text box and stores text history in peerlist struct
     void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
+protected:
+    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;									//Close event handler
+
 private slots:
     void buttonClicked();													//Send button event
     void prints(QString str, int s);										//calls print, currently identifys recipient based on socket descriptor, needs revision
@@ -55,7 +58,6 @@ private:
     void displayPeers();													//update the QListWidget to show the connected peers
     void assignSocket(struct peerlist *p);									//Give socket value to peerlist array member
     int peersLen = 0;														//Length of peers array
-    void closeEvent(QCloseEvent *event);									//Close event handler
     mess_serv *m_serv2;
     char name[128] = {};
 signals:
