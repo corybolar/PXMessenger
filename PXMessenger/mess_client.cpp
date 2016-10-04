@@ -12,27 +12,9 @@
 #include "mess_client.h"
 #define PORT "3490"
 
-//char *fmsg;
-char fhost[12];
 mess_client::mess_client()
 {
 
-}
-void mess_client::setHost(const char *host)
-{
-
-    for(int i = 0; i < 12; i++)
-    {
-        fhost[i] = ' ';
-    }
-    for(int i = 0; i < 12; i++)
-    {
-        if(host[i] != '\0')
-            fhost[i] = host[i];
-        else
-            break;
-    }
-    return;
 }
 
 int mess_client::c_connect(int socketfd, const char *ipaddr)
@@ -63,20 +45,24 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
 }
 int mess_client::send_msg(int socketfd, const char *msg, const char *host)
 {
-    //this->c_connect(socketfd, ipaddr);
     int len, bytes_sent, sendcount = 0;
 
     if( ( strcmp(msg, "exit") == 0 ) && ( strlen(msg) == 4 ) )
     {
         return -1;
     }
+
+    //Combine strings into final message (host): (msg)\0
+
     len = strlen(msg) + strlen(host) + 3;
     char full_mess[len] = {};
     strncpy(full_mess, host, strlen(host));
     full_mess[strlen(host)] = ':';
     full_mess[strlen(host)+1] = ' ';
     strcat(full_mess, msg);
+
     bytes_sent = this->partialSend(socketfd, full_mess, len, sendcount);
+
     if(bytes_sent >= 0)
     {
         if(bytes_sent >= len)

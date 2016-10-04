@@ -27,6 +27,7 @@
 
 Window::Window()
 {
+    char discovermess[138];
     setFixedSize(700,500);
 
     gethostname(name, sizeof name);
@@ -76,7 +77,7 @@ Window::Window()
 
 
     sleep(1);
-    char discovermess[138];
+
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
@@ -182,8 +183,8 @@ void Window::sortPeers()
         int i = peersLen-1;
         for( ; i > 0; i-- )
         {
-            char temp1[28];
-            char temp2[28];
+            char temp1[28] = {};
+            char temp2[28] = {};
 
             strcpy(temp1, (peers[i].hostname.toStdString().c_str()));
             strcpy(temp2, (peers[i-1].hostname.toStdString().c_str()));
@@ -291,22 +292,22 @@ void Window::discoverClicked()
  * this will only send to computers in the 255.255.255.0 subnet*/
 void Window::udpSend(const char* msg)
 {
-    //int status;
+    int len;
+    int t1 = 1;
     int port2 = 3491;
     struct sockaddr_in broadaddr;
     int socketfd2;
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
         perror("socket:");
-    int t1 = 1;
+    t1 = 1;
     if (setsockopt(socketfd2, SOL_SOCKET, SO_BROADCAST, &t1, sizeof (int)))
         perror("setsockopt failed:");
     memset(&broadaddr, 0, sizeof(broadaddr));
     broadaddr.sin_family = AF_INET;
     broadaddr.sin_addr.s_addr = inet_addr("192.168.1.255");
     broadaddr.sin_port = htons(port2);
-    //char *msg = "/discover";
-    int len = strlen(msg);
+    len = strlen(msg);
 
     sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
 }
@@ -319,7 +320,6 @@ void Window::buttonClicked()
     int index = m_listwidget->currentRow();
 
     int s_socket = peers[index].socketdescriptor;
-    m_client->setHost(m_lineedit->text().toStdString().c_str());
 
     if(peers[index].socketisValid)
     {
