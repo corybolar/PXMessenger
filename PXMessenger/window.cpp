@@ -28,7 +28,6 @@ Window::Window(QWidget *parent) : QWidget(parent)
 {
     setFixedSize(700,500);
 
-    char name[128];
     gethostname(name, sizeof name);
 
     m_textedit = new QTextEdit(this);
@@ -287,6 +286,7 @@ void Window::displayPeers()
             m_listwidget->setCurrentItem(m_listwidget->item(0));
         }
     }
+    std::cout << sizeof(peers[0]) << std::endl;
     return;
 
 }
@@ -303,7 +303,10 @@ void Window::assignSocket(struct peerlist *p)
 /* dummy function to allow discoverSend to be called on its own */
 void Window::discoverClicked()
 {
-    this->udpSend("/discover");
+    char discovermess[138];
+    strncpy(discovermess, "/discover\0", 10);
+    strcat(discovermess, name);
+    this->udpSend(discovermess);
 }
 
 /*Send the "/discover" message to the local networks broadcast address

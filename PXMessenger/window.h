@@ -57,6 +57,7 @@ private:
     int peersLen = 0;														//Length of peers array
     void closeEvent(QCloseEvent *event);									//Close event handler
     mess_serv *m_serv2;
+    char name[128];
 signals:
 
 public slots:
