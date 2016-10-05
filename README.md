@@ -24,3 +24,5 @@ make
 
 
 ##UNDER HEAVY DEVELOPMENT
+
+At this time a windows compatible build and source code is under the windows branch, not yet unified
