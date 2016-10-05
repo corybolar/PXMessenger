@@ -18,6 +18,7 @@
 #include <peerlist.h>
 #include <mess_serv.h>
 #include <mess_discover.h>
+#include <mess_textedit.h>
 
 class Window : public QWidget
 {
@@ -25,7 +26,7 @@ class Window : public QWidget
 
 public:
     Window();
-    void print(QString str, int peerindex);									//Updates the main text box and stores text history in peerlist struct
+    void print(QString str, int peerindex, bool message);									//Updates the main text box and stores text history in peerlist struct
     void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;									//Close event handler
@@ -44,7 +45,7 @@ private:
     QPushButton *m_button;
     QPushButton *m_button2;
     QPushButton *m_quitButton;
-    QTextEdit *m_textedit;
+    mess_textedit *m_textedit;
     QTextBrowser *m_textbrowser;
     QLineEdit *m_lineedit;
     QPushButton *m_sendDebugButton;
@@ -60,6 +61,8 @@ private:
     int peersLen = 0;														//Length of peers array
     mess_serv *m_serv2;
     char name[128] = {};
+    void changeListColor(int row, int style);
+    void unalert(QListWidgetItem *item);
 signals:
 
 public slots:

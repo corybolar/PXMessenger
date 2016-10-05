@@ -1,6 +1,7 @@
-#include "window.h"
+#include <window.h>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QDebug>
 #include <string.h>
 #include <mess_client.h>
 #include <mess_serv.h>
@@ -21,6 +22,7 @@
 #include <sys/fcntl.h>
 #include <peerlist.h>
 #include <QCloseEvent>
+#include <mess_textedit.h>
 
 #define PORT "13653"
 #define BACKLOG 20
@@ -32,7 +34,7 @@ Window::Window()
 
     gethostname(name, sizeof name);
 
-    m_textedit = new QTextEdit(this);
+    m_textedit = new mess_textedit(this);
     m_textedit->setGeometry(10, 250, 380, 100);
 
     m_lineedit = new QLineEdit(this);
@@ -41,6 +43,7 @@ Window::Window()
 
     m_textbrowser= new QTextBrowser(this);
     m_textbrowser->setGeometry(10, 10, 380, 230);
+    m_textbrowser->setText("Use the selection pane on the right to message a FRIEND!");
 
     m_button = new QPushButton("Send", this);
     m_button->setGeometry(10,370,80,30);
@@ -58,9 +61,9 @@ Window::Window()
 
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
-    //QObject::connect(m_sendDebugButton, SIGNAL (clicked()), this, SLOT (debugClicked()));
     QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
     QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
+    QObject::connect(m_textedit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
 
     m_disc = new mess_discover();
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
@@ -83,9 +86,27 @@ Window::Window()
     strcat(discovermess, name);
     this->udpSend(discovermess);
 }
+void Window::unalert(QListWidgetItem* item)
+{
+    QString temp;
+
+    peers[m_listwidget->row(item)].alerted = false;
+    temp = item->text();
+    temp.remove(0, 3);
+    temp.remove(temp.length()-3, 3);
+    item->setText(temp);
+
+    return;
+}
+
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
     m_textbrowser->setText(peers[m_listwidget->row(item1)].textBox);
+    if(item1->backgroundColor() == QColor("red"))
+    {
+        this->changeListColor(m_listwidget->row(item1), 0);
+        this->unalert(item1);
+    }
     return;
 }
 
@@ -95,7 +116,7 @@ void Window::potentialReconnect(QString ipaddr)
     {
         if( ( (QString::fromUtf8(peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
         {
-            this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i);
+            this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
             QFont mfont = m_listwidget->item(i)->font();
             mfont.setItalic(false);
             m_listwidget->item(i)->setFont(mfont);
@@ -115,7 +136,7 @@ void Window::peerQuit(int s)
             m_listwidget->item(i)->setFont(mfont);
             //m_listwidget->item(i)->font().setItalic(true);
             peers[i].socketisValid = 0;
-            this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i);
+            this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i, false);
             this->assignSocket(&peers[i]);
         }
     }
@@ -258,7 +279,7 @@ void Window::displayPeers()
         m_listwidget->addItem(peers[peersLen-1].hostname);
         if(m_listwidget->count() == 1)
         {
-            m_listwidget->setCurrentItem(m_listwidget->item(0));
+            //m_listwidget->setCurrentItem(m_listwidget->item(0));
         }
     }
     return;
@@ -309,6 +330,11 @@ void Window::udpSend(const char* msg)
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
 void Window::buttonClicked()
 {
+    if(m_listwidget->selectedItems().count() == 0)
+    {
+        this->print("Choose a computer to message from the selection pane on the right", -1, false);
+        return;
+    }
     std::string str = m_textedit->toPlainText().toStdString();
     const char* c_str = str.c_str();
 
@@ -322,7 +348,7 @@ void Window::buttonClicked()
         {
             if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
             {
-                this->print("Could not connect to " + peers[index].hostname + " | on socket " + QString::number(peers[index].socketdescriptor), index);
+                this->print("Could not connect to " + peers[index].hostname + " | on socket " + QString::number(peers[index].socketdescriptor), index, false);
                 return;
             }
             peers[index].isConnected = true;
@@ -332,26 +358,53 @@ void Window::buttonClicked()
         {
             if((m_client->send_msg(s_socket, c_str, name)) == -5)
             {
-                this->print("Peer has closed connection, send failed", index);
+                this->print("Peer has closed connection, send failed", index, false);
                 return;
             }
-            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " | on socket: " + QString::number(peers[index].socketdescriptor), index);
+            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " | on socket: " + QString::number(peers[index].socketdescriptor), index, false);
             m_textedit->setText("");
         }
     }
     else
     {
-        this->print("Peer Disconnected", index);
+        this->print("Peer Disconnected", index, false);
         this->assignSocket(&peers[index]);
     }
     return;
 }
-void Window::print(const QString str, int peerindex)
+void Window::changeListColor(int row, int style)
 {
+    QBrush back = (m_listwidget->item(row)->background());
+    if(style == 1)
+    {
+        m_listwidget->item(row)->setBackground(Qt::red);
+    }
+    if(style == 0)
+    {
+        m_listwidget->item(row)->setBackground(Qt::white);
+    }
+    return;
+}
+
+void Window::print(const QString str, int peerindex, bool message)
+{
+    if(peerindex < 0)
+    {
+        m_textbrowser->append(str);
+        return;
+    }
     peers[peerindex].textBox.append(str + "\n");
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(str);
+    }
+    else if(message)
+    {
+        this->changeListColor(peerindex, 1);
+        if(!(peers[peerindex].alerted))
+        {
+            m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
+        }
     }
     return;
 }
@@ -361,7 +414,7 @@ void Window::prints(const QString str, const QString ipstr)
     {
         if(ipstr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
         {
-            this->print(str, i);
+            this->print(str, i, true);
             return;
         }
     }

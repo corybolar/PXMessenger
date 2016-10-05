@@ -12,6 +12,7 @@ struct peerlist{
     bool isConnected = false;
     bool socketisValid = false;
     QString textBox = "";
+    bool alerted;
 };
 
 #endif // PEERLIST_H
