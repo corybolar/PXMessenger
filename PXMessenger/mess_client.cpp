@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "mess_client.h"
-#define PORT "3490"
+#define PORT "13653"
 
 mess_client::mess_client()
 {

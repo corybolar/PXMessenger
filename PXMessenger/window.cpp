@@ -22,7 +22,7 @@
 #include <peerlist.h>
 #include <QCloseEvent>
 
-#define PORT "3490"
+#define PORT "13653"
 #define BACKLOG 20
 
 Window::Window()
@@ -289,7 +289,7 @@ void Window::udpSend(const char* msg)
 {
     int len;
     int t1 = 1;
-    int port2 = 3491;
+    int port2 = 13654;
     struct sockaddr_in broadaddr;
     int socketfd2;
 
@@ -322,7 +322,7 @@ void Window::buttonClicked()
         {
             if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
             {
-                this->print("Could not connect to " + peers[index].hostname + " on socket " + QString::number(peers[index].socketdescriptor), index);
+                this->print("Could not connect to " + peers[index].hostname + " | on socket " + QString::number(peers[index].socketdescriptor), index);
                 return;
             }
             peers[index].isConnected = true;
@@ -330,12 +330,12 @@ void Window::buttonClicked()
         }
         if(strcmp(c_str, "") != 0)
         {
-            if((m_client->send_msg(s_socket, c_str, peers[index].hostname.toStdString().c_str())) == -5)
+            if((m_client->send_msg(s_socket, c_str, name)) == -5)
             {
                 this->print("Peer has closed connection, send failed", index);
                 return;
             }
-            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " on socket: " + QString::number(peers[index].socketdescriptor), index);
+            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " | on socket: " + QString::number(peers[index].socketdescriptor), index);
             m_textedit->setText("");
         }
     }

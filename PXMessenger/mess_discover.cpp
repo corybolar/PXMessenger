@@ -11,8 +11,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#define PORT 3491
-//char nlist[256][28];
+#define PORT 13654
 
 mess_discover::mess_discover()
 {
