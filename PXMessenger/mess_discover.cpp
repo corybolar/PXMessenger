@@ -46,6 +46,7 @@ void mess_discover::d_listener()
         recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &slen);
         inet_ntop(si_other.sin_family, (struct sockaddr_in *)&si_other.sin_addr, ipstr, sizeof(ipstr));
         std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
+        int status;
         if (strncmp(buf, "/discover", 9) == 0)
         {
             struct sockaddr_in addr;
@@ -73,8 +74,7 @@ void mess_discover::d_listener()
             emit mess_peers(QString::fromUtf8(tname), QString::fromUtf8(ipstr));
             close(socket1);
         }
-        int status;
-        if ((status = strncmp(buf, "/name:", 6)) == 0)
+        else if ((status = strncmp(buf, "/name:", 6)) == 0)
         {
             char name[28];
             strcpy(name, &buf[6]);
@@ -83,6 +83,10 @@ void mess_discover::d_listener()
             ipaddr = QString::fromUtf8(ipstr);
 
             emit mess_peers(hname, ipaddr);
+        }
+        else if (( status = strncmp(buf, "/exit", 5)) == 0)
+        {
+            emit exitRecieved(QString::fromUtf8(ipstr));
         }
     }
 }

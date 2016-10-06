@@ -23,6 +23,10 @@
 #include <peerlist.h>
 #include <QCloseEvent>
 #include <QSound>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QIcon>
+#include <QAction>
 #include <mess_textedit.h>
 
 #define PORT "13653"
@@ -58,27 +62,40 @@ Window::Window()
     m_quitButton = new QPushButton("Quit Debug", this);
     m_quitButton->setGeometry(200, 430, 80, 30);
 
-    m_client = new mess_client();
+    m_trayIcon = new QIcon(":/new/prefix1/systray.png");
 
+    m_trayMenu = new QMenu(this);
+    m_exitAction = new QAction(this);
+    m_exitAction = m_trayMenu->addAction("Exit");
+
+    m_systray = new QSystemTrayIcon(this);
+    m_systray->setContextMenu(m_trayMenu);
+    m_systray->setIcon(*m_trayIcon);
+    m_systray->show();
+
+    m_client = new mess_client();
+    //Signals for gui objects
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
     QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
     QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
     QObject::connect(m_textedit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
-
+    QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
+    QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
+    //Signals for mess_discover class
     m_disc = new mess_discover();
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
     QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
     QObject::connect(m_disc, SIGNAL (finished()), m_disc, SLOT (deleteLater()));
+    QObject::connect(m_disc, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
     m_disc->start();
-
+    //Signals for mess_serv class
     m_serv2 = new mess_serv();
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString)), this, SLOT (prints(const QString, const QString)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     m_serv2->start();
-
 
     sleep(1);
 
@@ -87,6 +104,42 @@ Window::Window()
     strcat(discovermess, name);
     this->udpSend(discovermess);
 }
+void Window::exitRecieved(QString ipaddr)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(ipaddr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
+        {
+            peerQuit(peers[i].socketdescriptor);
+            break;
+        }
+    }
+    return;
+}
+
+void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
+{
+    if( ( reason == QSystemTrayIcon::DoubleClick | reason == QSystemTrayIcon::Trigger ) && ! ( this->isVisible() ) )
+    {
+        this->setWindowState(Qt::WindowMaximized);
+        this->show();
+    }
+    return;
+}
+
+void Window::changeEvent(QEvent *event)
+{
+    if(event->type() == QEvent::WindowStateChange)
+    {
+        if(isMinimized())
+        {
+            this->hide();
+            event->ignore();
+        }
+    }
+    QWidget::changeEvent(event);
+}
+
 void Window::unalert(QListWidgetItem* item)
 {
     QString temp;
@@ -132,13 +185,16 @@ void Window::peerQuit(int s)
         if(peers[i].socketdescriptor == s)
         {
             peers[i].isConnected = 0;
-            QFont mfont = m_listwidget->item(i)->font();
-            mfont.setItalic(true);
-            m_listwidget->item(i)->setFont(mfont);
-            //m_listwidget->item(i)->font().setItalic(true);
-            peers[i].socketisValid = 0;
-            this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i, false);
-            this->assignSocket(&peers[i]);
+            if( !( m_listwidget->item(i)->font().italic() ) )
+            {
+                QFont mfont = m_listwidget->item(i)->font();
+                mfont.setItalic(true);
+                m_listwidget->item(i)->setFont(mfont);
+                //m_listwidget->item(i)->font().setItalic(true);
+                peers[i].socketisValid = 0;
+                this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i, false);
+                this->assignSocket(&peers[i]);
+            }
         }
     }
 }
@@ -244,6 +300,8 @@ void Window::closeEvent(QCloseEvent *event)
         ::close(peers[i].socketdescriptor);
     }
     delete m_client;
+    delete m_trayIcon;
+    m_systray->hide();
     event->accept();
 }
 
@@ -326,7 +384,10 @@ void Window::udpSend(const char* msg)
     broadaddr.sin_port = htons(port2);
     len = strlen(msg);
 
-    sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
+    for(int i = 0; i < 3; i++)
+    {
+        sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
+    }
 }
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
 void Window::buttonClicked()
@@ -427,6 +488,7 @@ void Window::print(const QString str, int peerindex, bool message)
         if(!(peers[peerindex].alerted))
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
+            peers[peerindex].alerted = true;
         }
     }
     return;

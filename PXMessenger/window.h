@@ -15,6 +15,10 @@
 #include <sys/socket.h>
 #include <QListWidget>
 #include <QComboBox>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QIcon>
+#include <QAction>
 #include <peerlist.h>
 #include <mess_serv.h>
 #include <mess_discover.h>
@@ -29,6 +33,7 @@ public:
 protected:
     void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;					//Close event handler
 
+    void changeEvent(QEvent *event);
 private slots:
     void buttonClicked();													//Send button event
     void prints(const QString str, const QString ipstr);					//calls print, currently identifys recipient based on socket descriptor, needs revision
@@ -39,10 +44,16 @@ private slots:
     void peerQuit(int s);													//Connected client disconnected
     void potentialReconnect(QString ipaddr);								//client has sent a discover udp to us, test if we have seen him before
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
+    void showWindow(QSystemTrayIcon::ActivationReason reason);
+    void exitRecieved(QString ipaddr);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
     QPushButton *m_quitButton;
+    QIcon *m_trayIcon;
+    QAction *m_exitAction;
+    QMenu *m_trayMenu;
+    QSystemTrayIcon *m_systray;
     mess_textedit *m_textedit;
     QTextBrowser *m_textbrowser;
     QLineEdit *m_lineedit;
