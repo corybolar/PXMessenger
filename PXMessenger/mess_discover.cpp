@@ -26,7 +26,6 @@ void mess_discover::d_listener()
     QString hname;
     QString ipaddr;
 
-    std::cout << "hello from d3" << std::endl;
     sockaddr_in si_me, si_other;
     int s;
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);

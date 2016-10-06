@@ -2,6 +2,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QDebug>
+#include <QWidget>
 #include <string.h>
 #include <mess_client.h>
 #include <mess_serv.h>
@@ -119,7 +120,7 @@ void Window::exitRecieved(QString ipaddr)
 
 void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
 {
-    if( ( reason == QSystemTrayIcon::DoubleClick | reason == QSystemTrayIcon::Trigger ) && ! ( this->isVisible() ) )
+    if( ( ( reason == QSystemTrayIcon::DoubleClick ) | ( reason == QSystemTrayIcon::Trigger ) ) && ! ( this->isVisible() ) )
     {
         this->setWindowState(Qt::WindowMaximized);
         this->show();
@@ -268,13 +269,13 @@ void Window::sortPeers()
             strcpy(temp2, (peers[i-1].hostname.toStdString().c_str()));
             int temp1Len = strlen(temp1);
             int temp2Len = strlen(temp2);
-            for(int i = 0; i < temp1Len; i++)
+            for(int k = 0; k < temp1Len; k++)
             {
-                temp1[i] = tolower(temp1[i]);
+                temp1[k] = tolower(temp1[k]);
             }
-            for(int i = 0; i < temp2Len; i++)
+            for(int k = 0; k < temp2Len; k++)
             {
-                temp2[i] = tolower(temp2[i]);
+                temp2[k] = tolower(temp2[k]);
             }
             if( strcmp(temp1, temp2) < 0 )
             {

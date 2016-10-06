@@ -1,6 +1,6 @@
 #ifndef MESS_DISCOVER_H
 #define MESS_DISCOVER_H
-#include <QtCore>
+#include <QThread>
 
 
 class mess_discover : public QThread

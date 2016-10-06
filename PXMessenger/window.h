@@ -31,7 +31,7 @@ class Window : public QWidget
 public:
     Window();
 protected:
-    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;					//Close event handler
+    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;									//Close event handler
 
     void changeEvent(QEvent *event);
 private slots:
