@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = PXMessenger
 
-QT = core gui widgets
+QT = core gui widgets multimedia
 
 CONFIG += c++11
 
@@ -20,4 +20,9 @@ HEADERS += \
     mess_discover.h \
     peerlist.h \
     mess_textedit.h
+
+DISTFILES +=
+
+RESOURCES += \
+    resources.qrc
 

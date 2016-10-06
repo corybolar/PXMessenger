@@ -22,6 +22,7 @@
 #include <sys/fcntl.h>
 #include <peerlist.h>
 #include <QCloseEvent>
+#include <QSound>
 #include <mess_textedit.h>
 
 #define PORT "13653"
@@ -361,7 +362,7 @@ void Window::buttonClicked()
                 this->print("Peer has closed connection, send failed", index, false);
                 return;
             }
-            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText() + " | on socket: " + QString::number(peers[index].socketdescriptor), index, false);
+            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText(), index, false);
             m_textedit->setText("");
         }
     }
@@ -385,6 +386,27 @@ void Window::changeListColor(int row, int style)
     }
     return;
 }
+void Window::focusFunction()
+{
+    if(this->windowState() == Qt::WindowActive)
+    {
+        return;
+    }
+    else if(!(this->isMinimized()))
+    {
+        QSound::play(":/new/prefix1/message.wav");
+    }
+    else if(this->isMinimized())
+    {
+        QSound::play(":/new/prefix1/message.wav");
+        this->setWindowState(Qt::WindowActive);
+    }
+    else
+    {
+        QSound::play(":/new/prefix1/message.wav");
+    }
+    return;
+}
 
 void Window::print(const QString str, int peerindex, bool message)
 {
@@ -401,6 +423,7 @@ void Window::print(const QString str, int peerindex, bool message)
     else if(message)
     {
         this->changeListColor(peerindex, 1);
+        this->focusFunction();
         if(!(peers[peerindex].alerted))
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");

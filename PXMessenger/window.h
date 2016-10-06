@@ -26,14 +26,12 @@ class Window : public QWidget
 
 public:
     Window();
-    void print(QString str, int peerindex, bool message);									//Updates the main text box and stores text history in peerlist struct
-    void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
 protected:
-    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;									//Close event handler
+    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;					//Close event handler
 
 private slots:
     void buttonClicked();													//Send button event
-    void prints(const QString str, const QString ipstr);										//calls print, currently identifys recipient based on socket descriptor, needs revision
+    void prints(const QString str, const QString ipstr);					//calls print, currently identifys recipient based on socket descriptor, needs revision
     void listpeers(QString hname, QString ipaddr);							//Add new peers to the peerlist struct array and call the sort/display functions
     void discoverClicked();													//Discover button event
     void quitClicked();														//quit button, used to test the various destructors and close event
@@ -63,6 +61,9 @@ private:
     char name[128] = {};
     void changeListColor(int row, int style);
     void unalert(QListWidgetItem *item);
+    void focusFunction();
+    void print(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
+    void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
 signals:
 
 public slots:
