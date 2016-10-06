@@ -7,6 +7,8 @@
 
 qt5
 
+qtmultimedia
+
 gcc
 
 
