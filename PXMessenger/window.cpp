@@ -124,6 +124,7 @@ void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
     {
         this->setWindowState(Qt::WindowMaximized);
         this->show();
+		this->setWindowState(Qt::WindowActive);
     }
     return;
 }
@@ -461,7 +462,7 @@ void Window::focusFunction()
     else if(this->isMinimized())
     {
         QSound::play(":/new/prefix1/message.wav");
-        this->setWindowState(Qt::WindowActive);
+        //this->setWindowState(Qt::WindowActive);
     }
     else
     {
