@@ -1,2 +1,6 @@
 /PXMessenger/.gitignore
 /build*
+/PXMessenger/*.o
+/PXMessenger/moc_*
+/PXMessenger/PXMessenger
+/PXMessenger/qrc_resources.cpp
