@@ -39,13 +39,18 @@ void mess_discover::d_listener()
     int s;
     char service[20];
     struct timeval tv;
+    fd_set fds, tempfds;
+
     tv.tv_sec = 0;
     tv.tv_usec = 500000;
 
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     setsockopt(s, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int));
-    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    //setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
+    FD_ZERO(&fds);
+    FD_ZERO(&tempfds);
+    FD_SET(s, &fds);
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
     si_me.sin_port = htons(PORT);
@@ -54,13 +59,24 @@ void mess_discover::d_listener()
     char ipstr[INET6_ADDRSTRLEN];
     while( !this->isInterruptionRequested() )
     {
-        char buf[100];
-        int bytes_rec = 0;
+        char buf[100] = {};
+        int n = 0;
         si_other_len = sizeof(sockaddr);
-        while(bytes_rec <= 0 && !this->isInterruptionRequested())
+        //while(bytes_rec <= 0 && !this->isInterruptionRequested())
+        //{
+        //    bytes_rec = recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
+        //}
+
+        while( ( ( n == 0 ) | ( n == -1 ) ) && ! ( this->isInterruptionRequested() ) )
         {
-            bytes_rec = recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
+            tempfds = fds;
+            n = select( s+1, &tempfds, NULL, NULL, &tv);
         }
+        if( !this->isInterruptionRequested() )
+        {
+            recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
+        }
+
         //inet_ntop(si_other.sin_family, (struct sockaddr_in *)&si_other.sin_addr, ipstr, sizeof(ipstr));
         getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
         std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;

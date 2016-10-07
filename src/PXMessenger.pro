@@ -7,9 +7,15 @@ win32 {
 LIBS = -lws2_32
 }
 
+win32 {
 CONFIG += c++11 \
-        release \
-        debug
+        release 
+}
+unix {
+CONFIG += c++11 \
+		release \
+		debug
+}
 
 SOURCES += \
     main.cpp \
