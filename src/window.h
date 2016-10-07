@@ -72,6 +72,7 @@ private:
     mess_client *m_client;
     mess_discover *m_disc;
     struct tm *now;
+	time_t mess_time;
     int socketfd;															//possibly obsolete
     peerlist peers[255];													//array of peerlist structures that holds info about connected computers
     void sortPeers();														//sort peerlist struct alphabetically by hostname

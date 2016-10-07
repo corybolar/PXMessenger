@@ -114,8 +114,8 @@ Window::Window()
 #else
     usleep(500000);
 #endif
-    time_t t = time(0);
-    now = localtime( &t );
+    mess_time = time(0);
+    now = localtime( &mess_time );
 
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
@@ -515,6 +515,8 @@ void Window::print(const QString str, int peerindex, bool message)
     QString strnew;
     if(message)
     {
+		mess_time = time(0);
+		now = localtime( &mess_time );
         QString timenow = "(" + QString::number(now->tm_hour) + ":" + QString::number(now->tm_min) + ":" + QString::number(now->tm_sec) + ") ";
         strnew = timenow + str;
     }
