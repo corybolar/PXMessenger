@@ -1,6 +1,6 @@
 <RCC>
-    <qresource prefix="/new/prefix1">
-        <file>../resources/message.wav</file>
-        <file>../resources/systray.png</file>
+    <qresource prefix="/resources">
+        <file>resources/message.wav</file>
+        <file>resources/systray.png</file>
     </qresource>
 </RCC>

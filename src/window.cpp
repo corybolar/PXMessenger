@@ -38,6 +38,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #endif
 
 #define PORT "13653"
@@ -73,7 +74,7 @@ Window::Window()
     m_quitButton = new QPushButton("Quit Debug", this);
     m_quitButton->setGeometry(200, 430, 80, 30);
 
-    m_trayIcon = new QIcon(":/new/prefix1/systray.png");
+    m_trayIcon = new QIcon(":/resources/resources/systray.png");
 
     m_trayMenu = new QMenu(this);
     m_exitAction = new QAction(this);
@@ -108,7 +109,11 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     m_serv2->start();
 
-    //sleep(1);
+#ifdef _WIN32
+    Sleep(500);
+#else
+    usleep(500000);
+#endif
     time_t t = time(0);
     now = localtime( &t );
 
@@ -459,7 +464,7 @@ void Window::buttonClicked()
                 this->print("Peer has closed connection, send failed", index, false);
                 return;
             }
-            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText(), index, false);
+            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText(), index, true);
             m_textedit->setText("");
         }
     }
@@ -491,16 +496,16 @@ void Window::focusFunction()
     }
     else if(!(this->isMinimized()))
     {
-        QSound::play(":/new/prefix1/message.wav");
+        QSound::play(":/resources/resources/message.wav");
     }
     else if(this->isMinimized())
     {
-        QSound::play(":/new/prefix1/message.wav");
+        QSound::play(":/resources/resources/message.wav");
         //this->setWindowState(Qt::WindowActive);
     }
     else
     {
-        QSound::play(":/new/prefix1/message.wav");
+        QSound::play(":/resources/resources/message.wav");
     }
     return;
 }
@@ -512,6 +517,10 @@ void Window::print(const QString str, int peerindex, bool message)
     {
         QString timenow = "(" + QString::number(now->tm_hour) + ":" + QString::number(now->tm_min) + ":" + QString::number(now->tm_sec) + ") ";
         strnew = timenow + str;
+    }
+    else
+    {
+        strnew = str;
     }
     if(peerindex < 0)
     {
