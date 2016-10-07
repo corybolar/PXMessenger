@@ -16,15 +16,15 @@ gcc
 
 git clone
 
-cd ./PXMessenger/PXMessenger
+cd ./PXMessenger/src
 
 qmake
 
 make
 
-./PXMessenger
+../PXMessenger
 
 
 ##UNDER HEAVY DEVELOPMENT
 
-At this time a windows compatible build and source code is under the windows branch, not yet unified
+Windows executable included for ease of distribution
