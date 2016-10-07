@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <QtCore>
 #include <iostream>
+#include <QWidget>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -13,6 +14,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/select.h>
+#include <ctime>
 #endif
 
 #ifdef _WIN32
@@ -22,8 +24,9 @@
 
 #define PORT "13653"
 #define BACKLOG 20
-mess_serv::mess_serv()
+mess_serv::mess_serv(QWidget *parent) : QThread(parent)
 {
+
 
 }
 void mess_serv::run()
@@ -106,12 +109,12 @@ int mess_serv::listener()
     tv.tv_usec = 250000;
 
     fdmax = socketfd;
-    while(1)
+    while( !this->isInterruptionRequested() )
     {
         char buf[256] = {};
         read_fds = master;
         int status = 0;
-        while( ( (status  ==  0) | (status == -1) ) )
+        while( ( (status  ==  0) | (status == -1) ) && ( !this->isInterruptionRequested() ) )
         {
             if(status == -1){
                 perror("select:");

@@ -8,7 +8,8 @@ LIBS = -lws2_32
 }
 
 CONFIG += c++11 \
-	release
+        release \
+        debug
 
 SOURCES += \
     main.cpp \

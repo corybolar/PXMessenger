@@ -18,6 +18,7 @@
 #include <QAction>
 
 #include <sys/types.h>
+#include <ctime>
 
 #include <mess_serv.h>
 #include <mess_discover.h>
@@ -70,7 +71,7 @@ private:
     QListWidget *m_listwidget;
     mess_client *m_client;
     mess_discover *m_disc;
-    std::vector<QString> textWindow;
+    struct tm *now;
     int socketfd;															//possibly obsolete
     peerlist peers[255];													//array of peerlist structures that holds info about connected computers
     void sortPeers();														//sort peerlist struct alphabetically by hostname

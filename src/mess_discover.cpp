@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <unistd.h>
+#include <QWidget>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -20,7 +21,7 @@
 
 #define PORT 13654
 
-mess_discover::mess_discover()
+mess_discover::mess_discover(QWidget *parent) : QThread(parent)
 {
 
 }
@@ -37,9 +38,13 @@ void mess_discover::d_listener()
     socklen_t si_other_len;
     int s;
     char service[20];
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 500000;
 
     s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     setsockopt(s, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int));
+    setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
@@ -47,11 +52,15 @@ void mess_discover::d_listener()
     si_me.sin_addr.s_addr = INADDR_ANY;
     bind(s, (sockaddr *)&si_me, sizeof(sockaddr));
     char ipstr[INET6_ADDRSTRLEN];
-    while(1)
+    while( !this->isInterruptionRequested() )
     {
         char buf[100];
+        int bytes_rec = 0;
         si_other_len = sizeof(sockaddr);
-        recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
+        while(bytes_rec <= 0 && !this->isInterruptionRequested())
+        {
+            bytes_rec = recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
+        }
         //inet_ntop(si_other.sin_family, (struct sockaddr_in *)&si_other.sin_addr, ipstr, sizeof(ipstr));
         getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
         std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;

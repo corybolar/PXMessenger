@@ -18,6 +18,7 @@
 #include <iostream>
 #include <sstream>
 #include <sys/fcntl.h>
+#include <ctime>
 
 #include <mess_textedit.h>
 #include <mess_client.h>
@@ -93,14 +94,14 @@ Window::Window()
     QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
     //Signals for mess_discover class
-    m_disc = new mess_discover();
+    m_disc = new mess_discover(this);
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
     QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
     QObject::connect(m_disc, SIGNAL (finished()), m_disc, SLOT (deleteLater()));
     QObject::connect(m_disc, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
     m_disc->start();
     //Signals for mess_serv class
-    m_serv2 = new mess_serv();
+    m_serv2 = new mess_serv(this);
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString)), this, SLOT (prints(const QString, const QString)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
@@ -108,6 +109,8 @@ Window::Window()
     m_serv2->start();
 
     //sleep(1);
+    time_t t = time(0);
+    now = localtime( &t );
 
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
@@ -133,7 +136,7 @@ void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
     {
         this->setWindowState(Qt::WindowMaximized);
         this->show();
-		this->setWindowState(Qt::WindowActive);
+        this->setWindowState(Qt::WindowActive);
     }
     return;
 }
@@ -181,10 +184,14 @@ void Window::potentialReconnect(QString ipaddr)
     {
         if( ( (QString::fromUtf8(peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
         {
-            this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
-            QFont mfont = m_listwidget->item(i)->font();
-            mfont.setItalic(false);
-            m_listwidget->item(i)->setFont(mfont);
+            if(m_listwidget->item(i)->font().italic())
+            {
+                this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
+                QFont mfont = m_listwidget->item(i)->font();
+                mfont.setItalic(false);
+                m_listwidget->item(i)->setFont(mfont);
+            }
+            return;
         }
     }
 }
@@ -300,9 +307,7 @@ void Window::sortPeers()
 }
 void Window::closeEvent(QCloseEvent *event)
 {
-    m_serv2->quit();
-    m_disc->quit();
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < 1; i++)
     {
         this->udpSend("/exit");
     }
@@ -314,6 +319,16 @@ void Window::closeEvent(QCloseEvent *event)
 #ifdef _WIN32
         ::closesocket(peers[i].socketdescriptor);
 #endif
+    }
+    if(m_serv2 != 0 && m_serv2->isRunning())
+    {
+        m_serv2->requestInterruption();
+        m_serv2->wait();
+    }
+    if(m_disc != 0 && m_disc->isRunning() )
+    {
+        m_disc->requestInterruption();
+        m_disc->wait();
     }
     delete m_client;
     delete m_trayIcon;
@@ -405,7 +420,7 @@ void Window::udpSend(const char* msg)
     broadaddr.sin_port = htons(port2);
     len = strlen(msg);
 
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < 1; i++)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
@@ -492,15 +507,21 @@ void Window::focusFunction()
 
 void Window::print(const QString str, int peerindex, bool message)
 {
+    QString strnew;
+    if(message)
+    {
+        QString timenow = "(" + QString::number(now->tm_hour) + ":" + QString::number(now->tm_min) + ":" + QString::number(now->tm_sec) + ") ";
+        strnew = timenow + str;
+    }
     if(peerindex < 0)
     {
-        m_textbrowser->append(str);
+        m_textbrowser->append(strnew);
         return;
     }
-    peers[peerindex].textBox.append(str + "\n");
+    peers[peerindex].textBox.append(strnew + "\n");
     if(peerindex == m_listwidget->currentRow())
     {
-        m_textbrowser->append(str);
+        m_textbrowser->append(strnew);
     }
     else if(message)
     {

@@ -7,7 +7,7 @@ class mess_discover : public QThread
 {
     Q_OBJECT
 public:
-    mess_discover();
+    mess_discover(QWidget *parent);
     void run();
     void d_listener();								//Listen for UDP packets
 signals:
