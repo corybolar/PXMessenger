@@ -62,10 +62,6 @@ void mess_discover::d_listener()
         char buf[100] = {};
         int n = 0;
         si_other_len = sizeof(sockaddr);
-        //while(bytes_rec <= 0 && !this->isInterruptionRequested())
-        //{
-        //    bytes_rec = recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
-        //}
 
         while( ( ( n == 0 ) | ( n == -1 ) ) && ! ( this->isInterruptionRequested() ) )
         {
@@ -78,7 +74,6 @@ void mess_discover::d_listener()
             recvfrom(s, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
         }
 
-        //inet_ntop(si_other.sin_family, (struct sockaddr_in *)&si_other.sin_addr, ipstr, sizeof(ipstr));
         getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
         std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
         int status;

@@ -315,13 +315,7 @@ void Window::sortPeers()
         }
         if(insert)
         {
-            //QListWidgetItem *t = new QListWidgetItem(peers[i-1].hostname);
-            //if(index-1 == m_listwidget->count())
-            //{
-                //m_listwidget->addItem(peers[index-1].hostname);
-            //}
             m_listwidget->insertItem(index-1, peers[index-1].hostname);
-            //displayPeers2(i)
         }
         else
         {
@@ -332,10 +326,6 @@ void Window::sortPeers()
     {
         m_listwidget->insertItem(0, (peers[0].hostname));
     }
-}
-void Window::displayPeers2(int place)
-{
-
 }
 
 void Window::closeEvent(QCloseEvent *event)
@@ -490,12 +480,18 @@ void Window::buttonClicked()
         }
         if(strcmp(c_str, "") != 0)
         {
-            if((m_client->send_msg(s_socket, c_str, name)) == -5)
+            if(strlen(c_str) > 240)
+            {
+                this->print("Message too long, messages must be shorter than 240 characters", index, false);
+            }
+            else if((m_client->send_msg(s_socket, c_str, name)) == -5)
             {
                 this->print("Peer has closed connection, send failed", index, false);
                 return;
             }
-            this->print(m_lineedit->text() + ": " + m_textedit->toPlainText(), index, true);
+            else{
+                this->print(m_lineedit->text() + ": " + m_textedit->toPlainText(), index, true);
+            }
             m_textedit->setText("");
         }
     }
@@ -532,7 +528,8 @@ void Window::focusFunction()
     else if(this->isMinimized())
     {
         QSound::play(":/resources/resources/message.wav");
-        //this->setWindowState(Qt::WindowActive);
+        this->show();
+        this->setWindowState(Qt::WindowActive);
     }
     else
     {
