@@ -9,6 +9,7 @@
 #include <QMenu>
 #include <QIcon>
 #include <QAction>
+#include <QApplication>
 
 #include <string.h>
 #include <sys/types.h>
@@ -121,6 +122,7 @@ Window::Window()
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
     this->udpSend(discovermess);
+
 }
 void Window::exitRecieved(QString ipaddr)
 {
@@ -255,7 +257,7 @@ void Window::listpeers(QString hname, QString ipaddr)
         if( (hname.compare(peers[i].hostname) ) == 0 )
         {
             std::cout << ipstr << " | already discovered" << std::endl;
-            goto donehere;
+            return;
         }
     }
     peers[i].hostname = hname;
@@ -266,10 +268,9 @@ void Window::listpeers(QString hname, QString ipaddr)
     assignSocket(&(peers[i]));
     //m_serv2->update_fds(peers[i].socketdescriptor);
     sortPeers();
-    displayPeers();
+    //displayPeers();
 
     qDebug() << "hostname: " << peers[i].hostname << " @ ip:" << QString::fromUtf8(peers[i].c_ipaddr);
-donehere:
     return;
 }
 /* This function sorts the peers array by alphabetical order of the hostname
@@ -282,6 +283,8 @@ void Window::sortPeers()
     if(peersLen > 1)
     {
         int i = peersLen-1;
+        bool insert = false;
+        int index;
         for( ; i > 0; i-- )
         {
             char temp1[28] = {};
@@ -306,10 +309,27 @@ void Window::sortPeers()
                 peers[i] = p;
                 peers[i].comboindex = i;
                 peers[i-1].comboindex = ( i - 1 );
+                insert = true;
+                index = i;
             }
         }
+        if (insert)
+        {
+            //QListWidgetItem *t = new QListWidgetItem(peers[i-1].hostname);
+            m_listwidget->insertItem(index-1, peers[index-1].hostname);
+            //displayPeers2(i)
+        }
+    }
+    else
+    {
+        m_listwidget->insertItem(0, (peers[0].hostname));
     }
 }
+void Window::displayPeers2(int place)
+{
+
+}
+
 void Window::closeEvent(QCloseEvent *event)
 {
     for(int i = 0; i < 1; i++)
@@ -350,10 +370,12 @@ void Window::displayPeers()
 {
     if(peersLen == m_listwidget->count())
     {
+        QFont temp;
         for(int i = 0; i < peersLen; i++)
         {
             //m_combobox->setItemText(i, peers[i].hostname);
             //qlistpeers[i].setText(peers[i].hostname);
+            temp = m_listwidget->item(i)->font();
             m_listwidget->item(i)->setText(peers[i].hostname);
         }
     }
@@ -367,6 +389,7 @@ void Window::displayPeers()
     }
     if(peersLen > m_listwidget->count())
     {
+        //QListWidget *temp = m_listwidget->clone;
         for(int i = 0; i < peersLen-1; i++)
         {
             m_listwidget->item(i)->setText(peers[i].hostname);
@@ -542,6 +565,8 @@ void Window::print(const QString str, int peerindex, bool message)
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
             peers[peerindex].alerted = true;
+            qApp->alert(this, 0);
+
         }
     }
     return;

@@ -16,6 +16,7 @@
 #include <QMenu>
 #include <QIcon>
 #include <QAction>
+#include <QWindow>
 
 #include <sys/types.h>
 #include <ctime>
@@ -40,8 +41,9 @@ class Window : public QWidget
 
 public:
     Window();
+    void displayPeers2(int place);
 protected:
-    void closeEvent(QCloseEvent *event) Q_DECL_OVERRIDE;									//Close event handler
+    void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
 
     void changeEvent(QEvent *event);
 private slots:
