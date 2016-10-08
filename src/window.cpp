@@ -446,7 +446,7 @@ void Window::udpSend(const char* msg)
     broadaddr.sin_port = htons(port2);
     len = strlen(msg);
 
-    for(int i = 0; i < 1; i++)
+    for(int i = 0; i < 2; i++)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
@@ -543,10 +543,10 @@ void Window::print(const QString str, int peerindex, bool message)
     QString strnew;
     if(message)
     {
-		mess_time = time(0);
-		now = localtime( &mess_time );
-        QString timenow = "(" + QString::number(now->tm_hour) + ":" + QString::number(now->tm_min) + ":" + QString::number(now->tm_sec) + ") ";
-        strnew = timenow + str;
+        char time_str[12];
+        now = localtime(&mess_time);
+        strftime(time_str, 12, "(%H:%M:%S) ", now);
+        strnew = QString::fromUtf8(time_str) + str;
     }
     else
     {
