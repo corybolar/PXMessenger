@@ -72,7 +72,6 @@ void mess_discover::d_listener()
             tempfds = fds;
             n = select( s+1, &tempfds, NULL, NULL, &tv);
             tv.tv_usec = 500000;
-            std::cout << "loop" << std::endl;
         }
         if( !this->isInterruptionRequested() )
         {

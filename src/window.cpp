@@ -316,6 +316,10 @@ void Window::sortPeers()
         if (insert)
         {
             //QListWidgetItem *t = new QListWidgetItem(peers[i-1].hostname);
+            if(index-1 == m_listwidget->count())
+            {
+                m_listwidget->addItem(peers[index-1].hostname);
+            }
             m_listwidget->insertItem(index-1, peers[index-1].hostname);
             //displayPeers2(i)
         }
