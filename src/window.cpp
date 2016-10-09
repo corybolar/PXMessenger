@@ -78,6 +78,7 @@ Window::Window()
     QObject::connect(m_textedit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
     QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
+    QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
     //Signals for mess_discover class
     m_disc = new mess_discover(this);
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
@@ -107,6 +108,20 @@ Window::Window()
     this->udpSend(discovermess);
 
 }
+void Window::textEditChanged()
+{
+    if(m_textedit->toPlainText().length() > 240)
+    {
+        int diff = m_textedit->toPlainText().length() - 240;
+        QString temp = m_textedit->toPlainText();
+        temp.chop(diff);
+        m_textedit->setText(temp);
+        QTextCursor cursor(m_textedit->textCursor());
+        cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+        m_textedit->setTextCursor(cursor);
+    }
+}
+
 void Window::exitRecieved(QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -349,7 +364,7 @@ void Window::closeEvent(QCloseEvent *event)
  *
  * TODO:IMPROVE
  * */
-void Window::displayPeers()
+/*void Window::displayPeers()
 {
     if(peersLen == m_listwidget->count())
     {
@@ -386,6 +401,7 @@ void Window::displayPeers()
     return;
 
 }
+*/
 /* Assign sockets to peers added to the peers array*/
 void Window::assignSocket(struct peerlist *p)
 {
