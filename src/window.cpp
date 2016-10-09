@@ -524,11 +524,14 @@ void Window::focusFunction()
     else if(!(this->isMinimized()))
     {
         QSound::play(":/resources/resources/message.wav");
+        qApp->alert(this, 0);
     }
     else if(this->isMinimized())
     {
         QSound::play(":/resources/resources/message.wav");
         this->show();
+        qApp->alert(this, 0);
+        this->raise();
         this->setWindowState(Qt::WindowActive);
     }
     else
@@ -561,6 +564,8 @@ void Window::print(const QString str, int peerindex, bool message)
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(strnew);
+        qApp->alert(this, 0);
+
     }
     else if(message)
     {
@@ -570,8 +575,6 @@ void Window::print(const QString str, int peerindex, bool message)
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
             peers[peerindex].alerted = true;
-            qApp->alert(this, 0);
-
         }
     }
     return;

@@ -94,7 +94,10 @@ void mess_discover::d_listener()
             strcat(fname, name);
             int len = strlen(fname);
 
-            sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
+            for(int k = 0; k < 2; k++)
+            {
+                sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
+            }
             emit potentialReconnect(QString::fromUtf8(ipstr));
             char tname[strlen(buf)-8] = {};
             unsigned bufLen = strlen(buf);
