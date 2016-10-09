@@ -1,15 +1,4 @@
 #include <window.h>
-#include <QPushButton>
-#include <QLineEdit>
-#include <QDebug>
-#include <QWidget>
-#include <QCloseEvent>
-#include <QSound>
-#include <QSystemTrayIcon>
-#include <QMenu>
-#include <QIcon>
-#include <QAction>
-#include <QApplication>
 
 #include <string.h>
 #include <sys/types.h>
@@ -20,12 +9,6 @@
 #include <sstream>
 #include <sys/fcntl.h>
 #include <ctime>
-
-#include <mess_textedit.h>
-#include <mess_client.h>
-#include <mess_serv.h>
-#include <mess_discover.h>
-#include <peerlist.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -182,6 +165,8 @@ void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
         this->changeListColor(m_listwidget->row(item1), 0);
         this->unalert(item1);
     }
+    QScrollBar *sb = this->m_textbrowser->verticalScrollBar();
+    sb->setValue(sb->maximum());
     return;
 }
 
@@ -564,6 +549,7 @@ void Window::print(const QString str, int peerindex, bool message)
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(strnew);
+        this->focusFunction();
         qApp->alert(this, 0);
 
     }

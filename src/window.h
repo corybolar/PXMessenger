@@ -17,6 +17,12 @@
 #include <QIcon>
 #include <QAction>
 #include <QWindow>
+#include <QScrollBar>
+#include <QDebug>
+#include <QCloseEvent>
+#include <QSound>
+#include <QAction>
+#include <QApplication>
 
 #include <sys/types.h>
 #include <ctime>
