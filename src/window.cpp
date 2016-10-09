@@ -174,10 +174,18 @@ void Window::unalert(QListWidgetItem* item)
 
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
-    m_textbrowser->setText(peers[m_listwidget->row(item1)].textBox);
+    int index1 = m_listwidget->row(item1);
+    //if(peers[index1].textBox.length() > 0)
+    //{
+        //if(peers[index1].textBox.at(peers[index1].textBox.length() - 1) == '\n')
+        //{
+            //peers[index1].textBox.chop(1);
+        //}
+    //}
+    m_textbrowser->setText(peers[index1].textBox);
     if(item1->backgroundColor() == QColor("red"))
     {
-        this->changeListColor(m_listwidget->row(item1), 0);
+        this->changeListColor(index1, 0);
         this->unalert(item1);
     }
     QScrollBar *sb = this->m_textbrowser->verticalScrollBar();
@@ -368,35 +376,35 @@ void Window::closeEvent(QCloseEvent *event)
 {
     if(peersLen == m_listwidget->count())
     {
-        QFont temp;
-        for(int i = 0; i < peersLen; i++)
-        {
-            //m_combobox->setItemText(i, peers[i].hostname);
-            //qlistpeers[i].setText(peers[i].hostname);
-            temp = m_listwidget->item(i)->font();
-            m_listwidget->item(i)->setText(peers[i].hostname);
-        }
+    QFont temp;
+    for(int i = 0; i < peersLen; i++)
+    {
+        //m_combobox->setItemText(i, peers[i].hostname);
+        //qlistpeers[i].setText(peers[i].hostname);
+        temp = m_listwidget->item(i)->font();
+        m_listwidget->item(i)->setText(peers[i].hostname);
+    }
     }
     if(peersLen < m_listwidget->count())
     {
-        for(int i = 0; i < peersLen; i++)
-        {
-            m_listwidget->item(i)->setText(peers[i].hostname);
-        }
-        m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
+    for(int i = 0; i < peersLen; i++)
+    {
+        m_listwidget->item(i)->setText(peers[i].hostname);
+    }
+    m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
     if(peersLen > m_listwidget->count())
     {
-        //QListWidget *temp = m_listwidget->clone;
-        for(int i = 0; i < peersLen-1; i++)
-        {
-            m_listwidget->item(i)->setText(peers[i].hostname);
-        }
-        m_listwidget->addItem(peers[peersLen-1].hostname);
-        if(m_listwidget->count() == 1)
-        {
-            //m_listwidget->setCurrentItem(m_listwidget->item(0));
-        }
+    //QListWidget *temp = m_listwidget->clone;
+    for(int i = 0; i < peersLen-1; i++)
+    {
+        m_listwidget->item(i)->setText(peers[i].hostname);
+    }
+    m_listwidget->addItem(peers[peersLen-1].hostname);
+    if(m_listwidget->count() == 1)
+    {
+        //m_listwidget->setCurrentItem(m_listwidget->item(0));
+    }
     }
     return;
 
@@ -548,6 +556,7 @@ void Window::print(const QString str, int peerindex, bool message)
     if(message)
     {
         char time_str[12];
+        mess_time = time(0);
         now = localtime(&mess_time);
         strftime(time_str, 12, "(%H:%M:%S) ", now);
         strnew = QString::fromUtf8(time_str) + str;
