@@ -526,6 +526,10 @@ void Window::changeListColor(int row, int style)
 }
 void Window::focusFunction()
 {
+    if(this->isActiveWindow())
+    {
+        return;
+    }
     if(this->windowState() == Qt::WindowActive)
     {
         return;
@@ -574,14 +578,12 @@ void Window::print(const QString str, int peerindex, bool message)
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(strnew);
-        this->focusFunction();
         qApp->alert(this, 0);
 
     }
     else if(message)
     {
         this->changeListColor(peerindex, 1);
-        this->focusFunction();
         if(!(peers[peerindex].alerted))
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
@@ -596,6 +598,7 @@ void Window::prints(const QString str, const QString ipstr)
     {
         if(ipstr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
         {
+            this->focusFunction();
             this->print(str, i, true);
             return;
         }
