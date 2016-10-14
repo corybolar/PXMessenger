@@ -1,15 +1,4 @@
 #include <window.h>
-#include <QPushButton>
-#include <QLineEdit>
-#include <QDebug>
-#include <QWidget>
-#include <QCloseEvent>
-#include <QSound>
-#include <QSystemTrayIcon>
-#include <QMenu>
-#include <QIcon>
-#include <QAction>
-#include <QApplication>
 
 #include <string.h>
 #include <sys/types.h>
@@ -20,12 +9,6 @@
 #include <sstream>
 #include <sys/fcntl.h>
 #include <ctime>
-
-#include <mess_textedit.h>
-#include <mess_client.h>
-#include <mess_serv.h>
-#include <mess_discover.h>
-#include <peerlist.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -95,6 +78,7 @@ Window::Window()
     QObject::connect(m_textedit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
     QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
+    QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
     //Signals for mess_discover class
     m_disc = new mess_discover(this);
     QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
@@ -124,6 +108,20 @@ Window::Window()
     this->udpSend(discovermess);
 
 }
+void Window::textEditChanged()
+{
+    if(m_textedit->toPlainText().length() > 240)
+    {
+        int diff = m_textedit->toPlainText().length() - 240;
+        QString temp = m_textedit->toPlainText();
+        temp.chop(diff);
+        m_textedit->setText(temp);
+        QTextCursor cursor(m_textedit->textCursor());
+        cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+        m_textedit->setTextCursor(cursor);
+    }
+}
+
 void Window::exitRecieved(QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -176,12 +174,22 @@ void Window::unalert(QListWidgetItem* item)
 
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
-    m_textbrowser->setText(peers[m_listwidget->row(item1)].textBox);
+    int index1 = m_listwidget->row(item1);
+    //if(peers[index1].textBox.length() > 0)
+    //{
+        //if(peers[index1].textBox.at(peers[index1].textBox.length() - 1) == '\n')
+        //{
+            //peers[index1].textBox.chop(1);
+        //}
+    //}
+    m_textbrowser->setText(peers[index1].textBox);
     if(item1->backgroundColor() == QColor("red"))
     {
-        this->changeListColor(m_listwidget->row(item1), 0);
+        this->changeListColor(index1, 0);
         this->unalert(item1);
     }
+    QScrollBar *sb = this->m_textbrowser->verticalScrollBar();
+    sb->setValue(sb->maximum());
     return;
 }
 
@@ -364,43 +372,44 @@ void Window::closeEvent(QCloseEvent *event)
  *
  * TODO:IMPROVE
  * */
-void Window::displayPeers()
+/*void Window::displayPeers()
 {
     if(peersLen == m_listwidget->count())
     {
-        QFont temp;
-        for(int i = 0; i < peersLen; i++)
-        {
-            //m_combobox->setItemText(i, peers[i].hostname);
-            //qlistpeers[i].setText(peers[i].hostname);
-            temp = m_listwidget->item(i)->font();
-            m_listwidget->item(i)->setText(peers[i].hostname);
-        }
+    QFont temp;
+    for(int i = 0; i < peersLen; i++)
+    {
+        //m_combobox->setItemText(i, peers[i].hostname);
+        //qlistpeers[i].setText(peers[i].hostname);
+        temp = m_listwidget->item(i)->font();
+        m_listwidget->item(i)->setText(peers[i].hostname);
+    }
     }
     if(peersLen < m_listwidget->count())
     {
-        for(int i = 0; i < peersLen; i++)
-        {
-            m_listwidget->item(i)->setText(peers[i].hostname);
-        }
-        m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
+    for(int i = 0; i < peersLen; i++)
+    {
+        m_listwidget->item(i)->setText(peers[i].hostname);
+    }
+    m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
     if(peersLen > m_listwidget->count())
     {
-        //QListWidget *temp = m_listwidget->clone;
-        for(int i = 0; i < peersLen-1; i++)
-        {
-            m_listwidget->item(i)->setText(peers[i].hostname);
-        }
-        m_listwidget->addItem(peers[peersLen-1].hostname);
-        if(m_listwidget->count() == 1)
-        {
-            //m_listwidget->setCurrentItem(m_listwidget->item(0));
-        }
+    //QListWidget *temp = m_listwidget->clone;
+    for(int i = 0; i < peersLen-1; i++)
+    {
+        m_listwidget->item(i)->setText(peers[i].hostname);
+    }
+    m_listwidget->addItem(peers[peersLen-1].hostname);
+    if(m_listwidget->count() == 1)
+    {
+        //m_listwidget->setCurrentItem(m_listwidget->item(0));
+    }
     }
     return;
 
 }
+*/
 /* Assign sockets to peers added to the peers array*/
 void Window::assignSocket(struct peerlist *p)
 {
@@ -517,6 +526,10 @@ void Window::changeListColor(int row, int style)
 }
 void Window::focusFunction()
 {
+    if(this->isActiveWindow())
+    {
+        return;
+    }
     if(this->windowState() == Qt::WindowActive)
     {
         return;
@@ -547,6 +560,7 @@ void Window::print(const QString str, int peerindex, bool message)
     if(message)
     {
         char time_str[12];
+        mess_time = time(0);
         now = localtime(&mess_time);
         strftime(time_str, 12, "(%H:%M:%S) ", now);
         strnew = QString::fromUtf8(time_str) + str;
@@ -570,7 +584,6 @@ void Window::print(const QString str, int peerindex, bool message)
     else if(message)
     {
         this->changeListColor(peerindex, 1);
-        this->focusFunction();
         if(!(peers[peerindex].alerted))
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
@@ -585,6 +598,7 @@ void Window::prints(const QString str, const QString ipstr)
     {
         if(ipstr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
         {
+            this->focusFunction();
             this->print(str, i, true);
             return;
         }

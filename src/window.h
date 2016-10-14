@@ -17,6 +17,12 @@
 #include <QIcon>
 #include <QAction>
 #include <QWindow>
+#include <QScrollBar>
+#include <QDebug>
+#include <QCloseEvent>
+#include <QSound>
+#include <QAction>
+#include <QApplication>
 
 #include <sys/types.h>
 #include <ctime>
@@ -41,7 +47,7 @@ class Window : public QWidget
 
 public:
     Window();
-    void displayPeers2(int place);
+    //void displayPeers2(int place);
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
 
@@ -58,6 +64,7 @@ private slots:
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     void exitRecieved(QString ipaddr);
+    void textEditChanged();
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
@@ -78,7 +85,7 @@ private:
     int socketfd;															//possibly obsolete
     peerlist peers[255];													//array of peerlist structures that holds info about connected computers
     void sortPeers();														//sort peerlist struct alphabetically by hostname
-    void displayPeers();													//update the QListWidget to show the connected peers
+    //void displayPeers();													//update the QListWidget to show the connected peers
     void assignSocket(struct peerlist *p);									//Give socket value to peerlist array member
     int peersLen = 0;														//Length of peers array
     mess_serv *m_serv2;
