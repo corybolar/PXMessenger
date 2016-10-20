@@ -26,20 +26,37 @@
 
 #include <sys/types.h>
 #include <ctime>
+#include <string.h>
+#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/unistd.h>
+#include <iostream>
+#include <sstream>
+#include <sys/fcntl.h>
 
 #include <mess_serv.h>
-#include <mess_discover.h>
+//#include <mess_discover.h>
 #include <mess_textedit.h>
 #include <mess_client.h>
 #include <peerlist.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
+#include <netinet/in.h>
+#include <resolv.h>
 #endif
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #endif
+
+#define PORT "13653"
 
 class Window : public QWidget
 {
@@ -48,6 +65,8 @@ class Window : public QWidget
 public:
     Window();
     //void displayPeers2(int place);
+    void sendPeerList();
+    peerClass *peers_class;
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
 
@@ -63,7 +82,7 @@ private slots:
     void potentialReconnect(QString ipaddr);								//client has sent a discover udp to us, test if we have seen him before
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void exitRecieved(QString ipaddr);
+    int exitRecieved(QString ipaddr);
     void textEditChanged();
 private:
     QPushButton *m_button;
@@ -79,11 +98,12 @@ private:
     QPushButton *m_sendDebugButton;
     QListWidget *m_listwidget;
     mess_client *m_client;
-    mess_discover *m_disc;
+    //mess_discover *m_disc;
     struct tm *now;
 	time_t mess_time;
     int socketfd;															//possibly obsolete
-    peerlist peers[255];													//array of peerlist structures that holds info about connected computers
+    //peerlist peers[255];													//array of peerlist structures that holds info about connected computers
+
     void sortPeers();														//sort peerlist struct alphabetically by hostname
     //void displayPeers();													//update the QListWidget to show the connected peers
     void assignSocket(struct peerlist *p);									//Give socket value to peerlist array member
@@ -96,6 +116,7 @@ private:
     void print(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
     void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
 signals:
+    void sendPeerListSignal(peerClass*);
 
 public slots:
 };

@@ -1,6 +1,27 @@
 #ifndef MESS_CLIENT_H
 #define MESS_CLIENT_H
 
+#include <iostream>
+#include <sys/types.h>
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#ifdef __unix__
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
+#define PORT "13653"
 
 class mess_client
 {

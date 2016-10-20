@@ -1,6 +1,8 @@
 #ifndef PEERLIST_H
 #define PEERLIST_H
 #include <QString>
+#include <QObject>
+#include <QMutex>
 
 #ifdef __unix__
 #include <arpa/inet.h>
@@ -22,5 +24,18 @@ struct peerlist{
     QString textBox = "";
     bool alerted;
 };
+
+class peerClass : public QObject
+{
+    Q_OBJECT
+public:
+    peerClass(QWidget *parent);
+    peerlist peers[255];
+private:
+    QMutex pMutex;
+    Q_DISABLE_COPY(peerClass)
+};
+
+
 
 #endif // PEERLIST_H
