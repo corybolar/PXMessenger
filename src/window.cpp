@@ -1,33 +1,5 @@
 #include <window.h>
 
-#include <string.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/unistd.h>
-#include <iostream>
-#include <sstream>
-#include <sys/fcntl.h>
-#include <ctime>
-
-#ifdef __unix__
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <arpa/nameser.h>
-#include <netinet/in.h>
-#include <resolv.h>
-#endif
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#endif
-
-#define PORT "13653"
-#define BACKLOG 20
-
 Window::Window()
 {
     char discovermess[138];
@@ -69,6 +41,8 @@ Window::Window()
     m_systray->setIcon(*m_trayIcon);
     m_systray->show();
 
+    peers_class = new peerClass(this);
+
     m_client = new mess_client();
     //Signals for gui objects
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
@@ -80,17 +54,20 @@ Window::Window()
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
     QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
     //Signals for mess_discover class
-    m_disc = new mess_discover(this);
-    QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
-    QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
-    QObject::connect(m_disc, SIGNAL (finished()), m_disc, SLOT (deleteLater()));
-    QObject::connect(m_disc, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
-    m_disc->start();
+    //m_disc = new mess_discover(this);
+    //QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
+    //QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
+    //QObject::connect(m_disc, SIGNAL (finished()), m_disc, SLOT (deleteLater()));
+    //QObject::connect(m_disc, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
+    //m_disc->start();
     //Signals for mess_serv class
     m_serv2 = new mess_serv(this);
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString)), this, SLOT (prints(const QString, const QString)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
+    QObject::connect(m_serv2, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
+    QObject::connect(m_serv2, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
+    QObject::connect(m_serv2, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     m_serv2->start();
 
@@ -108,6 +85,11 @@ Window::Window()
     this->udpSend(discovermess);
 
 }
+void Window::sendPeerList()
+{
+    emit sendPeerListSignal(peers_class);
+}
+
 void Window::textEditChanged()
 {
     if(m_textedit->toPlainText().length() > 240)
@@ -122,17 +104,17 @@ void Window::textEditChanged()
     }
 }
 
-void Window::exitRecieved(QString ipaddr)
+int Window::exitRecieved(QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
     {
-        if(ipaddr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
+        if(ipaddr.compare(QString::fromUtf8(peers_class->peers[i].c_ipaddr)) == 0)
         {
-            peerQuit(peers[i].socketdescriptor);
-            break;
+            peerQuit(peers_class->peers[i].socketdescriptor);
+            return 1;
         }
     }
-    return;
+    return 0;
 }
 
 void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
@@ -163,7 +145,7 @@ void Window::unalert(QListWidgetItem* item)
 {
     QString temp;
 
-    peers[m_listwidget->row(item)].alerted = false;
+    peers_class->peers[m_listwidget->row(item)].alerted = false;
     temp = item->text();
     temp.remove(0, 3);
     temp.remove(temp.length()-3, 3);
@@ -175,14 +157,14 @@ void Window::unalert(QListWidgetItem* item)
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
     int index1 = m_listwidget->row(item1);
-    //if(peers[index1].textBox.length() > 0)
+    //if(peers_class->peers[index1].textBox.length() > 0)
     //{
-        //if(peers[index1].textBox.at(peers[index1].textBox.length() - 1) == '\n')
+        //if(peers_class->peers[index1].textBox.at(peers_class->peers[index1].textBox.length() - 1) == '\n')
         //{
-            //peers[index1].textBox.chop(1);
+            //peers_class->peers[index1].textBox.chop(1);
         //}
     //}
-    m_textbrowser->setText(peers[index1].textBox);
+    m_textbrowser->setText(peers_class->peers[index1].textBox);
     if(item1->backgroundColor() == QColor("red"))
     {
         this->changeListColor(index1, 0);
@@ -197,11 +179,11 @@ void Window::potentialReconnect(QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
     {
-        if( ( (QString::fromUtf8(peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
+        if( ( (QString::fromUtf8(peers_class->peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
         {
             if(m_listwidget->item(i)->font().italic())
             {
-                this->print(peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
+                this->print(peers_class->peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
                 QFont mfont = m_listwidget->item(i)->font();
                 mfont.setItalic(false);
                 m_listwidget->item(i)->setFont(mfont);
@@ -215,18 +197,18 @@ void Window::peerQuit(int s)
 {
     for(int i = 0; i < peersLen; i++)
     {
-        if(peers[i].socketdescriptor == s)
+        if(peers_class->peers[i].socketdescriptor == s)
         {
-            peers[i].isConnected = 0;
+            peers_class->peers[i].isConnected = 0;
             if( !( m_listwidget->item(i)->font().italic() ) )
             {
                 QFont mfont = m_listwidget->item(i)->font();
                 mfont.setItalic(true);
                 m_listwidget->item(i)->setFont(mfont);
                 //m_listwidget->item(i)->font().setItalic(true);
-                peers[i].socketisValid = 0;
-                this->print(peers[i].hostname + " on " + QString::fromUtf8(peers[i].c_ipaddr) + " disconnected", i, false);
-                this->assignSocket(&peers[i]);
+                peers_class->peers[i].socketisValid = 0;
+                this->print(peers_class->peers[i].hostname + " on " + QString::fromUtf8(peers_class->peers[i].c_ipaddr) + " disconnected", i, false);
+                this->assignSocket(&peers_class->peers[i]);
             }
         }
     }
@@ -236,11 +218,11 @@ void Window::new_client(int s, QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
     {
-        if(strcmp(peers[i].c_ipaddr, ipaddr.toStdString().c_str()) == 0)
+        if(strcmp(peers_class->peers[i].c_ipaddr, ipaddr.toStdString().c_str()) == 0)
         {
-            peers[i].socketdescriptor = s;
-            //this->assignSocket(&(peers[i]));
-            peers[i].isConnected = true;
+            peers_class->peers[i].socketdescriptor = s;
+            //this->assignSocket(&(peers_class->peers[i]));
+            peers_class->peers[i].isConnected = true;
             return;
         }
     }
@@ -260,25 +242,25 @@ void Window::listpeers(QString hname, QString ipaddr)
     QByteArray ba = ipaddr.toLocal8Bit();
     const char *ipstr = ba.data();
     int i = 0;
-    for( ; ( peers[i].isValid ); i++ )
+    for( ; ( peers_class->peers[i].isValid ); i++ )
     {
-        if( (hname.compare(peers[i].hostname) ) == 0 )
+        if( (hname.compare(peers_class->peers[i].hostname) ) == 0 )
         {
             std::cout << ipstr << " | already discovered" << std::endl;
             return;
         }
     }
-    peers[i].hostname = hname;
-    peers[i].isValid = true;
-    peers[i].comboindex = i;
-    strcpy(peers[i].c_ipaddr, ipstr);
+    peers_class->peers[i].hostname = hname;
+    peers_class->peers[i].isValid = true;
+    peers_class->peers[i].comboindex = i;
+    strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
-    assignSocket(&(peers[i]));
-    //m_serv2->update_fds(peers[i].socketdescriptor);
+    assignSocket(&(peers_class->peers[i]));
+    //m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
     sortPeers();
     //displayPeers();
 
-    qDebug() << "hostname: " << peers[i].hostname << " @ ip:" << QString::fromUtf8(peers[i].c_ipaddr);
+    qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
     return;
 }
 /* This function sorts the peers array by alphabetical order of the hostname
@@ -298,8 +280,8 @@ void Window::sortPeers()
             char temp1[28] = {};
             char temp2[28] = {};
 
-            strcpy(temp1, (peers[i].hostname.toStdString().c_str()));
-            strcpy(temp2, (peers[i-1].hostname.toStdString().c_str()));
+            strcpy(temp1, (peers_class->peers[i].hostname.toStdString().c_str()));
+            strcpy(temp2, (peers_class->peers[i-1].hostname.toStdString().c_str()));
             int temp1Len = strlen(temp1);
             int temp2Len = strlen(temp2);
             for(int k = 0; k < temp1Len; k++)
@@ -312,27 +294,27 @@ void Window::sortPeers()
             }
             if( strcmp(temp1, temp2) < 0 )
             {
-                struct peerlist p = peers[i-1];
-                peers[i-1] = peers[i];
-                peers[i] = p;
-                peers[i].comboindex = i;
-                peers[i-1].comboindex = ( i - 1 );
+                struct peerlist p = peers_class->peers[i-1];
+                peers_class->peers[i-1] = peers_class->peers[i];
+                peers_class->peers[i] = p;
+                peers_class->peers[i].comboindex = i;
+                peers_class->peers[i-1].comboindex = ( i - 1 );
                 insert = true;
                 index = i;
             }
         }
         if(insert)
         {
-            m_listwidget->insertItem(index-1, peers[index-1].hostname);
+            m_listwidget->insertItem(index-1, peers_class->peers[index-1].hostname);
         }
         else
         {
-            m_listwidget->addItem(peers[peersLen-1].hostname);
+            m_listwidget->addItem(peers_class->peers[peersLen-1].hostname);
         }
     }
     else
     {
-        m_listwidget->insertItem(0, (peers[0].hostname));
+        m_listwidget->insertItem(0, (peers_class->peers[0].hostname));
     }
 }
 
@@ -345,10 +327,10 @@ void Window::closeEvent(QCloseEvent *event)
     for(int i = 0; i < peersLen; i++)
     {
 #ifdef __unix__
-        ::close(peers[i].socketdescriptor);
+        ::close(peers_class->peers[i].socketdescriptor);
 #endif
 #ifdef _WIN32
-        ::closesocket(peers[i].socketdescriptor);
+        ::closesocket(peers_class->peers[i].socketdescriptor);
 #endif
     }
     if(m_serv2 != 0 && m_serv2->isRunning())
@@ -356,11 +338,13 @@ void Window::closeEvent(QCloseEvent *event)
         m_serv2->requestInterruption();
         m_serv2->wait();
     }
+    /*
     if(m_disc != 0 && m_disc->isRunning() )
     {
         m_disc->requestInterruption();
         m_disc->wait();
     }
+    */
     delete m_client;
     delete m_trayIcon;
     m_systray->hide();
@@ -379,17 +363,17 @@ void Window::closeEvent(QCloseEvent *event)
     QFont temp;
     for(int i = 0; i < peersLen; i++)
     {
-        //m_combobox->setItemText(i, peers[i].hostname);
-        //qlistpeers[i].setText(peers[i].hostname);
+        //m_combobox->setItemText(i, peers_class->peers[i].hostname);
+        //qlistpeers_class->peers[i].setText(peers_class->peers[i].hostname);
         temp = m_listwidget->item(i)->font();
-        m_listwidget->item(i)->setText(peers[i].hostname);
+        m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
     }
     }
     if(peersLen < m_listwidget->count())
     {
     for(int i = 0; i < peersLen; i++)
     {
-        m_listwidget->item(i)->setText(peers[i].hostname);
+        m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
     }
     m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
@@ -398,9 +382,9 @@ void Window::closeEvent(QCloseEvent *event)
     //QListWidget *temp = m_listwidget->clone;
     for(int i = 0; i < peersLen-1; i++)
     {
-        m_listwidget->item(i)->setText(peers[i].hostname);
+        m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
     }
-    m_listwidget->addItem(peers[peersLen-1].hostname);
+    m_listwidget->addItem(peers_class->peers[peersLen-1].hostname);
     if(m_listwidget->count() == 1)
     {
         //m_listwidget->setCurrentItem(m_listwidget->item(0));
@@ -427,6 +411,11 @@ void Window::discoverClicked()
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
     this->udpSend(discovermess);
+    std::cout << "----------------------------------------" << std::endl;
+    std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
+    this->sendPeerList();
+    std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
+    std::cout << "----------------------------------------" << std::endl;
 }
 
 /*Send the "/discover" message to the local networks broadcast address
@@ -473,18 +462,18 @@ void Window::buttonClicked()
 
     int index = m_listwidget->currentRow();
 
-    int s_socket = peers[index].socketdescriptor;
+    int s_socket = peers_class->peers[index].socketdescriptor;
 
-    if(peers[index].socketisValid)
+    if(peers_class->peers[index].socketisValid)
     {
-        if(!(peers[index].isConnected))
+        if(!(peers_class->peers[index].isConnected))
         {
-            if(m_client->c_connect(s_socket, peers[index].c_ipaddr) < 0)
+            if(m_client->c_connect(s_socket, peers_class->peers[index].c_ipaddr) < 0)
             {
-                this->print("Could not connect to " + peers[index].hostname + " | on socket " + QString::number(peers[index].socketdescriptor), index, false);
+                this->print("Could not connect to " + peers_class->peers[index].hostname + " | on socket " + QString::number(peers_class->peers[index].socketdescriptor), index, false);
                 return;
             }
-            peers[index].isConnected = true;
+            peers_class->peers[index].isConnected = true;
             m_serv2->update_fds(s_socket);
         }
         if(strcmp(c_str, "") != 0)
@@ -507,7 +496,7 @@ void Window::buttonClicked()
     else
     {
         this->print("Peer Disconnected", index, false);
-        this->assignSocket(&peers[index]);
+        this->assignSocket(&peers_class->peers[index]);
     }
     return;
 }
@@ -574,7 +563,7 @@ void Window::print(const QString str, int peerindex, bool message)
         m_textbrowser->append(strnew);
         return;
     }
-    peers[peerindex].textBox.append(strnew + "\n");
+    peers_class->peers[peerindex].textBox.append(strnew + "\n");
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(strnew);
@@ -584,10 +573,10 @@ void Window::print(const QString str, int peerindex, bool message)
     else if(message)
     {
         this->changeListColor(peerindex, 1);
-        if(!(peers[peerindex].alerted))
+        if(!(peers_class->peers[peerindex].alerted))
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
-            peers[peerindex].alerted = true;
+            peers_class->peers[peerindex].alerted = true;
         }
     }
     return;
@@ -596,7 +585,7 @@ void Window::prints(const QString str, const QString ipstr)
 {
     for(int i = 0; i < peersLen; i++)
     {
-        if(ipstr.compare(QString::fromUtf8(peers[i].c_ipaddr)) == 0)
+        if(ipstr.compare(QString::fromUtf8(peers_class->peers[i].c_ipaddr)) == 0)
         {
             this->focusFunction();
             this->print(str, i, true);

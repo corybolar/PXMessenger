@@ -1,6 +1,3 @@
-#include <QTextEdit>
-#include <QWidget>
-
 #include <mess_textedit.h>
 
 
