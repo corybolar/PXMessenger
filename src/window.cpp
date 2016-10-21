@@ -299,7 +299,7 @@ void Window::listpeers(QString hname, QString ipaddr)
     strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
     assignSocket(&(peers_class->peers[i]));
-    if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) == 0)
+    if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
     {
         peers_class->peers[i].isConnected = true;
         m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
