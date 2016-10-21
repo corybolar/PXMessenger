@@ -135,9 +135,9 @@ void Window::sendPeerList()
 
 void Window::textEditChanged()
 {
-    if(m_textedit->toPlainText().length() > 240)
+    if(m_textedit->toPlainText().length() > 1000)
     {
-        int diff = m_textedit->toPlainText().length() - 240;
+        int diff = m_textedit->toPlainText().length() - 1000;
         QString temp = m_textedit->toPlainText();
         temp.chop(diff);
         m_textedit->setText(temp);
@@ -208,7 +208,7 @@ void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
     //}
     //}
     m_textbrowser->setText(peers_class->peers[index1].textBox);
-    if(item1->backgroundColor() == QColor("red"))
+    if(item1->background() == QGuiApplication::palette().alternateBase())
     {
         this->changeListColor(index1, 0);
         this->unalert(item1);
@@ -403,49 +403,6 @@ void Window::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
-/*Display peers array of hostnames to the QComboBox, m_combobox
- * Account for the fact that length of peers list could have changed by +/- 1
- *
- * TODO:IMPROVE
- * */
-/*void Window::displayPeers()
-{
-    if(peersLen == m_listwidget->count())
-    {
-    QFont temp;
-    for(int i = 0; i < peersLen; i++)
-    {
-    //m_combobox->setItemText(i, peers_class->peers[i].hostname);
-    //qlistpeers_class->peers[i].setText(peers_class->peers[i].hostname);
-    temp = m_listwidget->item(i)->font();
-    m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
-    }
-    }
-    if(peersLen < m_listwidget->count())
-    {
-    for(int i = 0; i < peersLen; i++)
-    {
-    m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
-    }
-    m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
-    }
-    if(peersLen > m_listwidget->count())
-    {
-    //QListWidget *temp = m_listwidget->clone;
-    for(int i = 0; i < peersLen-1; i++)
-    {
-    m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
-    }
-    m_listwidget->addItem(peers_class->peers[peersLen-1].hostname);
-    if(m_listwidget->count() == 1)
-    {
-    //m_listwidget->setCurrentItem(m_listwidget->item(0));
-    }
-    }
-    return;
-
-}
-*/
 /* Assign sockets to peers added to the peers array*/
 void Window::assignSocket(struct peerlist *p)
 {
@@ -560,11 +517,11 @@ void Window::changeListColor(int row, int style)
     QBrush back = (m_listwidget->item(row)->background());
     if(style == 1)
     {
-        m_listwidget->item(row)->setBackground(Qt::red);
+        m_listwidget->item(row)->setBackground(QGuiApplication::palette().alternateBase());
     }
     if(style == 0)
     {
-        m_listwidget->item(row)->setBackground(Qt::white);
+        m_listwidget->item(row)->setBackground(QGuiApplication::palette().base());
     }
     return;
 }
@@ -572,6 +529,7 @@ void Window::focusFunction()
 {
     if(this->isActiveWindow())
     {
+        QSound::play(":/resources/resources/message.wav");
         return;
     }
     if(this->windowState() == Qt::WindowActive)

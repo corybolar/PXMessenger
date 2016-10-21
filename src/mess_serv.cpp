@@ -102,7 +102,7 @@ int mess_serv::newConnection(int i)
 int mess_serv::tcpRecieve(int i)
 {
     int nbytes;
-    char buf[1000] = {};
+    char buf[1050] = {};
 
     if((nbytes = recv(i,buf,sizeof(buf), 0)) <= 0)
     {
@@ -152,7 +152,7 @@ int mess_serv::tcpRecieve(int i)
             std::cout << "hello" << std::endl;
             int count = 0;
 
-            for(int k = 3; k < strlen(buf); k++)
+            for(unsigned k = 3; k < strlen(buf); k++)
             {
                 if(buf[k] == ':')
                 {

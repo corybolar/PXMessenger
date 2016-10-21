@@ -23,6 +23,7 @@
 #include <QSound>
 #include <QAction>
 #include <QApplication>
+#include <QPalette>
 
 #include <sys/types.h>
 #include <ctime>
