@@ -303,7 +303,8 @@ void Window::listpeers(QString hname, QString ipaddr)
     {
         peers_class->peers[i].isConnected = true;
         m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
-        this->sendIps(peers_class->peers[i].socketdescriptor);
+        m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+        //this->sendIps(peers_class->peers[i].socketdescriptor);
         //this->print("Could not connect to " + peers_class->peers[index].hostname + " | on socket " + QString::number(peers_class->peers[index].socketdescriptor), index, false);
     }
 
@@ -526,7 +527,8 @@ void Window::buttonClicked()
             }
             peers_class->peers[index].isConnected = true;
             m_serv2->update_fds(s_socket);
-            this->sendIps(peers_class->peers[index].socketdescriptor);
+            m_client->send_msg(peers_class->peers[index].socketdescriptor, "", "", "/request");
+            //this->sendIps(peers_class->peers[index].socketdescriptor);
 
         }
         if(strcmp(c_str, "") != 0)
