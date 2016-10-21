@@ -30,6 +30,9 @@ Window::Window()
     m_quitButton = new QPushButton("Quit Debug", this);
     m_quitButton->setGeometry(200, 430, 80, 30);
 
+    m_testButton = new QPushButton("testing", this);
+    m_testButton->setGeometry(200, 370, 80, 30);
+
     m_trayIcon = new QIcon(":/resources/resources/systray.png");
 
     m_trayMenu = new QMenu(this);
@@ -43,7 +46,7 @@ Window::Window()
 
     peers_class = new peerClass(this);
 
-    m_client = new mess_client();
+    m_client = new mess_client(this);
     //Signals for gui objects
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
@@ -53,6 +56,7 @@ Window::Window()
     QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
     QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
+    QObject::connect(m_testButton, SIGNAL (clicked()), this, SLOT (testClicked()));
     //Signals for mess_discover class
     //m_disc = new mess_discover(this);
     //QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
@@ -68,7 +72,9 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
     QObject::connect(m_serv2, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
     QObject::connect(m_serv2, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
+    QObject::connect(m_serv2, SIGNAL (sendIps(int)), this, SLOT (sendIps(int)));
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
+    QObject::connect(m_serv2, SIGNAL (ipCheck(QString)), this, SLOT (ipCheck(QString)));
     m_serv2->start();
 
 #ifdef _WIN32
@@ -83,8 +89,45 @@ Window::Window()
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
     this->udpSend(discovermess);
-
 }
+void Window::ipCheck(QString comp)
+{
+    QStringList temp = comp.split('@');
+    QString hname = temp[0];
+    QString ipaddr = temp[1];
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(hname.compare(peers_class->peers[i].hostname) == 0)
+        {
+            return;
+        }
+    }
+    listpeers(hname, ipaddr);
+    return;
+}
+
+void Window::sendIps(int i)
+{
+    char type[5] = "/ip/";
+    char msg2[((peersLen * 16) * 2)] = {};
+    for(int k = 0; k < peersLen; k++)
+    {
+        if(peers_class->peers[k].isConnected)
+        {
+            strcat(msg2, peers_class->peers[k].hostname.toStdString().c_str());
+            strcat(msg2, "@");
+            strcat(msg2, peers_class->peers[k].c_ipaddr);
+            strcat(msg2, ":");
+        }
+    }
+    m_client->send_msg(i, msg2, name, type);
+}
+
+void Window::testClicked()
+{
+    this->sendIps(peers_class->peers[1].socketdescriptor);
+}
+
 void Window::sendPeerList()
 {
     emit sendPeerListSignal(peers_class);
@@ -159,10 +202,10 @@ void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
     int index1 = m_listwidget->row(item1);
     //if(peers_class->peers[index1].textBox.length() > 0)
     //{
-        //if(peers_class->peers[index1].textBox.at(peers_class->peers[index1].textBox.length() - 1) == '\n')
-        //{
-            //peers_class->peers[index1].textBox.chop(1);
-        //}
+    //if(peers_class->peers[index1].textBox.at(peers_class->peers[index1].textBox.length() - 1) == '\n')
+    //{
+    //peers_class->peers[index1].textBox.chop(1);
+    //}
     //}
     m_textbrowser->setText(peers_class->peers[index1].textBox);
     if(item1->backgroundColor() == QColor("red"))
@@ -256,6 +299,14 @@ void Window::listpeers(QString hname, QString ipaddr)
     strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
     assignSocket(&(peers_class->peers[i]));
+    if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) == 0)
+    {
+        peers_class->peers[i].isConnected = true;
+        m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
+        this->sendIps(peers_class->peers[i].socketdescriptor);
+        //this->print("Could not connect to " + peers_class->peers[index].hostname + " | on socket " + QString::number(peers_class->peers[index].socketdescriptor), index, false);
+    }
+
     //m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
     sortPeers();
     //displayPeers();
@@ -341,8 +392,8 @@ void Window::closeEvent(QCloseEvent *event)
     /*
     if(m_disc != 0 && m_disc->isRunning() )
     {
-        m_disc->requestInterruption();
-        m_disc->wait();
+    m_disc->requestInterruption();
+    m_disc->wait();
     }
     */
     delete m_client;
@@ -363,17 +414,17 @@ void Window::closeEvent(QCloseEvent *event)
     QFont temp;
     for(int i = 0; i < peersLen; i++)
     {
-        //m_combobox->setItemText(i, peers_class->peers[i].hostname);
-        //qlistpeers_class->peers[i].setText(peers_class->peers[i].hostname);
-        temp = m_listwidget->item(i)->font();
-        m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
+    //m_combobox->setItemText(i, peers_class->peers[i].hostname);
+    //qlistpeers_class->peers[i].setText(peers_class->peers[i].hostname);
+    temp = m_listwidget->item(i)->font();
+    m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
     }
     }
     if(peersLen < m_listwidget->count())
     {
     for(int i = 0; i < peersLen; i++)
     {
-        m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
+    m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
     }
     m_listwidget->removeItemWidget(m_listwidget->item(peersLen+1));
     }
@@ -382,12 +433,12 @@ void Window::closeEvent(QCloseEvent *event)
     //QListWidget *temp = m_listwidget->clone;
     for(int i = 0; i < peersLen-1; i++)
     {
-        m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
+    m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
     }
     m_listwidget->addItem(peers_class->peers[peersLen-1].hostname);
     if(m_listwidget->count() == 1)
     {
-        //m_listwidget->setCurrentItem(m_listwidget->item(0));
+    //m_listwidget->setCurrentItem(m_listwidget->item(0));
     }
     }
     return;
@@ -475,6 +526,8 @@ void Window::buttonClicked()
             }
             peers_class->peers[index].isConnected = true;
             m_serv2->update_fds(s_socket);
+            this->sendIps(peers_class->peers[index].socketdescriptor);
+
         }
         if(strcmp(c_str, "") != 0)
         {
@@ -482,7 +535,7 @@ void Window::buttonClicked()
             {
                 this->print("Message too long, messages must be shorter than 240 characters", index, false);
             }
-            else if((m_client->send_msg(s_socket, c_str, name)) == -5)
+            else if((m_client->send_msg(s_socket, c_str, name, "/msg")) == -5)
             {
                 this->print("Peer has closed connection, send failed", index, false);
                 return;
@@ -521,6 +574,7 @@ void Window::focusFunction()
     }
     if(this->windowState() == Qt::WindowActive)
     {
+        QSound::play(":/resources/resources/message.wav");
         return;
     }
     else if(!(this->isMinimized()))

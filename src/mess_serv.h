@@ -61,6 +61,8 @@ signals:
     void mess_peers(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
+    void sendIps(int);
+    void ipCheck(QString);
 private slots:
     void recievePeerList(peerClass *peers);
 };

@@ -102,7 +102,7 @@ int mess_serv::newConnection(int i)
 int mess_serv::tcpRecieve(int i)
 {
     int nbytes;
-    char buf[256] = {};
+    char buf[1000] = {};
 
     if((nbytes = recv(i,buf,sizeof(buf), 0)) <= 0)
     {
@@ -134,15 +134,45 @@ int mess_serv::tcpRecieve(int i)
         char ipstr2[INET6_ADDRSTRLEN];
         char service[20];
 
-        strcpy(mes, buf);
+        if(strncmp(buf, "/msg", 4) == 0)
+        {
 
-        getpeername(i, (struct sockaddr*)&addr, &socklen);
-        //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
-        //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
-        getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
 
-        emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2);
-        return 0;
+            strncpy(mes, buf + 4, strlen(buf) - 4);
+            getpeername(i, (struct sockaddr*)&addr, &socklen);
+            //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
+            //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
+            getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
+
+            emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2);
+            return 0;
+        }
+        else if(strncmp(buf, "/ip", 3) == 0)
+        {
+            std::cout << "hello" << std::endl;
+            int count = 0;
+
+            for(int k = 3; k < strlen(buf); k++)
+            {
+                if(buf[k] == ':')
+                {
+                   char temp[INET6_ADDRSTRLEN] = {};
+                   strncpy(temp, buf+(k-count+1), count-1);
+                   count = 0;
+                   if((strlen(temp) < 2))
+                       *temp = 0;
+                   else
+                       emit ipCheck(QString::fromUtf8(temp));
+                }
+                count++;
+            }
+
+
+        }
+        else if(strncmp(buf, "/request", 10))
+        {
+            emit sendIps(i);
+        }
     }
     return 1;
 }

@@ -84,10 +84,14 @@ private slots:
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     int exitRecieved(QString ipaddr);
     void textEditChanged();
+    void testClicked();
+    void sendIps(int i);
+    void ipCheck(QString comp);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
     QPushButton *m_quitButton;
+    QPushButton *m_testButton;
     QIcon *m_trayIcon;
     QAction *m_exitAction;
     QMenu *m_trayMenu;

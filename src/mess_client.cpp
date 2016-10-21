@@ -1,6 +1,6 @@
 #include <mess_client.h>
 
-mess_client::mess_client()
+mess_client::mess_client(QWidget *parent)
 {
 
 }
@@ -25,7 +25,7 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
     //temp.sin_family = AF_INET;
     //temp.sin_addr.s_addr = inet_addr(ipaddr);
 
-    if( (status = connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
+    if( (status = ::connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
     {
         std::cout << strerror(errno) << std::endl;
         freeaddrinfo(res);
@@ -34,7 +34,7 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
     freeaddrinfo(res);
     return socketfd;
 }
-int mess_client::send_msg(int socketfd, const char *msg, const char *host)
+int mess_client::send_msg(int socketfd, const char *msg, const char *host, const char *type)
 {
     int len, bytes_sent, sendcount = 0;
 
@@ -45,11 +45,15 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host)
 
     //Combine strings into final message (host): (msg)\0
 
-    len = strlen(msg) + strlen(host) + 3;
+    len = strlen(type) + strlen(host) + strlen(msg) + 3;
     char full_mess[len] = {};
-    strncpy(full_mess, host, strlen(host));
-    full_mess[strlen(host)] = ':';
-    full_mess[strlen(host)+1] = ' ';
+    strncpy(full_mess, type, strlen(type));
+    if(!strcmp(type, "/msg"))
+    {
+        strcat(full_mess, host);
+       full_mess[strlen(host) + strlen(type)] = ':';
+       full_mess[strlen(host) + strlen(type) + 1] = ' ';
+    }
     strcat(full_mess, msg);
 
     bytes_sent = this->partialSend(socketfd, full_mess, len, sendcount);
@@ -97,4 +101,8 @@ int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
     if(status < 1)
         perror("send:");
     return status + status2;
+}
+int mess_client::sendBinary()
+{
+
 }
