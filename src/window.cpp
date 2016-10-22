@@ -283,7 +283,7 @@ void Window::new_client(int s, QString ipaddr)
         }
     }
     //if we got here it means this new peer is not in the list, where he came from we'll never know
-    m_client->send_msg(s, "", "", "/request");
+    m_client->send_msg(s, "", "", "/namerequest");
     listpeers(ipaddr, ipaddr);
 
 }

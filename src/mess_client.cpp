@@ -131,12 +131,16 @@ int mess_client::sendName(int s)
 {
     int bytes_sent, len, sendcount = 0;
     char name[128];
+    char msg[138];
+
 
     gethostname(name, sizeof name);
 
-    len = strlen(name);
+    strcpy(msg, "/hostname");
+    strcat(msg, name);
+    len = strlen(msg);
 
-    bytes_sent = this->partialSend(s, name, len, sendcount);
+    bytes_sent = this->partialSend(s, msg, len, sendcount);
 
     if(bytes_sent > 0)
     {
