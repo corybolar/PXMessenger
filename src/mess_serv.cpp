@@ -134,15 +134,14 @@ int mess_serv::tcpRecieve(int i)
         char ipstr2[INET6_ADDRSTRLEN];
         char service[20];
 
+        getpeername(i, (struct sockaddr*)&addr, &socklen);
+        //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
+        //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
+        getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
+
         if(strncmp(buf, "/msg", 4) == 0)
         {
-
-
             strncpy(mes, buf + 4, strlen(buf) - 4);
-            getpeername(i, (struct sockaddr*)&addr, &socklen);
-            //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
-            //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
-            getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
 
             emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2);
             return 0;
@@ -169,9 +168,19 @@ int mess_serv::tcpRecieve(int i)
 
 
         }
-        else if(strncmp(buf, "/request", 10))
+        else if(!(strncmp(buf, "/hostname", 9)))
+        {
+            char temp[strlen(buf) - 9];
+            strncpy(temp, buf+(9), strlen(buf));
+            emit mess_peers(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
+        }
+        else if(!(strncmp(buf, "/request", 10)))
         {
             emit sendIps(i);
+        }
+        else if(!(strncmp(buf, "/namerequest", 14)))
+        {
+            emit sendName(i);
         }
     }
     return 1;
@@ -192,7 +201,7 @@ int mess_serv::udpRecieve(int i)
     si_other_len = sizeof(sockaddr);
     recvfrom(i, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
     getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service_disc, sizeof(service_disc), NI_NUMERICHOST);
-    std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
+    //std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
     if (strncmp(buf, "/discover", 9) == 0)
     {
         struct sockaddr_in addr;
@@ -214,7 +223,7 @@ int mess_serv::udpRecieve(int i)
         {
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
         }
-        emit potentialReconnect(QString::fromUtf8(ipstr));
+        //emit potentialReconnect(QString::fromUtf8(ipstr));
         char tname[strlen(buf)-8] = {};
         unsigned bufLen = strlen(buf);
         for(unsigned i = 9; i < (bufLen+1);i++)

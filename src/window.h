@@ -97,24 +97,23 @@ private:
     QAction *m_exitAction;
     QMenu *m_trayMenu;
     QSystemTrayIcon *m_systray;
-    mess_textedit *m_textedit;
     QTextBrowser *m_textbrowser;
     QLineEdit *m_lineedit;
     QPushButton *m_sendDebugButton;
     QListWidget *m_listwidget;
+    QThread *m_clientThread;
+    mess_textedit *m_textedit;
     mess_client *m_client;
-    //mess_discover *m_disc;
-    struct tm *now;
-	time_t mess_time;
-    int socketfd;															//possibly obsolete
-    //peerlist peers[255];													//array of peerlist structures that holds info about connected computers
-
-    void sortPeers();														//sort peerlist struct alphabetically by hostname
-    //void displayPeers();													//update the QListWidget to show the connected peers
-    void assignSocket(struct peerlist *p);									//Give socket value to peerlist array member
-    int peersLen = 0;														//Length of peers array
     mess_serv *m_serv2;
+    time_t mess_time;
+    struct tm *now;
+    int socketfd;															//possibly obsolete
+    int peersLen = 0;														//Length of peers array
     char name[128] = {};
+
+    char* returnName();
+    void sortPeers();														//sort peerlist struct alphabetically by hostname
+    void assignSocket(struct peerlist *p);									//Give socket value to peerlist array member
     void changeListColor(int row, int style);
     void unalert(QListWidgetItem *item);
     void focusFunction();

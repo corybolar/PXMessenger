@@ -46,7 +46,13 @@ Window::Window()
 
     peers_class = new peerClass(this);
 
-    m_client = new mess_client(this);
+    m_clientThread = new QThread;
+    m_client = new mess_client();
+    m_client->moveToThread(m_clientThread);
+    //connect(m_client, SIGNAL(finished()), m_clientThread, SLOT(quit()));
+    //connect(m_client, SIGNAL(finished()), m_client, SLOT(deleteLater()));
+    connect(m_clientThread, SIGNAL(finished()), m_clientThread, SLOT(deleteLater()));
+    m_clientThread->start();
     //Signals for gui objects
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
@@ -75,6 +81,7 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (sendIps(int)), this, SLOT (sendIps(int)));
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     QObject::connect(m_serv2, SIGNAL (ipCheck(QString)), this, SLOT (ipCheck(QString)));
+    QObject::connect(m_serv2, SIGNAL (sendName(int)), m_client, SLOT (sendNameSlot(int)));
     m_serv2->start();
 
 #ifdef _WIN32
@@ -90,6 +97,11 @@ Window::Window()
     strcat(discovermess, name);
     this->udpSend(discovermess);
 }
+char* Window::returnName()
+{
+    return this->name;
+}
+
 void Window::ipCheck(QString comp)
 {
     QStringList temp = comp.split('@');
@@ -125,7 +137,8 @@ void Window::sendIps(int i)
 
 void Window::testClicked()
 {
-    this->sendIps(peers_class->peers[1].socketdescriptor);
+    m_client->send_msg(peers_class->peers[0].socketdescriptor, "", "", "/request");
+    listpeers(QString::fromUtf8(peers_class->peers[0].c_ipaddr), QString::fromUtf8(peers_class->peers[0].c_ipaddr));
 }
 
 void Window::sendPeerList()
@@ -200,13 +213,6 @@ void Window::unalert(QListWidgetItem* item)
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
     int index1 = m_listwidget->row(item1);
-    //if(peers_class->peers[index1].textBox.length() > 0)
-    //{
-    //if(peers_class->peers[index1].textBox.at(peers_class->peers[index1].textBox.length() - 1) == '\n')
-    //{
-    //peers_class->peers[index1].textBox.chop(1);
-    //}
-    //}
     m_textbrowser->setText(peers_class->peers[index1].textBox);
     if(item1->background() == QGuiApplication::palette().alternateBase())
     {
@@ -266,9 +272,20 @@ void Window::new_client(int s, QString ipaddr)
             peers_class->peers[i].socketdescriptor = s;
             //this->assignSocket(&(peers_class->peers[i]));
             peers_class->peers[i].isConnected = true;
+            if(m_listwidget->item(i)->font().italic())
+            {
+                this->print(peers_class->peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
+                QFont mfont = m_listwidget->item(i)->font();
+                mfont.setItalic(false);
+                m_listwidget->item(i)->setFont(mfont);
+            }
             return;
         }
     }
+    //if we got here it means this new peer is not in the list, where he came from we'll never know
+    m_client->send_msg(s, "", "", "/request");
+    listpeers(ipaddr, ipaddr);
+
 }
 
 void Window::quitClicked()
@@ -287,9 +304,13 @@ void Window::listpeers(QString hname, QString ipaddr)
     int i = 0;
     for( ; ( peers_class->peers[i].isValid ); i++ )
     {
-        if( (hname.compare(peers_class->peers[i].hostname) ) == 0 )
+        if( (ipaddr.compare(peers_class->peers[i].c_ipaddr) ) == 0 )
         {
-            std::cout << ipstr << " | already discovered" << std::endl;
+            if( (hname.compare(peers_class->peers[i].hostname)) != 0)
+            {
+                qDebug() << "Name change for " << peers_class->peers[i].hostname << " @ " << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
+                peers_class->peers[i].hostname = hname;
+            }
             return;
         }
     }
@@ -308,11 +329,11 @@ void Window::listpeers(QString hname, QString ipaddr)
         //this->print("Could not connect to " + peers_class->peers[index].hostname + " | on socket " + QString::number(peers_class->peers[index].socketdescriptor), index, false);
     }
 
+    qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
     //m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
     sortPeers();
     //displayPeers();
 
-    qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
     return;
 }
 /* This function sorts the peers array by alphabetical order of the hostname
@@ -490,11 +511,7 @@ void Window::buttonClicked()
         }
         if(strcmp(c_str, "") != 0)
         {
-            if(strlen(c_str) > 240)
-            {
-                this->print("Message too long, messages must be shorter than 240 characters", index, false);
-            }
-            else if((m_client->send_msg(s_socket, c_str, name, "/msg")) == -5)
+            if((m_client->send_msg(s_socket, c_str, name, "/msg")) == -5)
             {
                 this->print("Peer has closed connection, send failed", index, false);
                 return;

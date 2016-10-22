@@ -62,6 +62,7 @@ signals:
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
     void sendIps(int);
+    void sendName(int);
     void ipCheck(QString);
 private slots:
     void recievePeerList(peerClass *peers);

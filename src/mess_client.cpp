@@ -1,6 +1,6 @@
 #include <mess_client.h>
 
-mess_client::mess_client(QWidget *parent)
+mess_client::mess_client()
 {
 
 }
@@ -38,19 +38,22 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
 {
     int len, bytes_sent, sendcount = 0;
 
-    if( ( strcmp(msg, "exit") == 0 ) && ( strlen(msg) == 4 ) )
-    {
-        return -1;
-    }
-
     //Combine strings into final message (host): (msg)\0
 
-    len = strlen(type) + strlen(host) + strlen(msg) + 3;
+    if(!strcmp(type, "/msg"))
+    {
+        len = strlen(type) + strlen(host) + strlen(msg) + 3;
+    }
+    else
+    {
+        len = strlen(type) + strlen(msg) + 1;
+    }
+
     char full_mess[len] = {};
     strncpy(full_mess, type, strlen(type));
     if(!strcmp(type, "/msg"))
     {
-        strcat(full_mess, host);
+       strcat(full_mess, host);
        full_mess[strlen(host) + strlen(type)] = ':';
        full_mess[strlen(host) + strlen(type) + 1] = ' ';
     }
@@ -58,7 +61,7 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
 
     bytes_sent = this->partialSend(socketfd, full_mess, len, sendcount);
 
-    if(bytes_sent >= 0)
+    if(bytes_sent > 0)
     {
         if(bytes_sent >= len)
         {
@@ -71,11 +74,16 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
     }
     else
     {
+#ifdef _WIN32
+        return -5;
+#else
         switch (errno)
         {
         case EPIPE:
             return -5;
         }
+#endif
+
     }
     return bytes_sent;
 }
@@ -89,6 +97,13 @@ int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
 #else
     int status = send(socketfd, msg, len, MSG_NOSIGNAL);
 #endif
+
+    if( (status <= 0) )
+    {
+        perror("send:");
+        return -1;
+    }
+
     if( ( status != len ) && ( count < 10 ) )
     {
         int len2 = len - status;
@@ -97,12 +112,55 @@ int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
         count++;
 
         status2 = partialSend(socketfd, msg2, len2, count);
+        if(status2 <= 0)
+            return -1;
     }
-    if(status < 1)
-        perror("send:");
     return status + status2;
 }
 int mess_client::sendBinary()
 {
+    return 0;
+}
+void mess_client::sendNameSlot(int s)
+{
+    this->sendName(s);
+    return;
+}
 
+int mess_client::sendName(int s)
+{
+    int bytes_sent, len, sendcount = 0;
+    char name[128];
+
+    gethostname(name, sizeof name);
+
+    len = strlen(name);
+
+    bytes_sent = this->partialSend(s, name, len, sendcount);
+
+    if(bytes_sent > 0)
+    {
+        if(bytes_sent >= len)
+        {
+            return bytes_sent;
+        }
+        else
+        {
+            std::cout << "Partial Send has failed not all bytes sent" << std::endl;
+        }
+    }
+    else
+    {
+#ifdef _WIN32
+        return -5;
+#else
+        switch (errno)
+        {
+        case EPIPE:
+            return -5;
+        }
+#endif
+
+    }
+    return bytes_sent;
 }
