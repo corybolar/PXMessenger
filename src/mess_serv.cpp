@@ -170,8 +170,9 @@ int mess_serv::tcpRecieve(int i)
         }
         else if(!(strncmp(buf, "/hostname", 9)))
         {
-            char temp[strlen(buf) - 9];
-            strncpy(temp, buf+(9), strlen(buf));
+            int buflen = strlen(buf);
+            char temp[buflen - 9];
+            strncpy(temp, buf+(9), buflen);
             emit mess_peers(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
         }
         else if(!(strncmp(buf, "/request", 10)))

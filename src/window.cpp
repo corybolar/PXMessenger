@@ -137,7 +137,7 @@ void Window::sendIps(int i)
 
 void Window::testClicked()
 {
-    m_client->send_msg(peers_class->peers[0].socketdescriptor, "", "", "/request");
+    m_client->send_msg(peers_class->peers[0].socketdescriptor, "", "", "/namerequest");
     listpeers(QString::fromUtf8(peers_class->peers[0].c_ipaddr), QString::fromUtf8(peers_class->peers[0].c_ipaddr));
 }
 
