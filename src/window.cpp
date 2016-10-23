@@ -210,7 +210,14 @@ void Window::unalert(QListWidgetItem* item)
 {
     QString temp;
 
-    peers_class->peers[m_listwidget->row(item)].alerted = false;
+    if(m_listwidget->row(item) == m_listwidget->count())
+    {
+        globalChatAlerted == false;
+    }
+    else
+    {
+        peers_class->peers[m_listwidget->row(item)].alerted = false;
+    }
     temp = item->text();
     temp.remove(0, 3);
     temp.remove(temp.length()-3, 3);
@@ -597,9 +604,13 @@ void Window::print(const QString str, int peerindex, bool message)
         return;
     }
     if(peerindex == globalChatIndex)
+    {
         globalChat.append(strnew + "\n");
+    }
     else
+    {
         peers_class->peers[peerindex].textBox.append(strnew + "\n");
+    }
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(strnew);
@@ -608,10 +619,15 @@ void Window::print(const QString str, int peerindex, bool message)
     else if(message)
     {
         this->changeListColor(peerindex, 1);
-        if(!(peers_class->peers[peerindex].alerted))
+        if( !( peers_class->peers[peerindex].alerted ) && ( peerindex != m_listwidget->count() ) )
         {
             m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
             peers_class->peers[peerindex].alerted = true;
+        }
+        else if(peerindex == m_listwidget->count() && !(globalChatAlerted))
+        {
+            m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
+            globalChatAlerted == true;
         }
     }
     return;

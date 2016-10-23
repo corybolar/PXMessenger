@@ -51,7 +51,7 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
 
     char full_mess[len] = {};
     strncpy(full_mess, type, strlen(type));
-    if(!strcmp(type, "/msg"))
+    if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
        strcat(full_mess, host);
        full_mess[strlen(host) + strlen(type)] = ':';

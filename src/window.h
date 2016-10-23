@@ -114,6 +114,7 @@ private:
     char name[128] = {};
     QString globalChat = "";
     int globalChatIndex = 2;
+    bool globalChatAlerted = false;
 
     char* returnName();
     void sortPeers();														//sort peerlist struct alphabetically by hostname
