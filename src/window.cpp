@@ -26,6 +26,8 @@ Window::Window()
 
     m_listwidget = new QListWidget(this);
     m_listwidget->setGeometry(410, 100, 200, 300);
+    m_listwidget->insertItem(0, "--------------------");
+    m_listwidget->insertItem(1, "Global Chat");
 
     m_quitButton = new QPushButton("Quit Debug", this);
     m_quitButton->setGeometry(200, 430, 80, 30);
@@ -68,7 +70,7 @@ Window::Window()
 
     //Signals for mess_serv class
     m_serv2 = new mess_serv(this);
-    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString)), this, SLOT (prints(const QString, const QString)) );
+    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString, bool)), this, SLOT (prints(const QString, const QString, bool)) );
     QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
     QObject::connect(m_serv2, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
@@ -94,24 +96,15 @@ Window::Window()
     strcat(discovermess, name);
     this->udpSend(discovermess);
 
-    peerClass *tester = new peerClass(this);
-    tester->peers[0].hostname = "cory";
-    tester->peers[1].hostname = "zcory";
-    tester->peers[2].hostname = "bcory";
-    tester->peers[3].hostname = "acory";
-    tester->peers[4].hostname = "1cory";
-    for (int k = 0; k < 5; k++)
-    {
-        qDebug() << tester->peers[k].hostname;
-    }
-    tester->sortPeers(5);
-    qDebug() << "now sorted";
-    for (int k = 0; k < 5; k++)
-    {
-        qDebug() << tester->peers[k].hostname;
-    }
-    delete tester;
+    //QTimer *timer = new QTimer(this);
+    //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
+    //timer->start(2000);
 }
+void Window::timerout()
+{
+   qDebug() << "Timer done";
+}
+
 char* Window::returnName()
 {
     return this->name;
@@ -229,7 +222,14 @@ void Window::unalert(QListWidgetItem* item)
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
     int index1 = m_listwidget->row(item1);
-    m_textbrowser->setText(peers_class->peers[index1].textBox);
+    if(index1 == m_listwidget->count())
+    {
+       m_textbrowser->setText(globalChat);
+    }
+    else
+    {
+        m_textbrowser->setText(peers_class->peers[index1].textBox);
+    }
     if(item1->background() == QGuiApplication::palette().alternateBase())
     {
         this->changeListColor(index1, 0);
@@ -361,11 +361,11 @@ void Window::sortPeers()
     if(peersLen > 1)
     {
         peers_class->sortPeers(peersLen);
-        if(m_listwidget->count() < peersLen)
-            m_listwidget->addItem("");
-        else if(m_listwidget->count() > peersLen)
+        if( ( m_listwidget->count() - 2 ) < peersLen)
+            m_listwidget->insertItem(0, "");
+        else if( ( m_listwidget->count() - 2 ) > peersLen)
             m_listwidget->removeItemWidget(m_listwidget->item(peersLen));
-        for(int i = 0; i < m_listwidget->count(); i++)
+        for(int i = 0; i < ( m_listwidget->count() - 2 ); i++)
         {
             m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
             if(peers_class->peers[i].alerted)
@@ -464,6 +464,18 @@ void Window::udpSend(const char* msg)
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
 }
+void Window::globalSend(QString msg)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(peers_class->peers[i].isConnected)
+        {
+            m_client->send_msg(peers_class->peers[i].socketdescriptor, msg.toStdString().c_str(), name, "/global");
+        }
+    }
+
+}
+
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
 void Window::buttonClicked()
 {
@@ -472,10 +484,15 @@ void Window::buttonClicked()
         this->print("Choose a computer to message from the selection pane on the right", -1, false);
         return;
     }
-    std::string str = m_textedit->toPlainText().toStdString();
-    const char* c_str = str.c_str();
+    QString str = m_textedit->toPlainText();
+    const char* c_str = str.toStdString().c_str();
 
     int index = m_listwidget->currentRow();
+    if( ( index == globalChatIndex ) && ( strcmp(c_str, "") != 0) )
+    {
+        globalSend(str);
+        return;
+    }
 
     int s_socket = peers_class->peers[index].socketdescriptor;
 
@@ -579,12 +596,14 @@ void Window::print(const QString str, int peerindex, bool message)
         m_textbrowser->append(strnew);
         return;
     }
-    peers_class->peers[peerindex].textBox.append(strnew + "\n");
+    if(peerindex == globalChatIndex)
+        globalChat.append(strnew + "\n");
+    else
+        peers_class->peers[peerindex].textBox.append(strnew + "\n");
     if(peerindex == m_listwidget->currentRow())
     {
         m_textbrowser->append(strnew);
         qApp->alert(this, 0);
-
     }
     else if(message)
     {
@@ -597,8 +616,14 @@ void Window::print(const QString str, int peerindex, bool message)
     }
     return;
 }
-void Window::prints(const QString str, const QString ipstr)
+void Window::prints(const QString str, const QString ipstr, bool global)
 {
+    if(global)
+    {
+        this->focusFunction();
+        this->print(str, m_listwidget->count(), true);
+        return;
+    }
     for(int i = 0; i < peersLen; i++)
     {
         if(ipstr.compare(QString::fromUtf8(peers_class->peers[i].c_ipaddr)) == 0)

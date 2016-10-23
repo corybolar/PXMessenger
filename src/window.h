@@ -76,7 +76,7 @@ protected:
     void changeEvent(QEvent *event);
 private slots:
     void buttonClicked();													//Send button event
-    void prints(const QString str, const QString ipstr);					//calls print, currently identifys recipient based on socket descriptor, needs revision
+    void prints(const QString str, const QString ipstr, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
     void listpeers(QString hname, QString ipaddr);							//Add new peers to the peerlist struct array and call the sort/display functions
     void discoverClicked();													//Discover button event
     void quitClicked();														//quit button, used to test the various destructors and close event
@@ -90,6 +90,7 @@ private slots:
     void testClicked();
     void sendIps(int i);
     void ipCheck(QString comp);
+    void timerout();
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
@@ -109,9 +110,10 @@ private:
     mess_serv *m_serv2;
     time_t mess_time;
     struct tm *now;
-    int socketfd;															//possibly obsolete
     int peersLen = 0;														//Length of peers array
     char name[128] = {};
+    QString globalChat = "";
+    int globalChatIndex = 2;
 
     char* returnName();
     void sortPeers();														//sort peerlist struct alphabetically by hostname
@@ -121,6 +123,7 @@ private:
     void focusFunction();
     void print(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
     void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
+    void globalSend(QString msg);
 signals:
     void sendPeerListSignal(peerClass*);
 

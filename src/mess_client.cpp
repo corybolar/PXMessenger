@@ -40,7 +40,7 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
 
     //Combine strings into final message (host): (msg)\0
 
-    if(!strcmp(type, "/msg"))
+    if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
         len = strlen(type) + strlen(host) + strlen(msg) + 3;
     }

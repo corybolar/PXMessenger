@@ -143,12 +143,12 @@ int mess_serv::tcpRecieve(int i)
         {
             strncpy(mes, buf + 4, strlen(buf) - 4);
 
-            emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2);
+            emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2, false);
             return 0;
         }
         else if(strncmp(buf, "/ip", 3) == 0)
         {
-            std::cout << "hello" << std::endl;
+            qDebug() << "/ip recieved from " << QString::fromUtf8(ipstr2);
             int count = 0;
 
             for(unsigned k = 3; k < strlen(buf); k++)
@@ -168,6 +168,15 @@ int mess_serv::tcpRecieve(int i)
 
 
         }
+        else if(!(strncmp(buf, "/request", 10)))
+        {
+            qDebug() << "/request recieved from " << QString::fromUtf8(ipstr2) << "\nsending ips";
+            emit sendIps(i);
+        }
+        else if(!(strncmp(buf, "/global", 7)))
+        {
+            emit mess_rec(QString::fromUtf8(buf+7), ipstr2, true);
+        }
         else if(!(strncmp(buf, "/hostname", 9)))
         {
             int buflen = strlen(buf);
@@ -175,12 +184,9 @@ int mess_serv::tcpRecieve(int i)
             strncpy(temp, buf+(9), buflen);
             emit mess_peers(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
         }
-        else if(!(strncmp(buf, "/request", 10)))
-        {
-            emit sendIps(i);
-        }
         else if(!(strncmp(buf, "/namerequest", 14)))
         {
+            qDebug() << "/namerequest recieved from " << QString::fromUtf8(ipstr2) << "\nsending hostname";
             emit sendName(i);
         }
     }

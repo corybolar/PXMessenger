@@ -55,7 +55,7 @@ public:
     void new_fds(int s);											//obsolete
 
 signals:
-    void mess_rec(const QString, const QString);					//return a message from a peer with their socket descriptor. REVISE
+    void mess_rec(const QString, const QString, bool);					//return a message from a peer with their socket descriptor. REVISE
     void new_client(int, const QString);							//
     void peerQuit(int);												//Alert of a peer disconnect
     void mess_peers(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
