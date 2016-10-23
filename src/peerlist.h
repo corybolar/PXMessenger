@@ -22,7 +22,7 @@ struct peerlist{
     bool isConnected = false;
     bool socketisValid = false;
     QString textBox = "";
-    bool alerted;
+    bool alerted = false;
 };
 
 class peerClass : public QObject
@@ -31,9 +31,11 @@ class peerClass : public QObject
 public:
     peerClass(QWidget *parent);
     peerlist peers[255];
+    void sortPeers(int len);
 private:
     QMutex pMutex;
     Q_DISABLE_COPY(peerClass)
+    static int qsortCompare(const void *a, const void *b);
 };
 
 

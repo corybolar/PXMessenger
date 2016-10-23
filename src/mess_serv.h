@@ -50,7 +50,7 @@ public:
     void update_fds(int s);											//add new sockets to the master fd_set
     //Maybe change these to locals and pass them around instead?
     fd_set master, read_fds, write_fds;
-    int fdmax;
+    int fdmax = 0;
 
     void new_fds(int s);											//obsolete
 

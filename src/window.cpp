@@ -35,11 +35,12 @@ Window::Window()
 
     m_trayIcon = new QIcon(":/resources/resources/systray.png");
 
+    m_systray = new QSystemTrayIcon(this);
+
     m_trayMenu = new QMenu(this);
     m_exitAction = new QAction(this);
     m_exitAction = m_trayMenu->addAction("Exit");
 
-    m_systray = new QSystemTrayIcon(this);
     m_systray->setContextMenu(m_trayMenu);
     m_systray->setIcon(*m_trayIcon);
     m_systray->show();
@@ -53,6 +54,7 @@ Window::Window()
     //connect(m_client, SIGNAL(finished()), m_client, SLOT(deleteLater()));
     connect(m_clientThread, SIGNAL(finished()), m_clientThread, SLOT(deleteLater()));
     m_clientThread->start();
+
     //Signals for gui objects
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
     QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
@@ -63,13 +65,7 @@ Window::Window()
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
     QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
     QObject::connect(m_testButton, SIGNAL (clicked()), this, SLOT (testClicked()));
-    //Signals for mess_discover class
-    //m_disc = new mess_discover(this);
-    //QObject::connect(m_disc, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
-    //QObject::connect(m_disc, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
-    //QObject::connect(m_disc, SIGNAL (finished()), m_disc, SLOT (deleteLater()));
-    //QObject::connect(m_disc, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
-    //m_disc->start();
+
     //Signals for mess_serv class
     m_serv2 = new mess_serv(this);
     QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString)), this, SLOT (prints(const QString, const QString)) );
@@ -84,6 +80,7 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (sendName(int)), m_client, SLOT (sendNameSlot(int)));
     m_serv2->start();
 
+    //maybe use portable sleep command here? dont think there is actually a difference
 #ifdef _WIN32
     Sleep(500);
 #else
@@ -96,6 +93,24 @@ Window::Window()
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
     this->udpSend(discovermess);
+
+    peerClass *tester = new peerClass(this);
+    tester->peers[0].hostname = "cory";
+    tester->peers[1].hostname = "zcory";
+    tester->peers[2].hostname = "bcory";
+    tester->peers[3].hostname = "acory";
+    tester->peers[4].hostname = "1cory";
+    for (int k = 0; k < 5; k++)
+    {
+        qDebug() << tester->peers[k].hostname;
+    }
+    tester->sortPeers(5);
+    qDebug() << "now sorted";
+    for (int k = 0; k < 5; k++)
+    {
+        qDebug() << tester->peers[k].hostname;
+    }
+    delete tester;
 }
 char* Window::returnName()
 {
@@ -137,8 +152,9 @@ void Window::sendIps(int i)
 
 void Window::testClicked()
 {
-    m_client->send_msg(peers_class->peers[0].socketdescriptor, "", "", "/namerequest");
-    listpeers(QString::fromUtf8(peers_class->peers[0].c_ipaddr), QString::fromUtf8(peers_class->peers[0].c_ipaddr));
+    QString q = "192.168.1.191";
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    m_client->c_connect(s, q.toStdString().c_str());
 }
 
 void Window::sendPeerList()
@@ -282,7 +298,9 @@ void Window::new_client(int s, QString ipaddr)
             return;
         }
     }
-    //if we got here it means this new peer is not in the list, where he came from we'll never know
+    //If we got here it means this new peer is not in the list, where he came from we'll never know.
+    //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
+    //his ip address but will ask him for his name via the command that follows this comment.
     m_client->send_msg(s, "", "", "/namerequest");
     listpeers(ipaddr, ipaddr);
 
@@ -309,94 +327,63 @@ void Window::listpeers(QString hname, QString ipaddr)
             if( (hname.compare(peers_class->peers[i].hostname)) != 0)
             {
                 qDebug() << "Name change for " << peers_class->peers[i].hostname << " @ " << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
-                peers_class->peers[i].hostname = hname;
+                goto skipreturn;
             }
             return;
         }
     }
     peers_class->peers[i].hostname = hname;
     peers_class->peers[i].isValid = true;
-    peers_class->peers[i].comboindex = i;
     strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
     assignSocket(&(peers_class->peers[i]));
+skipreturn:
     if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
     {
         peers_class->peers[i].isConnected = true;
         m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
         m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
-        //this->sendIps(peers_class->peers[i].socketdescriptor);
-        //this->print("Could not connect to " + peers_class->peers[index].hostname + " | on socket " + QString::number(peers_class->peers[index].socketdescriptor), index, false);
     }
 
     qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
-    //m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
+
     sortPeers();
-    //displayPeers();
 
     return;
 }
-/* This function sorts the peers array by alphabetical order of the hostname
- *
- * TODO:IMPROVE
- *
+
+
+/*
+ * This function sorts the peers array by alphabetical order of the hostname
  * */
 void Window::sortPeers()
 {
     if(peersLen > 1)
     {
-        int i = peersLen-1;
-        bool insert = false;
-        int index;
-        for( ; i > 0; i-- )
+        peers_class->sortPeers(peersLen);
+        if(m_listwidget->count() < peersLen)
+            m_listwidget->addItem("");
+        else if(m_listwidget->count() > peersLen)
+            m_listwidget->removeItemWidget(m_listwidget->item(peersLen));
+        for(int i = 0; i < m_listwidget->count(); i++)
         {
-            char temp1[28] = {};
-            char temp2[28] = {};
-
-            strcpy(temp1, (peers_class->peers[i].hostname.toStdString().c_str()));
-            strcpy(temp2, (peers_class->peers[i-1].hostname.toStdString().c_str()));
-            int temp1Len = strlen(temp1);
-            int temp2Len = strlen(temp2);
-            for(int k = 0; k < temp1Len; k++)
+            m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
+            if(peers_class->peers[i].alerted)
             {
-                temp1[k] = tolower(temp1[k]);
+                this->changeListColor(i, 1);
+                m_listwidget->item(i)->setText(" * " + m_listwidget->item(i)->text() + " * ");
             }
-            for(int k = 0; k < temp2Len; k++)
-            {
-                temp2[k] = tolower(temp2[k]);
-            }
-            if( strcmp(temp1, temp2) < 0 )
-            {
-                struct peerlist p = peers_class->peers[i-1];
-                peers_class->peers[i-1] = peers_class->peers[i];
-                peers_class->peers[i] = p;
-                peers_class->peers[i].comboindex = i;
-                peers_class->peers[i-1].comboindex = ( i - 1 );
-                insert = true;
-                index = i;
-            }
-        }
-        if(insert)
-        {
-            m_listwidget->insertItem(index-1, peers_class->peers[index-1].hostname);
-        }
-        else
-        {
-            m_listwidget->addItem(peers_class->peers[peersLen-1].hostname);
         }
     }
     else
     {
         m_listwidget->insertItem(0, (peers_class->peers[0].hostname));
     }
+    return;
 }
 
 void Window::closeEvent(QCloseEvent *event)
 {
-    for(int i = 0; i < 1; i++)
-    {
-        this->udpSend("/exit");
-    }
     for(int i = 0; i < peersLen; i++)
     {
 #ifdef __unix__
@@ -409,17 +396,15 @@ void Window::closeEvent(QCloseEvent *event)
     if(m_serv2 != 0 && m_serv2->isRunning())
     {
         m_serv2->requestInterruption();
+        m_serv2->quit();
         m_serv2->wait();
     }
-    /*
-    if(m_disc != 0 && m_disc->isRunning() )
-    {
-    m_disc->requestInterruption();
-    m_disc->wait();
-    }
-    */
+    m_clientThread->quit();
+    m_clientThread->wait();
     delete m_client;
     delete m_trayIcon;
+    m_trayMenu->deleteLater();
+    delete peers_class;
     m_systray->hide();
     event->accept();
 }

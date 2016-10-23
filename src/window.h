@@ -68,6 +68,8 @@ public:
     //void displayPeers2(int place);
     void sendPeerList();
     peerClass *peers_class;
+    void sortPeers2();
+    int qsortCompare(const void *a, const void *b);
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
 
