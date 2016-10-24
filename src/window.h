@@ -113,7 +113,7 @@ private:
     int peersLen = 0;														//Length of peers array
     char name[128] = {};
     QString globalChat = "";
-    int globalChatIndex = 2;
+    int globalChatIndex = 1;
     bool globalChatAlerted = false;
 
     char* returnName();
