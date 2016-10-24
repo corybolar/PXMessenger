@@ -179,6 +179,7 @@ int mess_serv::tcpRecieve(int i)
         }
         else if(!(strncmp(buf, "/hostname", 9)))
         {
+            qDebug() << "/hostname recieved" << QString::fromUtf8(ipstr2);
             int buflen = strlen(buf);
             char temp[buflen - 9];
             strncpy(temp, buf+(9), buflen);

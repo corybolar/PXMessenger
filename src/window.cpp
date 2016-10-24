@@ -110,6 +110,10 @@ char* Window::returnName()
 {
     return this->name;
 }
+void Window::sendNameSlot(int s)
+{
+    m_client->send_msg(s, name, "", "/hostname");
+}
 
 void Window::ipCheck(QString comp)
 {

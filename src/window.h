@@ -92,6 +92,7 @@ private slots:
     void ipCheck(QString comp);
     void timerout();
     void setPeerHostname(QString hname, QString ipaddr);
+    void sendNameSlot(int);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
