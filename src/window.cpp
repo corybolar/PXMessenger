@@ -81,7 +81,7 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     QObject::connect(m_serv2, SIGNAL (ipCheck(QString)), this, SLOT (ipCheck(QString)));
     QObject::connect(m_serv2, SIGNAL (sendName(int)), m_client, SLOT (sendNameSlot(int)));
-    QObject::connect(m_serv2, SIGNAL (setPeerHostname(QString, QString)), m_client, SLOT (setPeerHostname(QString, QString)));
+    QObject::connect(m_serv2, SIGNAL (setPeerHostname(QString, QString)), this, SLOT (setPeerHostname(QString, QString)));
     m_serv2->start();
 
     //maybe use portable sleep command here? dont think there is actually a difference
@@ -96,7 +96,7 @@ Window::Window()
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
-    //this->udpSend(discovermess);
+    this->udpSend(discovermess);
 
     //QTimer *timer = new QTimer(this);
     //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
@@ -110,10 +110,6 @@ void Window::timerout()
 char* Window::returnName()
 {
     return this->name;
-}
-void Window::sendNameSlot(int s)
-{
-    m_client->send_msg(s, name, "", "/hostname");
 }
 
 void Window::ipCheck(QString comp)
@@ -153,7 +149,8 @@ void Window::testClicked()
 {
     QString q = "192.168.1.191";
     int s = socket(AF_INET, SOCK_STREAM, 0);
-    m_client->c_connect(s, q.toStdString().c_str());
+    int status = m_client->c_connect(s, q.toStdString().c_str());
+    qDebug() << status;
 }
 
 void Window::sendPeerList()
@@ -314,7 +311,6 @@ void Window::new_client(int s, QString ipaddr)
     //If we got here it means this new peer is not in the list, where he came from we'll never know.
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
     //his ip address but will ask him for his name via the command that follows this comment.
-    m_client->send_msg(s, "", "", "/namerequest");
     listpeers(ipaddr, ipaddr);
 
 }
@@ -330,6 +326,7 @@ void Window::setPeerHostname(QString hname, QString ipaddr)
         if(ipaddr.compare(peers_class->peers[i].c_ipaddr) == 0)
         {
            peers_class->peers[i].hostname = hname;
+           sortPeers();
            return;
         }
     }
@@ -361,11 +358,29 @@ void Window::listpeers(QString hname, QString ipaddr)
     {
         peers_class->peers[i].isConnected = true;
         m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
-        m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+        if(strcmp(name, peers_class->peers[i].hostname.toStdString().c_str()))
+        {
+            m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+        }
     }
 
     qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
 
+    if(!(hname.compare(ipaddr)))
+    {
+        struct sockaddr_storage addr;
+        socklen_t socklen = sizeof(addr);
+        char ipstr2[INET6_ADDRSTRLEN];
+        char service[20];
+
+        getpeername(peers_class->peers[i].socketdescriptor, (struct sockaddr*)&addr, &socklen);
+        //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
+        //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
+        getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
+        qDebug() << "need name, sending namerequest to" << ipaddr;
+        int status = m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/namerequest");
+        qDebug() << status;
+    }
     sortPeers();
 
     return;
@@ -448,6 +463,7 @@ void Window::assignSocket(struct peerlist *p)
 /* dummy function to allow discoverSend to be called on its own */
 void Window::discoverClicked()
 {
+    /*
     char discovermess[138];
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
@@ -457,6 +473,12 @@ void Window::discoverClicked()
     this->sendPeerList();
     std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
     std::cout << "----------------------------------------" << std::endl;
+    */
+    for(int i = 0; i < peersLen; i++)
+    {
+        m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/namerequest");
+
+    }
 }
 
 /*Send the "/discover" message to the local networks broadcast address

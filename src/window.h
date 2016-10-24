@@ -92,7 +92,6 @@ private slots:
     void ipCheck(QString comp);
     void timerout();
     void setPeerHostname(QString hname, QString ipaddr);
-    void sendNameSlot(int);
 private:
     QPushButton *m_button;
     QPushButton *m_button2;
@@ -117,6 +116,7 @@ private:
     QString globalChat = "";
     int globalChatIndex = 1;
     bool globalChatAlerted = false;
+    char ourIp[INET6_ADDRSTRLEN];
 
     char* returnName();
     void sortPeers();														//sort peerlist struct alphabetically by hostname
