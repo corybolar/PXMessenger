@@ -335,6 +335,7 @@ void Window::listpeers(QString hname, QString ipaddr)
             if( (hname.compare(peers_class->peers[i].hostname)) != 0)
             {
                 qDebug() << "Name change for " << peers_class->peers[i].hostname << " @ " << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
+                peers_class->peers[i].hostname = hname;
                 goto skipreturn;
             }
             return;
