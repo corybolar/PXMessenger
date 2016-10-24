@@ -63,7 +63,7 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
         len = strlen(type) + strlen(msg);
     }
 
-    sprintf(msgLen, "%3d", len);
+    sprintf(msgLen, "%03d", len);
     //account for the numbers we just added to the front of the final message
     len += 3;
 

@@ -153,7 +153,7 @@ int mess_serv::tcpRecieve(int i)
         char service[20];
 
         //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
-        char bufLenStr[3] = {};
+        char bufLenStr[4] = {};
 
         //Get ip address of sender
         getpeername(i, (struct sockaddr*)&addr, &socklen);
@@ -170,6 +170,8 @@ moreToRead:
         bufLenStr[0] = partialMsg[0];
         bufLenStr[1] = partialMsg[1];
         bufLenStr[2] = partialMsg[2];
+        bufLenStr[4] = '\0';
+        //char *bufLenStrTemp = bufLenStr;
         int bufLen = atoi(bufLenStr);
         partialMsg = partialMsg+3;
 
@@ -210,7 +212,7 @@ moreToRead:
                 //Theres probably a better way to do this
                 if(partialMsg[k] == ':')
                 {
-                    char temp[INET6_ADDRSTRLEN] = {};
+                    char temp[INET_ADDRSTRLEN + 28] = {};
                     strncpy(temp, partialMsg+(k-count), count);
                     count = 0;
                     if((strlen(temp) < 2))
