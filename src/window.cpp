@@ -76,7 +76,6 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
     QObject::connect(m_serv2, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
     QObject::connect(m_serv2, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
-    QObject::connect(m_serv2, SIGNAL (exitRecieved(QString)), this, SLOT (exitRecieved(QString)));
     QObject::connect(m_serv2, SIGNAL (sendIps(int)), this, SLOT (sendIps(int)));
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     QObject::connect(m_serv2, SIGNAL (ipCheck(QString)), this, SLOT (ipCheck(QString)));
@@ -93,6 +92,7 @@ Window::Window()
     mess_time = time(0);
     now = localtime( &mess_time );
 
+    //initial discovery, as long as we find one other computer, we can use his peer_class to find everyone else
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
@@ -102,16 +102,17 @@ Window::Window()
     //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
     //timer->start(2000);
 }
+//not used, future feature to be added
 void Window::timerout()
 {
    qDebug() << "Timer done";
 }
 
-char* Window::returnName()
-{
-    return this->name;
-}
-
+/**
+ * @brief 				This is called from mess_serv when it recieves a "/ip" packet list
+ * 						This will compare the hostnames to the hostnames we already know about in peer_class
+ * @param comp			The string of hostname and ip.  Should be formatted like "hostname@192.168.1.1"
+ */
 void Window::ipCheck(QString comp)
 {
     QStringList temp = comp.split('@');
@@ -128,6 +129,11 @@ void Window::ipCheck(QString comp)
     return;
 }
 
+/**
+ * @brief 				Send our list of ips to another socket.  This formats them from the peers_class object
+ * 						to be "hostname@192.168.1.1:hostname2@192.168.1.2:
+ * @param i				Socket to send these ips to
+ */
 void Window::sendIps(int i)
 {
     char type[5] = "/ip:";
@@ -145,6 +151,9 @@ void Window::sendIps(int i)
     m_client->send_msg(i, msg2, name, type);
 }
 
+/**
+ * @brief 				Slot for the m_testButton upon being clicked, used for debugging purposes only, not permanent
+ */
 void Window::testClicked()
 {
     QString q = "192.168.1.191";
@@ -153,11 +162,9 @@ void Window::testClicked()
     qDebug() << status;
 }
 
-void Window::sendPeerList()
-{
-    emit sendPeerListSignal(peers_class);
-}
-
+/**
+ * @brief 				Stops more than 1000 characters being entered into the QTextEdit object as that is as many as we can send
+ */
 void Window::textEditChanged()
 {
     if(m_textedit->toPlainText().length() > 1000)
@@ -172,19 +179,10 @@ void Window::textEditChanged()
     }
 }
 
-int Window::exitRecieved(QString ipaddr)
-{
-    for(int i = 0; i < peersLen; i++)
-    {
-        if(ipaddr.compare(QString::fromUtf8(peers_class->peers[i].c_ipaddr)) == 0)
-        {
-            peerQuit(peers_class->peers[i].socketdescriptor);
-            return 1;
-        }
-    }
-    return 0;
-}
-
+/**
+ * @brief 				Signal for out system tray object upon being clicked.  Maximizes the window and brings it into focus
+ * @param reason		Qt data type, only care about Trigger
+ */
 void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
 {
     if( ( ( reason == QSystemTrayIcon::DoubleClick ) | ( reason == QSystemTrayIcon::Trigger ) ) && ! ( this->isVisible() ) )
@@ -196,6 +194,10 @@ void Window::showWindow(QSystemTrayIcon::ActivationReason reason)
     return;
 }
 
+/**
+ * @brief 				Minimize to tray
+ * @param event			QT data type, only care about WindowStateChange.  Pass the rest along
+ */
 void Window::changeEvent(QEvent *event)
 {
     if(event->type() == QEvent::WindowStateChange)
@@ -209,6 +211,11 @@ void Window::changeEvent(QEvent *event)
     QWidget::changeEvent(event);
 }
 
+/**
+ * @brief 				QListWidgetItems in the QListWidget change color when a message has been recieved and not viewed
+ * 						This changes them back to default color and resets their text
+ * @param item			item to be unalerted
+ */
 void Window::unalert(QListWidgetItem* item)
 {
     QString temp;
@@ -229,6 +236,12 @@ void Window::unalert(QListWidgetItem* item)
     return;
 }
 
+/**
+ * @brief 				Slot for the QListWidget when the selected item is changed.  We need to change the text in the QTextBrowser, unalert the new item
+ * 						and set the scrollbar to be at the bottom of the text browser
+ * @param item1			New selected item
+ * @param item2			Old selected item.  We do not care about item2 however these are the paramaters of the SIGNAL QListWidget emits
+ */
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
     int index1 = m_listwidget->row(item1);
@@ -250,6 +263,7 @@ void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
     return;
 }
 
+//This is a SLOT for a SIGNAL that is no longer emitted, keeping only for reference purposes
 void Window::potentialReconnect(QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -268,6 +282,12 @@ void Window::potentialReconnect(QString ipaddr)
     }
 }
 
+/**
+ * @brief				Slot for a SIGNAL peerQuit from mess_serv.  Signals that a socket has closed its connection
+ * 						We change the font in the QListWidget to be italicized and display a notification in the corresponding
+ * 						textbox.
+ * @param s				Socket descriptor of peer that has disconnected
+ */
 void Window::peerQuit(int s)
 {
     for(int i = 0; i < peersLen; i++)
@@ -289,6 +309,14 @@ void Window::peerQuit(int s)
     }
 }
 
+/**
+ * @brief 				Called when the listener accepts a new connection.  We need to add his info a struct in peers_class
+ * 						The new connection should already have info of the corresponding peer in the peers_class, we will update it however
+ * 						The only time this would not happen, was if a computer that we had no knowledge of somehow had knowledge of us and connected to us
+ * 						We do not know his hostname but will ask him for it in the listpeers function.  Temporarily we will set his hostname to be his IP address
+ * @param s				Socket of new peer
+ * @param ipaddr		Ip address of new peer
+ */
 void Window::new_client(int s, QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -310,15 +338,25 @@ void Window::new_client(int s, QString ipaddr)
     }
     //If we got here it means this new peer is not in the list, where he came from we'll never know.
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
-    //his ip address but will ask him for his name via the command that follows this comment.
+    //his ip address but will ask him for his name later on.
     listpeers(ipaddr, ipaddr);
 
 }
 
+/**
+ * @brief 				The Quit Debug button was clicked
+ */
 void Window::quitClicked()
 {
     close();
 }
+
+/**
+ * @brief 				A connect peer has sent us his hostname after we asked him too.  Normally this is only done if we used his IP address as
+ * 						his hostname.  It is also possible another computer had a conflicting hostname for the same ip address as us.
+ * @param hname			The correct hostname for an IP address
+ * @param ipaddr		The IP address to assign the hostname too
+ */
 void Window::setPeerHostname(QString hname, QString ipaddr)
 {
     for(int i = 0; i < peersLen; i++)
@@ -333,10 +371,14 @@ void Window::setPeerHostname(QString hname, QString ipaddr)
 
 }
 
-/* This is the function called when mess_discover recieves a udp packet starting with "/name:"
- * here we check to see if the ip of the selected host is already in the peers array and if not
- * add it.  peers is then sorted and displayed to the gui.  QStrings are used for ease of
- * passing through the QT signal and slots mechanism.*/
+/**
+ * @brief				This is the function called when mess_discover recieves a udp packet starting with "/name:"
+ * 						here we check to see if the ip of the selected host is already in the peers array and if not
+ * 						add it.  peers is then sorted and displayed to the gui.  QStrings are used for ease of
+ * 						passing through the QT signal and slots mechanism.
+ * @param hname			Hostname of peer to compare to existing hostnames
+ * @param ipaddr		IP address of peer to compare to existing IP addresses
+ */
 void Window::listpeers(QString hname, QString ipaddr)
 {
     QByteArray ba = ipaddr.toLocal8Bit();
@@ -386,10 +428,10 @@ void Window::listpeers(QString hname, QString ipaddr)
     return;
 }
 
-
-/*
- * This function sorts the peers array by alphabetical order of the hostname
- * */
+/**
+ * @brief				This calls the sort function in the peers_class and also updates the QListWidget to
+ * 						correctly display the different peers
+ */
 void Window::sortPeers()
 {
     if(peersLen >= 1)
@@ -423,6 +465,10 @@ void Window::sortPeers()
     return;
 }
 
+/**
+ * @brief				Garbage collection, called upon sending a close signal to the process.  (X button, Quit Debug button, SIGTERM in linux)
+ * @param event
+ */
 void Window::closeEvent(QCloseEvent *event)
 {
     for(int i = 0; i < peersLen; i++)
@@ -508,6 +554,10 @@ void Window::udpSend(const char* msg)
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
 }
+/**
+ * @brief 				Send a message to every connected peer
+ * @param msg			The message to send
+ */
 void Window::globalSend(QString msg)
 {
     for(int i = 0; i < peersLen; i++)
@@ -589,6 +639,9 @@ void Window::changeListColor(int row, int style)
     }
     return;
 }
+/**
+ * @brief 				Called when we want to modify the focus or visibility of our program (ie. we get a message)
+ */
 void Window::focusFunction()
 {
     if(this->isActiveWindow())
@@ -621,6 +674,12 @@ void Window::focusFunction()
     return;
 }
 
+/**
+ * @brief 					This will print new messages to the appropriate QString and call the focus function if its necessary
+ * @param str				Message to print
+ * @param peerindex			index of the peers_class->peers array for which the message was meant for
+ * @param message			Bool for whether this message that is being printed should alert the listwidgetitem, play sound, and focus the application
+ */
 void Window::print(const QString str, int peerindex, bool message)
 {
     QString strnew;
@@ -670,6 +729,14 @@ void Window::print(const QString str, int peerindex, bool message)
     }
     return;
 }
+
+/**
+ * @brief 					This is the slot for a SIGNAL from the mess_serv class when it has recieved a message that it needs to print
+ * 							basically this only finds which peer the message is meant for or it if it was mean to be global
+ * @param str				The message to print
+ * @param ipstr				The ip address of the peer this message has come from
+ * @param global			Whether this message should be displayed in the global textbox
+ */
 void Window::prints(const QString str, const QString ipstr, bool global)
 {
     if(global)

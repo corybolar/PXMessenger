@@ -6,28 +6,20 @@ mess_serv::mess_serv(QWidget *parent) : QThread(parent)
 
 }
 
-//Start of thread
+/**
+ * @brief				Start of thread, call the listener function which is an infinite loop
+ */
 void mess_serv::run()
 {
-    QObject::connect(this->parent(), SIGNAL (sendPeerListSignal(peerClass*)), this, SLOT(recievePeerList(peerClass*)));
     this->listener();
 }
 
-void mess_serv::recievePeerList(peerClass *peers)
-{
-    std::cout << "Hey look, PEERS!" << std::endl;
-    std::cout << peers->peers[0].hostname.toStdString() << " from mess_serv" << std::endl;
-    return;
-}
-
-//Currently obsolete
-void mess_serv::new_fds(int s)
-{
-    FD_SET(s, &master);
-    return;
-}
-
-//Accept a new TCP connection from the listener socket and let the GUI know.
+/**
+ * @brief 				Accept a new TCP connection from the listener socket and let the GUI know.
+ * @param s				Listener socket on from which we accept a new connection
+ * @param their_addr
+ * @return 				Return socket descriptor for new connection, -1 on error on linux, INVALID_SOCKET on Windows
+ */
 int mess_serv::accept_new(int s, sockaddr_storage *their_addr)
 {
     int result;
@@ -42,7 +34,10 @@ int mess_serv::accept_new(int s, sockaddr_storage *their_addr)
     return result;
 }
 
-//Add an FD to the set if its not already in there and check if its the new max
+/**
+ * @brief 				Add an FD to the set if its not already in there and check if its the new max
+ * @param s				Socket descriptor number to add to set
+ */
 void mess_serv::update_fds(int s)
 {
     if( !( FD_ISSET(s, &master) ) )
@@ -52,18 +47,26 @@ void mess_serv::update_fds(int s)
     }
 }
 
-//Determine if a new socket descriptor is the highest in the set, adjust the fd_max variable accordingly.
-int mess_serv::set_fdmax(int m)
+/**
+ * @brief 				Determine if a new socket descriptor is the highest in the set, adjust the fd_max variable accordingly.
+ * @param s				Socket descriptor to potentially make the new max.  fd_max is needed for select in the listener function
+ * @return 				0 if it is the new max, -1 if it is not;
+ */
+int mess_serv::set_fdmax(int s)
 {
-    if(m > fdmax)
+    if(s > fdmax)
     {
-        fdmax = m;
+        fdmax = s;
         return 0;
     }
     return -1;
 }
 
-//Called when the TCP listener recieves a new connection
+/**
+ * @brief 				Called when the TCP listener recieves a new connection
+ * @param i				Socket descriptor of new connection
+ * @return 				0 on success, 1 on error
+ */
 int mess_serv::newConnection(int i)
 {
 #ifdef _WIN32
@@ -98,7 +101,11 @@ int mess_serv::newConnection(int i)
     return 1;
 }
 
-//Message recieved from a previously connected TCP socket
+/**
+ * @brief 				Message recieved from a previously connected TCP socket
+ * @param i				Socket descriptor to recieve data from
+ * @return 				0 on success, 1 on error
+ */
 int mess_serv::tcpRecieve(int i)
 {
     int nbytes;
@@ -128,7 +135,7 @@ int mess_serv::tcpRecieve(int i)
 #endif
         //Remove the socket from the list to check in select
         FD_CLR(i, &master);
-        return 0;
+        return 1;
     }
     //Normal message coming here
     else
@@ -137,8 +144,6 @@ int mess_serv::tcpRecieve(int i)
         //If there is more than one message on it, it will be increased to where the
         //next message begins
         char *partialMsg = buf;
-        //We come back to here if theres more than one message in buf
-        moreToRead:
 
         //These are variable for determining the ip address of the sender
         struct sockaddr_storage addr;
@@ -152,6 +157,9 @@ int mess_serv::tcpRecieve(int i)
         //Get ip address of sender
         getpeername(i, (struct sockaddr*)&addr, &socklen);
         getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
+
+        //We come back to here if theres more than one message in buf
+moreToRead:
 
         //The first three characters of each message should be the length of the message.
         //We parse this to an integer so as not to confuse messages with one another
@@ -201,14 +209,14 @@ int mess_serv::tcpRecieve(int i)
                 //Theres probably a better way to do this
                 if(partialMsg[k] == ':')
                 {
-                   char temp[INET6_ADDRSTRLEN] = {};
-                   strncpy(temp, partialMsg+(k-count), count);
-                   count = 0;
-                   if((strlen(temp) < 2))
-                       *temp = 0;
-                   else
-                       //The following signal is going to the main thread and will call the slot ipCheck(QString)
-                       emit ipCheck(QString::fromUtf8(temp));
+                    char temp[INET6_ADDRSTRLEN] = {};
+                    strncpy(temp, partialMsg+(k-count), count);
+                    count = 0;
+                    if((strlen(temp) < 2))
+                        *temp = 0;
+                    else
+                        //The following signal is going to the main thread and will call the slot ipCheck(QString)
+                        emit ipCheck(QString::fromUtf8(temp));
                 }
                 else
                     count++;
@@ -220,7 +228,7 @@ int mess_serv::tcpRecieve(int i)
                 goto moreToRead;
             }
             else
-                return 1;
+                return 0;
 
 
         }
@@ -239,7 +247,7 @@ int mess_serv::tcpRecieve(int i)
                 goto moreToRead;
             }
             else
-                return 1;
+                return 0;
         }
         //These packets are messages sent to the global chat room
         //These packets should come formatted like "/globalhostname: msg\0"
@@ -256,7 +264,7 @@ int mess_serv::tcpRecieve(int i)
                 goto moreToRead;
             }
             else
-                return 1;
+                return 0;
         }
         //This packet is an updated hostname for the computer that sent it
         //These packets should come formatted like "/hostnameHostname1\0"
@@ -268,6 +276,13 @@ int mess_serv::tcpRecieve(int i)
             strncpy(emitStr, (partialMsg+9), bufLen-9);
             qDebug() << "hello";
             emit setPeerHostname(QString::fromUtf8(emitStr), QString::fromUtf8(ipstr2));
+            if(partialMsg[bufLen+1] != '\0')
+            {
+                partialMsg += bufLen+1;
+                goto moreToRead;
+            }
+            else
+                return 0;
         }
         //This packet is asking us to communicate an updated hostname to the sender
         //These packets should come formatted like "/namerequest\0"
@@ -281,13 +296,17 @@ int mess_serv::tcpRecieve(int i)
                 goto moreToRead;
             }
             else
-                return 1;
+                return 0;
         }
     }
     return 1;
 }
 
-//UDP packet recieved. Remember, these are connectionless
+/**
+ * @brief 				UDP packet recieved. Remember, these are connectionless
+ * @param i				Socket descriptor to recieve UDP packet from
+ * @return 				0 on success, 1 on error
+ */
 int mess_serv::udpRecieve(int i)
 {
     QString hname;
@@ -320,7 +339,7 @@ int mess_serv::udpRecieve(int i)
         strcat(fname, name);
         int len = strlen(fname);
 
-        for(int k = 0; k < 2; k++)
+        for(int k = 0; k < 1; k++)
         {
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
         }
@@ -339,6 +358,8 @@ int mess_serv::udpRecieve(int i)
 #endif
 
     }
+    //This will get sent from anyone recieving a /discover packet
+    //when this is recieved it add the sender to the list of peers and connects to him
     else if ((status_disc = strncmp(buf, "/name:", 6)) == 0)
     {
         char name[28];
@@ -349,10 +370,6 @@ int mess_serv::udpRecieve(int i)
 
         emit mess_peers(hname, ipaddr);
     }
-    else if (( status_disc = strncmp(buf, "/exit", 5)) == 0)
-    {
-        emit exitRecieved(QString::fromUtf8(ipstr));
-    }
     else
     {
         return 1;
@@ -361,10 +378,13 @@ int mess_serv::udpRecieve(int i)
     return 0;
 }
 
-//Main listener called from the run function.  Infinite while loop in here that is interuppted by
-//the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked
-//for new connections.  All new connections that come in here are listened to after they have had their
-//descriptors added to the master FD set.
+/**
+ * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
+ *						the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked
+ *						for new connections.  All new connections that come in here are listened to after they have had their
+ *						descriptors added to the master FD set.
+ * @return				Should never return, -1 means something terrible has happened
+ */
 int mess_serv::listener()
 {
     //Potential rewrite to change getaddrinfo to a manual setup of the socket structures.

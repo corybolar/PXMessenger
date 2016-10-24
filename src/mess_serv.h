@@ -40,6 +40,7 @@ class mess_serv : public QThread
     int udpRecieve(int i);
     int tcpRecieve(int i);
     int newConnection(int i);
+
 public:
     mess_serv(QWidget *parent);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
@@ -52,8 +53,6 @@ public:
     fd_set master, read_fds, write_fds;
     int fdmax = 0;
 
-    void new_fds(int s);											//obsolete
-
 signals:
     void mess_rec(const QString, const QString, bool);					//return a message from a peer with their socket descriptor. REVISE
     void new_client(int, const QString);							//
@@ -65,8 +64,6 @@ signals:
     void sendName(int);
     void ipCheck(QString);
     void setPeerHostname(QString, QString);
-private slots:
-    void recievePeerList(peerClass *peers);
 };
 
 #endif // MESS_SERV_H

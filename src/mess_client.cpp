@@ -5,6 +5,13 @@ mess_client::mess_client()
 
 }
 
+
+/**
+ * @brief 			This function connects a socket to a specific ip address.
+ * @param socketfd	socket to connect on
+ * @param ipaddr	ip address to connect socket to
+ * @return			-1 on failure to connect, socket descriptor on success
+ */
 int mess_client::c_connect(int socketfd, const char *ipaddr)
 {
     int status;
@@ -18,12 +25,6 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         return 2;
     }
-    //socketfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-
-    //struct sockaddr_in temp;
-    //inet_pton(AF_INET, ipaddr, &(temp.sin_addr));
-    //temp.sin_family = AF_INET;
-    //temp.sin_addr.s_addr = inet_addr(ipaddr);
 
     if( (status = ::connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
     {
@@ -34,6 +35,18 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
     freeaddrinfo(res);
     return socketfd;
 }
+
+/**
+ *	@brief			This will send a message to the socket, should check beforehand to make sure its connected.
+ * 					The size of the final message is sent in the first three characters
+ *  @param socketfd the socket descriptor to send to, does not check if is connected or not
+ *  @param msg 		message to send
+ *  @param host 	hostname of current computer to display before msg
+ *  @param type		type of message to be sending.  Valid types are /msg /hostname /request
+ *   				/namerequest /ip
+ *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
+ *   				-5 if socket is not connected
+ */
 int mess_client::send_msg(int socketfd, const char *msg, const char *host, const char *type)
 {
     int len, bytes_sent, sendcount = 0;
@@ -94,8 +107,15 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
     }
     return bytes_sent;
 }
-/*This function recursively sends all data in case the kernel fails to do so in one pass*/
-/*Recieving this has not yet been implemented, sending a constant buffer size could help fix this in the future.*/
+
+/**
+ * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
+ * @param socketfd	Socket to send to
+ * @param msg		final formatted message to send
+ * @param len		length of message to send
+ * @param count		Only attempt to resend 5 times so as not to hang the program if something goes wrong
+ * @return 			-1 on error, total bytes sent otherwise
+ */
 int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
 {
     int status2 = 0;
@@ -124,6 +144,11 @@ int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
     }
     return status + status2;
 }
+
+/**
+ * @brief 			Slot function for signal called from mess_serv class.  Sends hostname to socket
+ * @param s			Socket to send our hostname to
+ */
 void mess_client::sendNameSlot(int s)
 {
     char name[128] = {};
@@ -132,46 +157,3 @@ void mess_client::sendNameSlot(int s)
     this->send_msg(s,name, "", "/hostname");
     return;
 }
-/*
-int mess_client::sendName(int s)
-{
-    int bytes_sent, len, sendcount = 0;
-    char name[128] = {};
-    char msg[138] = {};
-
-
-    gethostname(name, sizeof name);
-
-    strcpy(msg, "/hostname");
-    strcat(msg, name);
-    len = strlen(msg);
-
-    bytes_sent = this->partialSend(s, msg, len, sendcount);
-
-    if(bytes_sent > 0)
-    {
-        if(bytes_sent >= len)
-        {
-            return bytes_sent;
-        }
-        else
-        {
-            std::cout << "Partial Send has failed not all bytes sent" << std::endl;
-        }
-    }
-    else
-    {
-#ifdef _WIN32
-        return -5;
-#else
-        switch (errno)
-        {
-        case EPIPE:
-            return -5;
-        }
-#endif
-
-    }
-    return bytes_sent;
-}
-*/

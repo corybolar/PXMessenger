@@ -65,8 +65,6 @@ class Window : public QWidget
 
 public:
     Window();
-    //void displayPeers2(int place);
-    void sendPeerList();
     peerClass *peers_class;
     void sortPeers2();
     int qsortCompare(const void *a, const void *b);
@@ -85,7 +83,6 @@ private slots:
     void potentialReconnect(QString ipaddr);								//client has sent a discover udp to us, test if we have seen him before
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    int exitRecieved(QString ipaddr);
     void textEditChanged();
     void testClicked();
     void sendIps(int i);
@@ -118,7 +115,6 @@ private:
     bool globalChatAlerted = false;
     char ourIp[INET6_ADDRSTRLEN];
 
-    char* returnName();
     void sortPeers();														//sort peerlist struct alphabetically by hostname
     void assignSocket(struct peerlist *p);									//Give socket value to peerlist array member
     void changeListColor(int row, int style);
