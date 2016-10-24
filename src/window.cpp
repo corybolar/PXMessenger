@@ -28,6 +28,7 @@ Window::Window()
     m_listwidget->setGeometry(410, 100, 200, 300);
     m_listwidget->insertItem(0, "--------------------");
     m_listwidget->insertItem(1, "Global Chat");
+    m_listwidget->item(0)->setFlags(m_listwidget->item(0)->flags() & ~Qt::ItemIsEnabled);
 
     m_quitButton = new QPushButton("Quit Debug", this);
     m_quitButton->setGeometry(200, 430, 80, 30);
@@ -237,7 +238,7 @@ void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
     {
         m_textbrowser->setText(peers_class->peers[index1].textBox);
     }
-    if(item1->background() == QGuiApplication::palette().alternateBase())
+    if(item1->background() == Qt::red)
     {
         this->changeListColor(index1, 0);
         this->unalert(item1);
@@ -487,7 +488,8 @@ void Window::globalSend(QString msg)
             m_client->send_msg(peers_class->peers[i].socketdescriptor, msg.toStdString().c_str(), name, "/global");
         }
     }
-
+    m_textedit->setText("");
+    return;
 }
 
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
@@ -550,7 +552,7 @@ void Window::changeListColor(int row, int style)
     QBrush back = (m_listwidget->item(row)->background());
     if(style == 1)
     {
-        m_listwidget->item(row)->setBackground(QGuiApplication::palette().alternateBase());
+        m_listwidget->item(row)->setBackground(Qt::red);
     }
     if(style == 0)
     {
