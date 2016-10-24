@@ -106,15 +106,19 @@ int mess_serv::tcpRecieve(int i)
 
     if((nbytes = recv(i,buf,sizeof(buf), 0)) <= 0)
     {
+        //The tcp socket is telling us it has been closed
+        //If nbytes == 0, normal close
         if(nbytes == 0)
         {
             std::cout << "connection closed" << std::endl;
         }
-
+        //Error
         else
         {
             perror("recv");
         }
+        //Either way, alert the main thread this socket has closed.  It will update the peer_class
+        //and will make the list item italics to signal a disconnected peer
         emit peerQuit(i);
 #ifdef __unix__
         close(i);
@@ -122,73 +126,161 @@ int mess_serv::tcpRecieve(int i)
 #ifdef _WIN32
         closesocket(i);
 #endif
+        //Remove the socket from the list to check in select
         FD_CLR(i, &master);
         return 0;
     }
     //Normal message coming here
     else
     {
-        char mes[nbytes] = {};
+        //partialMsg points to the start of the original buffer.
+        //If there is more than one message on it, it will be increased to where the
+        //next message begins
+        char *partialMsg = buf;
+        //We come back to here if theres more than one message in buf
+        moreToRead:
+
+        //These are variable for determining the ip address of the sender
         struct sockaddr_storage addr;
         socklen_t socklen = sizeof(addr);
         char ipstr2[INET6_ADDRSTRLEN];
         char service[20];
 
+        //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
+        char bufLenStr[3] = {};
+
+        //Get ip address of sender
         getpeername(i, (struct sockaddr*)&addr, &socklen);
-        //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
-        //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
         getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
 
-        if(strncmp(buf, "/msg", 4) == 0)
-        {
-            strncpy(mes, buf + 4, strlen(buf) - 4);
+        //The first three characters of each message should be the length of the message.
+        //We parse this to an integer so as not to confuse messages with one another
+        //when more than one are recieved from the same socket at the same time
+        //If we encounter a valid character after this length, we come back here
+        //and iterate through the if statements again.
+        bufLenStr[0] = partialMsg[0];
+        bufLenStr[1] = partialMsg[1];
+        bufLenStr[2] = partialMsg[2];
+        int bufLen = atoi(bufLenStr);
+        partialMsg = partialMsg+3;
 
+
+        //These packets should be formatted like "/msghostname: msg\0"
+        if(strncmp(partialMsg, "/msg", 4) == 0)
+        {
+            //The size of mes is the bufLen-4 (because we remove "/msg") +1 (because we need a null character at the end);
+            char mes[bufLen-4+1] = {};
+            //Copy the string in buf starting at buf[4] until we reach the length of the message
+            //We dont want to keep the "/msg" substring, hence the +/- 4 here.
+            //Remember, we added 3 to buf above to ignore the size of the message
+            //buf is actually at buf[7] from its original location
+            strncpy(mes, partialMsg+4, bufLen-4);
+
+            //The following signal is going to the main thread and will call the slot prints(QString, QString)
             emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2, false);
-            return 0;
+
+            //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
+            if(partialMsg[bufLen] != '\0')
+            {
+                partialMsg += bufLen;
+                goto moreToRead;
+            }
+            else
+                return 0;
         }
-        else if(strncmp(buf, "/ip", 3) == 0)
+        //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
+        else if(strncmp(partialMsg, "/ip", 3) == 0)
         {
             qDebug() << "/ip recieved from " << QString::fromUtf8(ipstr2);
             int count = 0;
 
-            for(unsigned k = 3; k < strlen(buf); k++)
+            //We need to extract each hostname and ip set out of the message and send them to the main thread
+            //to check if whether we already know about them or not
+            for(int k = 4; k < bufLen; k++)
             {
-                if(buf[k] == ':')
+                //Theres probably a better way to do this
+                if(partialMsg[k] == ':')
                 {
                    char temp[INET6_ADDRSTRLEN] = {};
-                   strncpy(temp, buf+(k-count+1), count-1);
+                   strncpy(temp, partialMsg+(k-count), count);
                    count = 0;
                    if((strlen(temp) < 2))
                        *temp = 0;
                    else
+                       //The following signal is going to the main thread and will call the slot ipCheck(QString)
                        emit ipCheck(QString::fromUtf8(temp));
                 }
                 count++;
             }
+            //Check to see if we need to reiterate because there is another message on the buffer
+            if(partialMsg[bufLen] != '\0')
+            {
+                partialMsg += bufLen;
+                goto moreToRead;
+            }
+            else
+                return 1;
 
 
         }
-        else if(!(strncmp(buf, "/request", 10)))
+        //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
+        //These packets should come formatted like "/request\0"
+        else if(!(strncmp(partialMsg, "/request", 8)))
         {
             qDebug() << "/request recieved from " << QString::fromUtf8(ipstr2) << "\nsending ips";
+            //The following signal is going to the m_client object and thread and will call the slot sendIps(int)
+            //The int here is the socketdescriptor we want to send our ip set too.
             emit sendIps(i);
+            //Check to see if we need to reiterate because there is another message on the buffer
+            if(partialMsg[8] != '\0')
+            {
+                partialMsg += 8;
+                goto moreToRead;
+            }
+            else
+                return 1;
         }
-        else if(!(strncmp(buf, "/global", 7)))
+        //These packets are messages sent to the global chat room
+        //These packets should come formatted like "/globalhostname: msg\0"
+        else if(!(strncmp(partialMsg, "/global", 7)))
         {
-            emit mess_rec(QString::fromUtf8(buf+7), ipstr2, true);
+            //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
+            char emitStr[bufLen-6] = {};
+            strncpy(emitStr, (partialMsg+7), bufLen-7);
+            emit mess_rec(QString::fromUtf8(emitStr), ipstr2, true);
+            //Check to see if we need to reiterate because there is another message on the buffer
+            if(partialMsg[bufLen+1] != '\0')
+            {
+                partialMsg += bufLen+1;
+                goto moreToRead;
+            }
+            else
+                return 1;
         }
-        else if(!(strncmp(buf, "/hostname", 9)))
+        //This packet is an updated hostname for the computer that sent it
+        //These packets should come formatted like "/hostnameHostname1\0"
+        else if(!(strncmp(partialMsg, "/hostname", 9)))
         {
             qDebug() << "/hostname recieved" << QString::fromUtf8(ipstr2);
-            int buflen = strlen(buf);
-            char temp[buflen - 9] = {};
-            strncpy(temp, buf+(9), buflen);
-            emit setPeerHostname(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
+            //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
+            char emitStr[bufLen-8] = {};
+            strncpy(emitStr, (partialMsg+9), bufLen-9);
+            qDebug() << "hello";
+            emit setPeerHostname(QString::fromUtf8(emitStr), QString::fromUtf8(ipstr2));
         }
-        else if(!(strncmp(buf, "/namerequest", 14)))
+        //This packet is asking us to communicate an updated hostname to the sender
+        //These packets should come formatted like "/namerequest\0"
+        else if(!(strncmp(partialMsg, "/namerequest", 12)))
         {
             qDebug() << "/namerequest recieved from " << QString::fromUtf8(ipstr2) << "\nsending hostname";
             emit sendName(i);
+            if(partialMsg[bufLen] != '\0')
+            {
+                partialMsg += bufLen;
+                goto moreToRead;
+            }
+            else
+                return 1;
         }
     }
     return 1;

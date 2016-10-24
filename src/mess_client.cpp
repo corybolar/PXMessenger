@@ -37,25 +37,32 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
 int mess_client::send_msg(int socketfd, const char *msg, const char *host, const char *type)
 {
     int len, bytes_sent, sendcount = 0;
+    char msgLen[3];
 
     //Combine strings into final message (host): (msg)\0
 
     if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
-        len = strlen(type) + strlen(host) + strlen(msg) + 3;
+        len = strlen(type) + strlen(host) + strlen(msg) + 2;
     }
     else
     {
-        len = strlen(type) + strlen(msg) + 1;
+        len = strlen(type) + strlen(msg);
     }
 
+    sprintf(msgLen, "%3d", len);
+    //account for the numbers we just added to the front of the final message
+    len += 3;
+
     char full_mess[len] = {};
-    strncpy(full_mess, type, strlen(type));
+    strncpy(full_mess, msgLen, 3);
+
+    strcat(full_mess, type);
     if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
        strcat(full_mess, host);
-       full_mess[strlen(host) + strlen(type)] = ':';
-       full_mess[strlen(host) + strlen(type) + 1] = ' ';
+       full_mess[strlen(host) + strlen(type) + 3] = ':';
+       full_mess[strlen(host) + strlen(type) + 3 + 1] = ' ';
     }
     strcat(full_mess, msg);
 
@@ -117,21 +124,20 @@ int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
     }
     return status + status2;
 }
-int mess_client::sendBinary()
-{
-    return 0;
-}
 void mess_client::sendNameSlot(int s)
 {
-    this->sendName(s);
+    char name[128] = {};
+
+    gethostname(name, sizeof name);
+    this->send_msg(s,name, "", "/hostname");
     return;
 }
-
+/*
 int mess_client::sendName(int s)
 {
     int bytes_sent, len, sendcount = 0;
-    char name[128];
-    char msg[138];
+    char name[128] = {};
+    char msg[138] = {};
 
 
     gethostname(name, sizeof name);
@@ -168,3 +174,4 @@ int mess_client::sendName(int s)
     }
     return bytes_sent;
 }
+*/

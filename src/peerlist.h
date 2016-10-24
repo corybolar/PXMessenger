@@ -29,7 +29,7 @@ class peerClass : public QObject
 {
     Q_OBJECT
 public:
-    peerClass(QWidget *parent);
+    explicit peerClass(QWidget *parent);
     peerlist peers[255];
     void sortPeers(int len);
 private:

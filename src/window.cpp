@@ -96,7 +96,7 @@ Window::Window()
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
-    //this->udpSend(discovermess);
+    this->udpSend(discovermess);
 
     //QTimer *timer = new QTimer(this);
     //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
@@ -130,7 +130,7 @@ void Window::ipCheck(QString comp)
 
 void Window::sendIps(int i)
 {
-    char type[5] = "/ip/";
+    char type[5] = "/ip:";
     char msg2[((peersLen * 16) * 2)] = {};
     for(int k = 0; k < peersLen; k++)
     {
@@ -474,11 +474,7 @@ void Window::discoverClicked()
     std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     */
-    for(int i = 0; i < peersLen; i++)
-    {
-        m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/namerequest");
-
-    }
+    m_client->send_msg(peers_class->peers[0].socketdescriptor, "", "", "/namerequest");
 }
 
 /*Send the "/discover" message to the local networks broadcast address
