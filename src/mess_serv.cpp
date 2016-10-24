@@ -181,7 +181,7 @@ int mess_serv::tcpRecieve(int i)
         {
             qDebug() << "/hostname recieved" << QString::fromUtf8(ipstr2);
             int buflen = strlen(buf);
-            char temp[buflen - 9];
+            char temp[buflen - 9] = {};
             strncpy(temp, buf+(9), buflen);
             emit setPeerHostname(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
         }
