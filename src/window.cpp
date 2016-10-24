@@ -95,7 +95,7 @@ Window::Window()
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
-    this->udpSend(discovermess);
+    //this->udpSend(discovermess);
 
     //QTimer *timer = new QTimer(this);
     //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
@@ -318,6 +318,18 @@ void Window::quitClicked()
 {
     close();
 }
+void Window::setPeerHostname(QString hname, QString ipaddr)
+{
+    for(int i = 0; i < peersLen; i++)
+    {
+        if(ipaddr.compare(peers_class->peers[i].c_ipaddr) == 0)
+        {
+           peers_class->peers[i].hostname = hname;
+           return;
+        }
+    }
+
+}
 
 /* This is the function called when mess_discover recieves a udp packet starting with "/name:"
  * here we check to see if the ip of the selected host is already in the peers array and if not
@@ -332,12 +344,6 @@ void Window::listpeers(QString hname, QString ipaddr)
     {
         if( (ipaddr.compare(peers_class->peers[i].c_ipaddr) ) == 0 )
         {
-            if( (hname.compare(peers_class->peers[i].hostname)) != 0)
-            {
-                qDebug() << "Name change for " << peers_class->peers[i].hostname << " @ " << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
-                peers_class->peers[i].hostname = hname;
-                goto skipreturn;
-            }
             return;
         }
     }
@@ -346,7 +352,6 @@ void Window::listpeers(QString hname, QString ipaddr)
     strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
     assignSocket(&(peers_class->peers[i]));
-skipreturn:
     if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
     {
         peers_class->peers[i].isConnected = true;

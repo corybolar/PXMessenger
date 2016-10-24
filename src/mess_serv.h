@@ -64,6 +64,7 @@ signals:
     void sendIps(int);
     void sendName(int);
     void ipCheck(QString);
+    void setPeerHostname(QString, QString);
 private slots:
     void recievePeerList(peerClass *peers);
 };

@@ -182,7 +182,7 @@ int mess_serv::tcpRecieve(int i)
             int buflen = strlen(buf);
             char temp[buflen - 9];
             strncpy(temp, buf+(9), buflen);
-            emit mess_peers(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
+            emit setPeerHostname(QString::fromUtf8(temp), QString::fromUtf8(ipstr2));
         }
         else if(!(strncmp(buf, "/namerequest", 14)))
         {
