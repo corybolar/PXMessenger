@@ -474,7 +474,7 @@ void Window::discoverClicked()
     std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
     std::cout << "----------------------------------------" << std::endl;
     */
-    m_client->send_msg(peers_class->peers[0].socketdescriptor, "", "", "/namerequest");
+    m_client->send_msg(peers_class->peers[1].socketdescriptor, "", "", "/request");
 }
 
 /*Send the "/discover" message to the local networks broadcast address

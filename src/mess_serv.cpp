@@ -210,7 +210,8 @@ int mess_serv::tcpRecieve(int i)
                        //The following signal is going to the main thread and will call the slot ipCheck(QString)
                        emit ipCheck(QString::fromUtf8(temp));
                 }
-                count++;
+                else
+                    count++;
             }
             //Check to see if we need to reiterate because there is another message on the buffer
             if(partialMsg[bufLen] != '\0')
