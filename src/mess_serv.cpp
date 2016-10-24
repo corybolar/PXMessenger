@@ -31,6 +31,7 @@ int mess_serv::accept_new(int s, sockaddr_storage *their_addr)
     //inet_ntop(AF_INET, &(((struct sockaddr_in*)&their_addr)->sin_addr), ipstr, sizeof(ipstr));
     getnameinfo(((struct sockaddr*)&their_addr), addr_size, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
     emit new_client(result, QString::fromUtf8(ipstr, strlen(ipstr)));
+    this->update_fds(result);
     return result;
 }
 
@@ -258,9 +259,9 @@ moreToRead:
             strncpy(emitStr, (partialMsg+7), bufLen-7);
             emit mess_rec(QString::fromUtf8(emitStr), ipstr2, true);
             //Check to see if we need to reiterate because there is another message on the buffer
-            if(partialMsg[bufLen+1] != '\0')
+            if(partialMsg[bufLen] != '\0')
             {
-                partialMsg += bufLen+1;
+                partialMsg += bufLen;
                 goto moreToRead;
             }
             else
@@ -276,9 +277,9 @@ moreToRead:
             strncpy(emitStr, (partialMsg+9), bufLen-9);
             qDebug() << "hello";
             emit setPeerHostname(QString::fromUtf8(emitStr), QString::fromUtf8(ipstr2));
-            if(partialMsg[bufLen+1] != '\0')
+            if(partialMsg[bufLen] != '\0')
             {
-                partialMsg += bufLen+1;
+                partialMsg += bufLen;
                 goto moreToRead;
             }
             else
@@ -350,7 +351,7 @@ int mess_serv::udpRecieve(int i)
         {
             tname[i-9] = buf[i];
         }
-        emit mess_peers(QString::fromUtf8(tname), QString::fromUtf8(ipstr));
+        //emit mess_peers(QString::fromUtf8(tname), QString::fromUtf8(ipstr));
 #ifdef _WIN32
         closesocket(socket1);
 #else

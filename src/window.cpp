@@ -333,6 +333,7 @@ void Window::new_client(int s, QString ipaddr)
                 mfont.setItalic(false);
                 m_listwidget->item(i)->setFont(mfont);
             }
+            qDebug() << "hi";
             return;
         }
     }
@@ -395,7 +396,8 @@ void Window::listpeers(QString hname, QString ipaddr)
     peers_class->peers[i].isValid = true;
     strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
-    assignSocket(&(peers_class->peers[i]));
+    if( !( peers_class->peers[i].isConnected ) )
+        assignSocket(&(peers_class->peers[i]));
     if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
     {
         peers_class->peers[i].isConnected = true;
