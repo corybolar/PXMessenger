@@ -95,7 +95,7 @@ Window::Window()
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
-    //this->udpSend(discovermess);
+    this->udpSend(discovermess);
 
     //QTimer *timer = new QTimer(this);
     //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
