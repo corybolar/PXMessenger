@@ -81,6 +81,7 @@ Window::Window()
     QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
     QObject::connect(m_serv2, SIGNAL (ipCheck(QString)), this, SLOT (ipCheck(QString)));
     QObject::connect(m_serv2, SIGNAL (sendName(int)), m_client, SLOT (sendNameSlot(int)));
+    QObject::connect(m_serv2, SIGNAL (setPeerHostname(QString, QString)), m_client, SLOT (setPeerHostname(QString, QString)));
     m_serv2->start();
 
     //maybe use portable sleep command here? dont think there is actually a difference
@@ -95,7 +96,7 @@ Window::Window()
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
-    this->udpSend(discovermess);
+    //this->udpSend(discovermess);
 
     //QTimer *timer = new QTimer(this);
     //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
