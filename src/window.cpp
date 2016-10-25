@@ -105,7 +105,7 @@ Window::Window()
 //not used, future feature to be added
 void Window::timerout()
 {
-   qDebug() << "Timer done";
+    qDebug() << "Timer done";
 }
 
 /**
@@ -247,7 +247,7 @@ void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
     int index1 = m_listwidget->row(item1);
     if(index1 == m_listwidget->count() - 1)
     {
-       m_textbrowser->setText(globalChat);
+        m_textbrowser->setText(globalChat);
     }
     else
     {
@@ -364,9 +364,9 @@ void Window::setPeerHostname(QString hname, QString ipaddr)
     {
         if(ipaddr.compare(peers_class->peers[i].c_ipaddr) == 0)
         {
-           peers_class->peers[i].hostname = hname;
-           sortPeers();
-           return;
+            peers_class->peers[i].hostname = hname;
+            sortPeers();
+            return;
         }
     }
 
@@ -403,15 +403,15 @@ void Window::listpeers(QString hname, QString ipaddr, bool test, int s)
     if( !test )
     {
         assignSocket(&(peers_class->peers[i]));
-    if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
-    {
-        peers_class->peers[i].isConnected = true;
-        m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
-        if(strcmp(name, peers_class->peers[i].hostname.toStdString().c_str()))
+        if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
         {
-            m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+            peers_class->peers[i].isConnected = true;
+            m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
+            if(strcmp(name, peers_class->peers[i].hostname.toStdString().c_str()))
+            {
+                m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+            }
         }
-    }
     }
     else
     {
