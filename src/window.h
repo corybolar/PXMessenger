@@ -75,7 +75,8 @@ protected:
 private slots:
     void buttonClicked();													//Send button event
     void prints(const QString str, const QString ipstr, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
-    void listpeers(QString hname, QString ipaddr);							//Add new peers to the peerlist struct array and call the sort/display functions
+    void listpeers(QString hname, QString ipaddr);
+    void listpeers(QString hname, QString ipaddr, bool test, int s);							//Add new peers to the peerlist struct array and call the sort/display functions
     void discoverClicked();													//Discover button event
     void quitClicked();														//quit button, used to test the various destructors and close event
     void new_client(int s, QString ipaddr);									//Networking

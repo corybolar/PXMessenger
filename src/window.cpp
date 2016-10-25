@@ -340,7 +340,7 @@ void Window::new_client(int s, QString ipaddr)
     //If we got here it means this new peer is not in the list, where he came from we'll never know.
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
     //his ip address but will ask him for his name later on.
-    listpeers(ipaddr, ipaddr);
+    listpeers(ipaddr, ipaddr, true, s);
 
 }
 
@@ -371,6 +371,10 @@ void Window::setPeerHostname(QString hname, QString ipaddr)
     }
 
 }
+void Window::listpeers(QString hname, QString ipaddr)
+{
+    this->listpeers(hname, ipaddr, false, 0);
+}
 
 /**
  * @brief				This is the function called when mess_discover recieves a udp packet starting with "/name:"
@@ -380,7 +384,7 @@ void Window::setPeerHostname(QString hname, QString ipaddr)
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void Window::listpeers(QString hname, QString ipaddr)
+void Window::listpeers(QString hname, QString ipaddr, bool test, int s)
 {
     QByteArray ba = ipaddr.toLocal8Bit();
     const char *ipstr = ba.data();
@@ -396,7 +400,8 @@ void Window::listpeers(QString hname, QString ipaddr)
     peers_class->peers[i].isValid = true;
     strcpy(peers_class->peers[i].c_ipaddr, ipstr);
     peersLen++;
-    if( !( peers_class->peers[i].isConnected ) )
+    if( !test )
+    {
         assignSocket(&(peers_class->peers[i]));
     if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
     {
@@ -406,6 +411,13 @@ void Window::listpeers(QString hname, QString ipaddr)
         {
             m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
         }
+    }
+    }
+    else
+    {
+        peers_class->peers[i].socketdescriptor = s;
+        peers_class->peers[i].isConnected = true;
+        m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
     }
 
     qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);

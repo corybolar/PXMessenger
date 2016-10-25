@@ -171,7 +171,7 @@ moreToRead:
         bufLenStr[1] = partialMsg[1];
         bufLenStr[2] = partialMsg[2];
         bufLenStr[4] = '\0';
-        //char *bufLenStrTemp = bufLenStr;
+        //.char *bufLenStrTemp = bufLenStr;
         int bufLen = atoi(bufLenStr);
         partialMsg = partialMsg+3;
 
@@ -324,7 +324,7 @@ int mess_serv::udpRecieve(int i)
     si_other_len = sizeof(sockaddr);
     recvfrom(i, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
     getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service_disc, sizeof(service_disc), NI_NUMERICHOST);
-    //std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
+    std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
     if (strncmp(buf, "/discover", 9) == 0)
     {
         struct sockaddr_in addr;
