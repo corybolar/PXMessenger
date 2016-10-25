@@ -1,6 +1,6 @@
 # PXMessenger
 =============
-###P2P cross platform home or small office instant messenger.  Written in QT.
+###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
 ###Now with comments!
 
 
@@ -28,4 +28,4 @@ make
 
 ##UNDER HEAVY DEVELOPMENT
 
-Windows executable included for ease of distribution
+Windows executable included in the releases section
