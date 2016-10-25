@@ -19,22 +19,22 @@ Window::Window()
     m_textbrowser->setText("Use the selection pane on the right to message a FRIEND!");
 
     m_button = new QPushButton("Send", this);
-    m_button->setGeometry(10,370,80,30);
-    m_button2 = new QPushButton("Discover", this);
-    m_button2->setGeometry(10, 430, 80, 30);
+    m_button->setGeometry(160,370,80,30);
+    //m_button2 = new QPushButton("Discover", this);
+    //m_button2->setGeometry(10, 430, 80, 30);
 
 
     m_listwidget = new QListWidget(this);
-    m_listwidget->setGeometry(410, 100, 200, 300);
+    m_listwidget->setGeometry(410, 60, 200, 290);
     m_listwidget->insertItem(0, "--------------------");
     m_listwidget->insertItem(1, "Global Chat");
     m_listwidget->item(0)->setFlags(m_listwidget->item(0)->flags() & ~Qt::ItemIsEnabled);
 
-    m_quitButton = new QPushButton("Quit Debug", this);
-    m_quitButton->setGeometry(200, 430, 80, 30);
+    m_quitButton = new QPushButton("Quit", this);
+    m_quitButton->setGeometry(160, 430, 80, 30);
 
-    m_testButton = new QPushButton("testing", this);
-    m_testButton->setGeometry(200, 370, 80, 30);
+    //m_testButton = new QPushButton("testing", this);
+    //m_testButton->setGeometry(200, 370, 80, 30);
 
     m_trayIcon = new QIcon(":/resources/resources/systray.png");
 
@@ -60,14 +60,14 @@ Window::Window()
 
     //Signals for gui objects
     QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
-    QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
+    //QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
     QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
     QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
     QObject::connect(m_textedit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
     QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
     QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
     QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
-    QObject::connect(m_testButton, SIGNAL (clicked()), this, SLOT (testClicked()));
+    //QObject::connect(m_testButton, SIGNAL (clicked()), this, SLOT (testClicked()));
 
     //Signals for mess_serv class
     m_serv2 = new mess_serv(this);
@@ -333,7 +333,7 @@ void Window::new_client(int s, QString ipaddr)
                 mfont.setItalic(false);
                 m_listwidget->item(i)->setFont(mfont);
             }
-            qDebug() << "hi";
+            //qDebug() << "hi";
             return;
         }
     }
