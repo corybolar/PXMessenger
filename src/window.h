@@ -75,14 +75,6 @@ private slots:
     void printToTextBrowserServerSlot(const QString str, const QString ipstr, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
     void printToTextBrowser(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
 
-    //void listpeers(QString hname, QString ipaddr);
-    //void listpeers(QString hname, QString ipaddr, bool test, int s);							//Add new peers to the peerlist struct array and call the sort/display functions
-    //void new_client(int s, QString ipaddr);									//Networking
-    //void peerQuit(int s);													//Connected client disconnected
-    //void potentialReconnect(QString ipaddr);								//client has sent a discover udp to us, test if we have seen him before
-    //void sendIps(int i);
-    //void hostnameCheck(QString comp);
-    //void setPeerHostname(QString hname, QString ipaddr);
     void updateListWidget(int num);														//sort peerlist struct alphabetically by hostname
     void setItalicsOnItem(int i, bool italics);
 private:
@@ -112,7 +104,6 @@ private:
     int globalChatIndex = 1;
     bool globalChatAlerted = false;
 
-    //void assignSocket(struct peerDetails *p);									//Give socket value to peerlist array member
     void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
     void globalSend(QString msg);
 

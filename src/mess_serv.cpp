@@ -5,7 +5,6 @@ MessengerServer::MessengerServer(QWidget *parent) : QThread(parent)
 
 
 }
-
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
  */
@@ -13,7 +12,6 @@ void MessengerServer::run()
 {
     this->listener();
 }
-
 /**
  * @brief 				Accept a new TCP connection from the listener socket and let the GUI know.
  * @param s				Listener socket on from which we accept a new connection
@@ -34,12 +32,10 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
     this->update_fds(result);
     return result;
 }
-
 void MessengerServer::updateMessServFDSSlot(int s)
 {
     this->update_fds(s);
 }
-
 /**
  * @brief 				Add an FD to the set if its not already in there and check if its the new max
  * @param s				Socket descriptor number to add to set
@@ -52,7 +48,6 @@ void MessengerServer::update_fds(int s)
         this->set_fdmax(s);
     }
 }
-
 /**
  * @brief 				Determine if a new socket descriptor is the highest in the set, adjust the fd_max variable accordingly.
  * @param s				Socket descriptor to potentially make the new max.  fd_max is needed for select in the listener function
@@ -67,7 +62,6 @@ int MessengerServer::set_fdmax(int s)
     }
     return -1;
 }
-
 /**
  * @brief 				Called when the TCP listener recieves a new connection
  * @param i				Socket descriptor of new connection
@@ -106,7 +100,6 @@ int MessengerServer::newConnection(int i)
     }
     return 1;
 }
-
 /**
  * @brief 				Message recieved from a previously connected TCP socket
  * @param i				Socket descriptor to recieve data from
@@ -309,7 +302,6 @@ moreToRead:
     }
     return 1;
 }
-
 /**
  * @brief 				UDP packet recieved. Remember, these are connectionless
  * @param i				Socket descriptor to recieve UDP packet from
@@ -385,7 +377,6 @@ int MessengerServer::udpRecieve(int i)
 
     return 0;
 }
-
 /**
  * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
  *						the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked

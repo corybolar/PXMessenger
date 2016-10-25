@@ -5,7 +5,6 @@ MessengerTextEdit::MessengerTextEdit(QWidget *parent) : QTextEdit(parent)
 {
 
 }
-
 /**
  * @brief 		This override allows us to send messages by pressing the return key
  *				while this widget has focus

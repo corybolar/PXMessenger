@@ -25,12 +25,10 @@ int PeerClass::qsortCompare(const void *a, const void *b)
 
     return pA->hostname.compare(pB->hostname, Qt::CaseInsensitive);
 }
-
 void PeerClass::setLocalHostName(QString name)
 {
 
 }
-
 void PeerClass::assignSocket(struct peerDetails *p)
 {
     p->socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -65,17 +63,6 @@ void PeerClass::newTcpConnection(int s, QString ipaddr)
             //this->assignSocket(&(peers_class->peers[i]));
             knownPeersArray[i].isConnected = true;
             emit setItalicsOnItem(i, 0);
-            /*  addRemoveItalicsOnItem(int i) to MessengerWindow
-     *
-    if(messListWidget->item(i)->font().italic())
-    {
-    this->printToTextBrowser(peers_class->knownPeersArray[i].hostname + " on " + ipaddr + " reconnected", i, false);
-    QFont mfont = messListWidget->item(i)->font();
-    mfont.setItalic(false);
-    messListWidget->item(i)->setFont(mfont);
-    }
-    */
-            //qDebug() << "hi";
             return;
         }
     }
@@ -83,7 +70,6 @@ void PeerClass::newTcpConnection(int s, QString ipaddr)
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
     //his ip address but will ask him for his name later on.
     listpeers(ipaddr, ipaddr, true, s);
-
 }
 void PeerClass::listpeers(QString hname, QString ipaddr)
 {

@@ -4,12 +4,10 @@ MessengerClient::MessengerClient()
 {
 
 }
-
 void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
 {
     emit resultOfConnectionAttempt(s, this->c_connect(s, ipaddr.toStdString().c_str()));
 }
-
 /**
  * @brief 			This function connects a socket to a specific ip address.
  * @param socketfd	socket to connect on
@@ -41,7 +39,6 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
     freeaddrinfo(res);
     return 0;
 }
-
 /**
  *	@brief			This will send a message to the socket, should check beforehand to make sure its connected.
  * 					The size of the final message is sent in the first three characters
@@ -129,12 +126,10 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     }
     return -5;
 }
-
 void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type)
 {
     this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str());
 }
-
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
  * @param socketfd	Socket to send to
@@ -171,7 +166,6 @@ int MessengerClient::partialSend(int socketfd, const char *msg, int len, int cou
     }
     return status + status2;
 }
-
 /**
  * @brief 			Slot function for signal called from mess_serv class.  Sends hostname to socket
  * @param s			Socket to send our hostname to
