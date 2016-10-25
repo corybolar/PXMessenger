@@ -26,16 +26,16 @@ struct peerlist{
     bool alerted = false;
 };
 
-class peerClass : public QObject
+class PeerClass : public QObject
 {
     Q_OBJECT
 public:
-    explicit peerClass(QObject *parent);
+    explicit PeerClass(QObject *parent);
     peerlist peers[255];
     void sortPeers(int len);
 private:
     QMutex pMutex;
-    Q_DISABLE_COPY(peerClass)
+    Q_DISABLE_COPY(PeerClass)
     static int qsortCompare(const void *a, const void *b);
 };
 

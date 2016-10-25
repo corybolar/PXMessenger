@@ -65,7 +65,7 @@ class Window : public QWidget
 
 public:
     Window();
-    peerClass *peers_class;
+    PeerClass *peers_class;
     void sortPeers2();
     int qsortCompare(const void *a, const void *b);
 protected:
@@ -77,7 +77,6 @@ private slots:
     void prints(const QString str, const QString ipstr, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
     void listpeers(QString hname, QString ipaddr);
     void listpeers(QString hname, QString ipaddr, bool test, int s);							//Add new peers to the peerlist struct array and call the sort/display functions
-    void discoverClicked();													//Discover button event
     void quitClicked();														//quit button, used to test the various destructors and close event
     void new_client(int s, QString ipaddr);									//Networking
     void peerQuit(int s);													//Connected client disconnected
@@ -85,29 +84,27 @@ private slots:
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     void textEditChanged();
-    void testClicked();
     void sendIps(int i);
-    void ipCheck(QString comp);
-    void timerout();
+    void hostnameCheck(QString comp);
     void setPeerHostname(QString hname, QString ipaddr);
 private:
-    QPushButton *m_button;
+    QPushButton *messSendButton;
     //QPushButton *m_button2;
-    QPushButton *m_quitButton;
+    QPushButton *messQuitButton;
     //QPushButton *m_testButton;
-    QIcon *m_trayIcon;
-    QAction *m_exitAction;
-    QMenu *m_trayMenu;
-    QSystemTrayIcon *m_systray;
-    QTextBrowser *m_textbrowser;
-    QLineEdit *m_lineedit;
+    QIcon *messSystemTrayIcon;
+    QAction *messSystemTrayExitAction;
+    QMenu *messSystemTrayMenu;
+    QSystemTrayIcon *messSystemTray;
+    QTextBrowser *messTextBrowser;
+    QLineEdit *messLineEdit;
     QPushButton *m_sendDebugButton;
-    QListWidget *m_listwidget;
-    QThread *m_clientThread;
-    mess_textedit *m_textedit;
-    mess_client *m_client;
-    mess_serv *m_serv2;
-    time_t mess_time;
+    QListWidget *messListWidget;
+    QThread *messClientThread;
+    MessengerTextEdit *messTextEdit;
+    MessengerClient *messClient;
+    MessengerServer *messServer;
+    time_t messTime;
     struct tm *now;
     int peersLen = 0;														//Length of peers array
     char name[128] = {};
@@ -124,10 +121,16 @@ private:
     void print(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
     void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
     void globalSend(QString msg);
-signals:
-    void sendPeerListSignal(peerClass*);
-
-public slots:
+    void createTextEdit();
+    void createTextBrowser();
+    void createLineEdit();
+    void createButtons();
+    void createListWidget();
+    void createSystemTray();
+    void createMessClient();
+    void connectGuiSignalsAndSlots();
+    void createMessServ();
+    void createMessTime();
 };
 
 #endif // WINDOW_H

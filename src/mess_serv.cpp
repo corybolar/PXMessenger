@@ -1,6 +1,6 @@
 #include <mess_serv.h>
 
-mess_serv::mess_serv(QWidget *parent) : QThread(parent)
+MessengerServer::MessengerServer(QWidget *parent) : QThread(parent)
 {
 
 
@@ -9,7 +9,7 @@ mess_serv::mess_serv(QWidget *parent) : QThread(parent)
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
  */
-void mess_serv::run()
+void MessengerServer::run()
 {
     this->listener();
 }
@@ -20,7 +20,7 @@ void mess_serv::run()
  * @param their_addr
  * @return 				Return socket descriptor for new connection, -1 on error on linux, INVALID_SOCKET on Windows
  */
-int mess_serv::accept_new(int s, sockaddr_storage *their_addr)
+int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
 {
     int result;
     char ipstr[INET6_ADDRSTRLEN];
@@ -39,7 +39,7 @@ int mess_serv::accept_new(int s, sockaddr_storage *their_addr)
  * @brief 				Add an FD to the set if its not already in there and check if its the new max
  * @param s				Socket descriptor number to add to set
  */
-void mess_serv::update_fds(int s)
+void MessengerServer::update_fds(int s)
 {
     if( !( FD_ISSET(s, &master) ) )
     {
@@ -53,7 +53,7 @@ void mess_serv::update_fds(int s)
  * @param s				Socket descriptor to potentially make the new max.  fd_max is needed for select in the listener function
  * @return 				0 if it is the new max, -1 if it is not;
  */
-int mess_serv::set_fdmax(int s)
+int MessengerServer::set_fdmax(int s)
 {
     if(s > fdmax)
     {
@@ -68,7 +68,7 @@ int mess_serv::set_fdmax(int s)
  * @param i				Socket descriptor of new connection
  * @return 				0 on success, 1 on error
  */
-int mess_serv::newConnection(int i)
+int MessengerServer::newConnection(int i)
 {
 #ifdef _WIN32
     unsigned new_fd;
@@ -107,7 +107,7 @@ int mess_serv::newConnection(int i)
  * @param i				Socket descriptor to recieve data from
  * @return 				0 on success, 1 on error
  */
-int mess_serv::tcpRecieve(int i)
+int MessengerServer::tcpRecieve(int i)
 {
     int nbytes;
     char buf[1050] = {};
@@ -219,7 +219,7 @@ moreToRead:
                         *temp = 0;
                     else
                         //The following signal is going to the main thread and will call the slot ipCheck(QString)
-                        emit ipCheck(QString::fromUtf8(temp));
+                        emit hostnameCheck(QString::fromUtf8(temp));
                 }
                 else
                     count++;
@@ -310,7 +310,7 @@ moreToRead:
  * @param i				Socket descriptor to recieve UDP packet from
  * @return 				0 on success, 1 on error
  */
-int mess_serv::udpRecieve(int i)
+int MessengerServer::udpRecieve(int i)
 {
     QString hname;
     QString ipaddr;
@@ -388,7 +388,7 @@ int mess_serv::udpRecieve(int i)
  *						descriptors added to the master FD set.
  * @return				Should never return, -1 means something terrible has happened
  */
-int mess_serv::listener()
+int MessengerServer::listener()
 {
     //Potential rewrite to change getaddrinfo to a manual setup of the socket structures.
     //Changing to manual setup may improve load times on windows systems.  Locks us into

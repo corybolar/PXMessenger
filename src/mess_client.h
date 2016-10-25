@@ -24,11 +24,11 @@
 
 #define PORT "13653"
 
-class mess_client : public QObject
+class MessengerClient : public QObject
 {
     Q_OBJECT
 public:
-    mess_client();
+    MessengerClient();
     int c_connect(int socketfd, const char *ipaddr);					//Connect a socket to and ip address
     int send_msg(int socketfd, const char *msg, const char *host, const char *type);	//send a message through an already connected socket to the specified ip address
     int partialSend(int socketfd, const char *msg, int len, int count);			//deal with the kernel not sending all of our message in one go

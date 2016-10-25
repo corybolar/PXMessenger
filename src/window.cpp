@@ -2,110 +2,122 @@
 
 Window::Window()
 {
-    char discovermess[138];
     setFixedSize(700,500);
+
+    createTextEdit();
+
+    createTextBrowser();
+
+    createLineEdit();
+
+    createButtons();
+
+    createListWidget();
+
+    createSystemTray();
+
+    createMessClient();
+
+    createMessServ();
+
+    createMessTime();
+
+    connectGuiSignalsAndSlots();
+
+    peers_class = new PeerClass(this);
 
     gethostname(name, sizeof name);
 
-    m_textedit = new mess_textedit(this);
-    m_textedit->setGeometry(10, 250, 380, 100);
-
-    m_lineedit = new QLineEdit(this);
-    m_lineedit->setGeometry(410, 10, 200, 30);
-    m_lineedit->setText(QString::fromUtf8(name));
-
-    m_textbrowser= new QTextBrowser(this);
-    m_textbrowser->setGeometry(10, 10, 380, 230);
-    m_textbrowser->setText("Use the selection pane on the right to message a FRIEND!");
-
-    m_button = new QPushButton("Send", this);
-    m_button->setGeometry(160,370,80,30);
-    //m_button2 = new QPushButton("Discover", this);
-    //m_button2->setGeometry(10, 430, 80, 30);
-
-
-    m_listwidget = new QListWidget(this);
-    m_listwidget->setGeometry(410, 60, 200, 290);
-    m_listwidget->insertItem(0, "--------------------");
-    m_listwidget->insertItem(1, "Global Chat");
-    m_listwidget->item(0)->setFlags(m_listwidget->item(0)->flags() & ~Qt::ItemIsEnabled);
-
-    m_quitButton = new QPushButton("Quit", this);
-    m_quitButton->setGeometry(160, 430, 80, 30);
-
-    //m_testButton = new QPushButton("testing", this);
-    //m_testButton->setGeometry(200, 370, 80, 30);
-
-    m_trayIcon = new QIcon(":/resources/resources/systray.png");
-
-    m_systray = new QSystemTrayIcon(this);
-
-    m_trayMenu = new QMenu(this);
-    m_exitAction = new QAction(this);
-    m_exitAction = m_trayMenu->addAction("Exit");
-
-    m_systray->setContextMenu(m_trayMenu);
-    m_systray->setIcon(*m_trayIcon);
-    m_systray->show();
-
-    peers_class = new peerClass(this);
-
-    m_clientThread = new QThread;
-    m_client = new mess_client();
-    m_client->moveToThread(m_clientThread);
-    //connect(m_client, SIGNAL(finished()), m_clientThread, SLOT(quit()));
-    //connect(m_client, SIGNAL(finished()), m_client, SLOT(deleteLater()));
-    connect(m_clientThread, SIGNAL(finished()), m_clientThread, SLOT(deleteLater()));
-    m_clientThread->start();
-
-    //Signals for gui objects
-    QObject::connect(m_button, SIGNAL (clicked()), this, SLOT (buttonClicked()));
-    //QObject::connect(m_button2, SIGNAL (clicked()), this, SLOT (discoverClicked()));
-    QObject::connect(m_quitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
-    QObject::connect(m_listwidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
-    QObject::connect(m_textedit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
-    QObject::connect(m_exitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
-    QObject::connect(m_systray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
-    QObject::connect(m_textedit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
-    //QObject::connect(m_testButton, SIGNAL (clicked()), this, SLOT (testClicked()));
-
-    //Signals for mess_serv class
-    m_serv2 = new mess_serv(this);
-    QObject::connect(m_serv2, SIGNAL (mess_rec(const QString, const QString, bool)), this, SLOT (prints(const QString, const QString, bool)) );
-    QObject::connect(m_serv2, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
-    QObject::connect(m_serv2, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
-    QObject::connect(m_serv2, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
-    QObject::connect(m_serv2, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
-    QObject::connect(m_serv2, SIGNAL (sendIps(int)), this, SLOT (sendIps(int)));
-    QObject::connect(m_serv2, SIGNAL (finished()), m_serv2, SLOT (deleteLater()));
-    QObject::connect(m_serv2, SIGNAL (ipCheck(QString)), this, SLOT (ipCheck(QString)));
-    QObject::connect(m_serv2, SIGNAL (sendName(int)), m_client, SLOT (sendNameSlot(int)));
-    QObject::connect(m_serv2, SIGNAL (setPeerHostname(QString, QString)), this, SLOT (setPeerHostname(QString, QString)));
-    m_serv2->start();
-
-    //maybe use portable sleep command here? dont think there is actually a difference
-#ifdef _WIN32
-    Sleep(500);
-#else
-    usleep(500000);
-#endif
-    mess_time = time(0);
-    now = localtime( &mess_time );
-
-    //initial discovery, as long as we find one other computer, we can use his peer_class to find everyone else
+    char discovermess[138];
     memset(discovermess, 0, sizeof(discovermess));
     strncpy(discovermess, "/discover\0", 10);
     strcat(discovermess, name);
     this->udpSend(discovermess);
-
-    //QTimer *timer = new QTimer(this);
-    //QObject::connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
-    //timer->start(2000);
 }
-//not used, future feature to be added
-void Window::timerout()
+void Window::createTextEdit()
 {
-    qDebug() << "Timer done";
+    messTextEdit = new MessengerTextEdit(this);
+    messTextEdit->setGeometry(10, 250, 380, 100);
+}
+void Window::createTextBrowser()
+{
+    messTextBrowser= new QTextBrowser(this);
+    messTextBrowser->setGeometry(10, 10, 380, 230);
+    messTextBrowser->setText("Use the selection pane on the right to message a FRIEND!");
+}
+void Window::createLineEdit()
+{
+    messLineEdit = new QLineEdit(this);
+    messLineEdit->setGeometry(410, 10, 200, 30);
+    messLineEdit->setText(QString::fromUtf8(name));
+}
+void Window::createButtons()
+{
+    messSendButton = new QPushButton("Send", this);
+    messSendButton->setGeometry(160,370,80,30);
+
+    messQuitButton = new QPushButton("Quit", this);
+    messQuitButton->setGeometry(160, 430, 80, 30);
+}
+void Window::createListWidget()
+{
+    messListWidget = new QListWidget(this);
+    messListWidget->setGeometry(410, 60, 200, 290);
+    messListWidget->insertItem(0, "--------------------");
+    messListWidget->insertItem(1, "Global Chat");
+    messListWidget->item(0)->setFlags(messListWidget->item(0)->flags() & ~Qt::ItemIsEnabled);
+}
+void Window::createSystemTray()
+{
+    messSystemTrayIcon = new QIcon(":/resources/resources/systray.png");
+
+    messSystemTray = new QSystemTrayIcon(this);
+
+    messSystemTrayMenu = new QMenu(this);
+    messSystemTrayExitAction = new QAction(this);
+    messSystemTrayExitAction = messSystemTrayMenu->addAction("Exit");
+
+    messSystemTray->setContextMenu(messSystemTrayMenu);
+    messSystemTray->setIcon(*messSystemTrayIcon);
+    messSystemTray->show();
+}
+void Window::createMessClient()
+{
+    messClientThread = new QThread(this);
+    messClient = new MessengerClient();
+    messClient->moveToThread(messClientThread);
+    connect(messClientThread, SIGNAL(finished()), messClientThread, SLOT(deleteLater()));
+    messClientThread->start();
+}
+void Window::connectGuiSignalsAndSlots()
+{
+    QObject::connect(messSendButton, SIGNAL (clicked()), this, SLOT (buttonClicked()));
+    QObject::connect(messQuitButton, SIGNAL (clicked()), this, SLOT (quitClicked()));
+    QObject::connect(messListWidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
+    QObject::connect(messTextEdit, SIGNAL (returnPressed()), this, SLOT (buttonClicked()));
+    QObject::connect(messSystemTrayExitAction, SIGNAL (triggered()), this, SLOT (quitClicked()));
+    QObject::connect(messSystemTray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
+    QObject::connect(messTextEdit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
+}
+void Window::createMessServ()
+{
+    messServer = new MessengerServer(this);
+    QObject::connect(messServer, SIGNAL (mess_rec(const QString, const QString, bool)), this, SLOT (prints(const QString, const QString, bool)) );
+    QObject::connect(messServer, SIGNAL (new_client(int, const QString)), this, SLOT (new_client(int, const QString)));
+    QObject::connect(messServer, SIGNAL (peerQuit(int)), this, SLOT (peerQuit(int)));
+    QObject::connect(messServer, SIGNAL (mess_peers(QString, QString)), this, SLOT (listpeers(QString, QString)));
+    QObject::connect(messServer, SIGNAL (potentialReconnect(QString)), this, SLOT (potentialReconnect(QString)));
+    QObject::connect(messServer, SIGNAL (sendIps(int)), this, SLOT (sendIps(int)));
+    QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
+    QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), this, SLOT (hostnameCheck(QString)));
+    QObject::connect(messServer, SIGNAL (sendName(int)), messClient, SLOT (sendNameSlot(int)));
+    QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QString)), this, SLOT (setPeerHostname(QString, QString)));
+    messServer->start();
+}
+void Window::createMessTime()
+{
+    messTime = time(0);
+    now = localtime( &messTime );
 }
 
 /**
@@ -113,7 +125,7 @@ void Window::timerout()
  * 						This will compare the hostnames to the hostnames we already know about in peer_class
  * @param comp			The string of hostname and ip.  Should be formatted like "hostname@192.168.1.1"
  */
-void Window::ipCheck(QString comp)
+void Window::hostnameCheck(QString comp)
 {
     QStringList temp = comp.split('@');
     QString hname = temp[0];
@@ -148,18 +160,7 @@ void Window::sendIps(int i)
             strcat(msg2, ":");
         }
     }
-    m_client->send_msg(i, msg2, name, type);
-}
-
-/**
- * @brief 				Slot for the m_testButton upon being clicked, used for debugging purposes only, not permanent
- */
-void Window::testClicked()
-{
-    QString q = "192.168.1.191";
-    int s = socket(AF_INET, SOCK_STREAM, 0);
-    int status = m_client->c_connect(s, q.toStdString().c_str());
-    qDebug() << status;
+    messClient->send_msg(i, msg2, name, type);
 }
 
 /**
@@ -167,15 +168,15 @@ void Window::testClicked()
  */
 void Window::textEditChanged()
 {
-    if(m_textedit->toPlainText().length() > 1000)
+    if(messTextEdit->toPlainText().length() > 1000)
     {
-        int diff = m_textedit->toPlainText().length() - 1000;
-        QString temp = m_textedit->toPlainText();
+        int diff = messTextEdit->toPlainText().length() - 1000;
+        QString temp = messTextEdit->toPlainText();
         temp.chop(diff);
-        m_textedit->setText(temp);
-        QTextCursor cursor(m_textedit->textCursor());
+        messTextEdit->setText(temp);
+        QTextCursor cursor(messTextEdit->textCursor());
         cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-        m_textedit->setTextCursor(cursor);
+        messTextEdit->setTextCursor(cursor);
     }
 }
 
@@ -220,13 +221,13 @@ void Window::unalert(QListWidgetItem* item)
 {
     QString temp;
 
-    if(m_listwidget->row(item) == m_listwidget->count()-1)
+    if(messListWidget->row(item) == messListWidget->count()-1)
     {
         globalChatAlerted = false;
     }
     else
     {
-        peers_class->peers[m_listwidget->row(item)].alerted = false;
+        peers_class->peers[messListWidget->row(item)].alerted = false;
     }
     temp = item->text();
     temp.remove(0, 3);
@@ -244,21 +245,21 @@ void Window::unalert(QListWidgetItem* item)
  */
 void Window::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
 {
-    int index1 = m_listwidget->row(item1);
-    if(index1 == m_listwidget->count() - 1)
+    int index1 = messListWidget->row(item1);
+    if(index1 == messListWidget->count() - 1)
     {
-        m_textbrowser->setText(globalChat);
+        messTextBrowser->setText(globalChat);
     }
     else
     {
-        m_textbrowser->setText(peers_class->peers[index1].textBox);
+        messTextBrowser->setText(peers_class->peers[index1].textBox);
     }
     if(item1->background() == Qt::red)
     {
         this->changeListColor(index1, 0);
         this->unalert(item1);
     }
-    QScrollBar *sb = this->m_textbrowser->verticalScrollBar();
+    QScrollBar *sb = this->messTextBrowser->verticalScrollBar();
     sb->setValue(sb->maximum());
     return;
 }
@@ -270,12 +271,12 @@ void Window::potentialReconnect(QString ipaddr)
     {
         if( ( (QString::fromUtf8(peers_class->peers[i].c_ipaddr)).compare(ipaddr) == 0 ) )
         {
-            if(m_listwidget->item(i)->font().italic())
+            if(messListWidget->item(i)->font().italic())
             {
                 this->print(peers_class->peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
-                QFont mfont = m_listwidget->item(i)->font();
+                QFont mfont = messListWidget->item(i)->font();
                 mfont.setItalic(false);
-                m_listwidget->item(i)->setFont(mfont);
+                messListWidget->item(i)->setFont(mfont);
             }
             return;
         }
@@ -295,11 +296,11 @@ void Window::peerQuit(int s)
         if(peers_class->peers[i].socketdescriptor == s)
         {
             peers_class->peers[i].isConnected = 0;
-            if( !( m_listwidget->item(i)->font().italic() ) )
+            if( !( messListWidget->item(i)->font().italic() ) )
             {
-                QFont mfont = m_listwidget->item(i)->font();
+                QFont mfont = messListWidget->item(i)->font();
                 mfont.setItalic(true);
-                m_listwidget->item(i)->setFont(mfont);
+                messListWidget->item(i)->setFont(mfont);
                 //m_listwidget->item(i)->font().setItalic(true);
                 peers_class->peers[i].socketisValid = 0;
                 this->print(peers_class->peers[i].hostname + " on " + QString::fromUtf8(peers_class->peers[i].c_ipaddr) + " disconnected", i, false);
@@ -326,12 +327,12 @@ void Window::new_client(int s, QString ipaddr)
             peers_class->peers[i].socketdescriptor = s;
             //this->assignSocket(&(peers_class->peers[i]));
             peers_class->peers[i].isConnected = true;
-            if(m_listwidget->item(i)->font().italic())
+            if(messListWidget->item(i)->font().italic())
             {
                 this->print(peers_class->peers[i].hostname + " on " + ipaddr + " reconnected", i, false);
-                QFont mfont = m_listwidget->item(i)->font();
+                QFont mfont = messListWidget->item(i)->font();
                 mfont.setItalic(false);
-                m_listwidget->item(i)->setFont(mfont);
+                messListWidget->item(i)->setFont(mfont);
             }
             //qDebug() << "hi";
             return;
@@ -403,13 +404,13 @@ void Window::listpeers(QString hname, QString ipaddr, bool test, int s)
     if( !test )
     {
         assignSocket(&(peers_class->peers[i]));
-        if(m_client->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
+        if(messClient->c_connect(peers_class->peers[i].socketdescriptor, peers_class->peers[i].c_ipaddr) >= 0)
         {
             peers_class->peers[i].isConnected = true;
-            m_serv2->update_fds(peers_class->peers[i].socketdescriptor);
+            messServer->update_fds(peers_class->peers[i].socketdescriptor);
             if(strcmp(name, peers_class->peers[i].hostname.toStdString().c_str()))
             {
-                m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+                messClient->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
             }
         }
     }
@@ -417,7 +418,7 @@ void Window::listpeers(QString hname, QString ipaddr, bool test, int s)
     {
         peers_class->peers[i].socketdescriptor = s;
         peers_class->peers[i].isConnected = true;
-        m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
+        messClient->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/request");
     }
 
     qDebug() << "hostname: " << peers_class->peers[i].hostname << " @ ip:" << QString::fromUtf8(peers_class->peers[i].c_ipaddr);
@@ -434,7 +435,7 @@ void Window::listpeers(QString hname, QString ipaddr, bool test, int s)
         //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
         getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
         qDebug() << "need name, sending namerequest to" << ipaddr;
-        int status = m_client->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/namerequest");
+        int status = messClient->send_msg(peers_class->peers[i].socketdescriptor, "", "", "/namerequest");
         qDebug() << status;
     }
     sortPeers();
@@ -451,29 +452,29 @@ void Window::sortPeers()
     if(peersLen >= 1)
     {
         peers_class->sortPeers(peersLen);
-        if( ( m_listwidget->count() - 2 ) < peersLen)
+        if( ( messListWidget->count() - 2 ) < peersLen)
         {
-            m_listwidget->insertItem(0, "");
+            messListWidget->insertItem(0, "");
             globalChatIndex++;
         }
-        else if( ( m_listwidget->count() - 2 ) > peersLen)
+        else if( ( messListWidget->count() - 2 ) > peersLen)
         {
-            m_listwidget->removeItemWidget(m_listwidget->item(peersLen));
+            messListWidget->removeItemWidget(messListWidget->item(peersLen));
             globalChatIndex--;
         }
-        for(int i = 0; i < ( m_listwidget->count() - 2 ); i++)
+        for(int i = 0; i < ( messListWidget->count() - 2 ); i++)
         {
-            m_listwidget->item(i)->setText(peers_class->peers[i].hostname);
+            messListWidget->item(i)->setText(peers_class->peers[i].hostname);
             if(peers_class->peers[i].alerted)
             {
                 this->changeListColor(i, 1);
-                m_listwidget->item(i)->setText(" * " + m_listwidget->item(i)->text() + " * ");
+                messListWidget->item(i)->setText(" * " + messListWidget->item(i)->text() + " * ");
             }
         }
     }
     else
     {
-        m_listwidget->insertItem(0, (peers_class->peers[0].hostname));
+        messListWidget->insertItem(0, (peers_class->peers[0].hostname));
         globalChatIndex++;
     }
     return;
@@ -494,19 +495,19 @@ void Window::closeEvent(QCloseEvent *event)
         ::closesocket(peers_class->peers[i].socketdescriptor);
 #endif
     }
-    if(m_serv2 != 0 && m_serv2->isRunning())
+    if(messServer != 0 && messServer->isRunning())
     {
-        m_serv2->requestInterruption();
-        m_serv2->quit();
-        m_serv2->wait();
+        messServer->requestInterruption();
+        messServer->quit();
+        messServer->wait();
     }
-    m_clientThread->quit();
-    m_clientThread->wait();
-    delete m_client;
-    delete m_trayIcon;
-    m_trayMenu->deleteLater();
+    messClientThread->quit();
+    messClientThread->wait();
+    delete messClient;
+    delete messSystemTrayIcon;
+    messSystemTrayMenu->deleteLater();
     delete peers_class;
-    m_systray->hide();
+    messSystemTray->hide();
     event->accept();
 }
 
@@ -519,22 +520,6 @@ void Window::assignSocket(struct peerlist *p)
     else
         p->socketisValid = 1;
     return;
-}
-/* dummy function to allow discoverSend to be called on its own */
-void Window::discoverClicked()
-{
-    /*
-    char discovermess[138];
-    strncpy(discovermess, "/discover\0", 10);
-    strcat(discovermess, name);
-    this->udpSend(discovermess);
-    std::cout << "----------------------------------------" << std::endl;
-    std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
-    this->sendPeerList();
-    std::cout << peers_class->peers[0].hostname.toStdString() << std::endl;
-    std::cout << "----------------------------------------" << std::endl;
-    */
-    m_client->send_msg(peers_class->peers[1].socketdescriptor, "", "", "/request");
 }
 
 /*Send the "/discover" message to the local networks broadcast address
@@ -578,25 +563,25 @@ void Window::globalSend(QString msg)
     {
         if(peers_class->peers[i].isConnected)
         {
-            m_client->send_msg(peers_class->peers[i].socketdescriptor, msg.toStdString().c_str(), name, "/global");
+            messClient->send_msg(peers_class->peers[i].socketdescriptor, msg.toStdString().c_str(), name, "/global");
         }
     }
-    m_textedit->setText("");
+    messTextEdit->setText("");
     return;
 }
 
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
 void Window::buttonClicked()
 {
-    if(m_listwidget->selectedItems().count() == 0)
+    if(messListWidget->selectedItems().count() == 0)
     {
         this->print("Choose a computer to message from the selection pane on the right", -1, false);
         return;
     }
-    QString str = m_textedit->toPlainText();
+    QString str = messTextEdit->toPlainText();
     const char* c_str = str.toStdString().c_str();
 
-    int index = m_listwidget->currentRow();
+    int index = messListWidget->currentRow();
     if( ( index == globalChatIndex ) && ( strcmp(c_str, "") != 0) )
     {
         globalSend(str);
@@ -609,28 +594,28 @@ void Window::buttonClicked()
     {
         if(!(peers_class->peers[index].isConnected))
         {
-            if(m_client->c_connect(s_socket, peers_class->peers[index].c_ipaddr) < 0)
+            if(messClient->c_connect(s_socket, peers_class->peers[index].c_ipaddr) < 0)
             {
                 this->print("Could not connect to " + peers_class->peers[index].hostname + " | on socket " + QString::number(peers_class->peers[index].socketdescriptor), index, false);
                 return;
             }
             peers_class->peers[index].isConnected = true;
-            m_serv2->update_fds(s_socket);
-            m_client->send_msg(peers_class->peers[index].socketdescriptor, "", "", "/request");
+            messServer->update_fds(s_socket);
+            messClient->send_msg(peers_class->peers[index].socketdescriptor, "", "", "/request");
             //this->sendIps(peers_class->peers[index].socketdescriptor);
 
         }
         if(strcmp(c_str, "") != 0)
         {
-            if((m_client->send_msg(s_socket, c_str, name, "/msg")) == -5)
+            if((messClient->send_msg(s_socket, c_str, name, "/msg")) == -5)
             {
                 this->print("Peer has closed connection, send failed", index, false);
                 return;
             }
             else{
-                this->print(m_lineedit->text() + ": " + m_textedit->toPlainText(), index, true);
+                this->print(messLineEdit->text() + ": " + messTextEdit->toPlainText(), index, true);
             }
-            m_textedit->setText("");
+            messTextEdit->setText("");
         }
     }
     else
@@ -642,14 +627,14 @@ void Window::buttonClicked()
 }
 void Window::changeListColor(int row, int style)
 {
-    QBrush back = (m_listwidget->item(row)->background());
+    QBrush back = (messListWidget->item(row)->background());
     if(style == 1)
     {
-        m_listwidget->item(row)->setBackground(Qt::red);
+        messListWidget->item(row)->setBackground(Qt::red);
     }
     if(style == 0)
     {
-        m_listwidget->item(row)->setBackground(QGuiApplication::palette().base());
+        messListWidget->item(row)->setBackground(QGuiApplication::palette().base());
     }
     return;
 }
@@ -700,8 +685,8 @@ void Window::print(const QString str, int peerindex, bool message)
     if(message)
     {
         char time_str[12];
-        mess_time = time(0);
-        now = localtime(&mess_time);
+        messTime = time(0);
+        now = localtime(&messTime);
         strftime(time_str, 12, "(%H:%M:%S) ", now);
         strnew = QString::fromUtf8(time_str) + str;
     }
@@ -711,7 +696,7 @@ void Window::print(const QString str, int peerindex, bool message)
     }
     if(peerindex < 0)
     {
-        m_textbrowser->append(strnew);
+        messTextBrowser->append(strnew);
         return;
     }
     if(peerindex == globalChatIndex)
@@ -722,22 +707,22 @@ void Window::print(const QString str, int peerindex, bool message)
     {
         peers_class->peers[peerindex].textBox.append(strnew + "\n");
     }
-    if(peerindex == m_listwidget->currentRow())
+    if(peerindex == messListWidget->currentRow())
     {
-        m_textbrowser->append(strnew);
+        messTextBrowser->append(strnew);
         qApp->alert(this, 0);
     }
     else if(message)
     {
         this->changeListColor(peerindex, 1);
-        if( !( peers_class->peers[peerindex].alerted ) && ( peerindex != m_listwidget->count()-1 ) )
+        if( !( peers_class->peers[peerindex].alerted ) && ( peerindex != messListWidget->count()-1 ) )
         {
-            m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
+            messListWidget->item(peerindex)->setText(" * " + messListWidget->item(peerindex)->text() + " * ");
             peers_class->peers[peerindex].alerted = true;
         }
-        else if(peerindex == m_listwidget->count()-1 && !(globalChatAlerted))
+        else if(peerindex == messListWidget->count()-1 && !(globalChatAlerted))
         {
-            m_listwidget->item(peerindex)->setText(" * " + m_listwidget->item(peerindex)->text() + " * ");
+            messListWidget->item(peerindex)->setText(" * " + messListWidget->item(peerindex)->text() + " * ");
             globalChatAlerted = true;
         }
     }
@@ -756,7 +741,7 @@ void Window::prints(const QString str, const QString ipstr, bool global)
     if(global)
     {
         this->focusFunction();
-        this->print(str, m_listwidget->count()-1, true);
+        this->print(str, messListWidget->count()-1, true);
         return;
     }
     for(int i = 0; i < peersLen; i++)

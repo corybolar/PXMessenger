@@ -34,7 +34,7 @@
 #define PORT_DISCOVER 13654
 #define BACKLOG 20
 
-class mess_serv : public QThread
+class MessengerServer : public QThread
 {
     Q_OBJECT
     int udpRecieve(int i);
@@ -42,7 +42,7 @@ class mess_serv : public QThread
     int newConnection(int i);
 
 public:
-    mess_serv(QWidget *parent);
+    MessengerServer(QWidget *parent);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
     int accept_new(int socketfd, sockaddr_storage *their_addr);		//Accept a new connection from a new peer.  Assigns a socket to the connection
     void run();														//thread starter
@@ -62,7 +62,7 @@ signals:
     void exitRecieved(QString);
     void sendIps(int);
     void sendName(int);
-    void ipCheck(QString);
+    void hostnameCheck(QString);
     void setPeerHostname(QString, QString);
 };
 

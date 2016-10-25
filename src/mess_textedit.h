@@ -6,11 +6,11 @@
 #include <QKeyEvent>
 #include <QWidget>
 
-class mess_textedit : public QTextEdit
+class MessengerTextEdit : public QTextEdit
 {
     Q_OBJECT
 public:
-    explicit mess_textedit(QWidget* parent);
+    explicit MessengerTextEdit(QWidget* parent);
     void keyPressEvent(QKeyEvent *event);
 signals:
     void returnPressed();

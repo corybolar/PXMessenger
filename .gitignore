@@ -17,3 +17,4 @@
 /src/object_script*
 /src/pxmessenger_plugin_import.cpp
 /build-PXMessenger-*
+/*.exe

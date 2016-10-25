@@ -1,6 +1,6 @@
 #include <mess_client.h>
 
-mess_client::mess_client()
+MessengerClient::MessengerClient()
 {
 
 }
@@ -12,7 +12,7 @@ mess_client::mess_client()
  * @param ipaddr	ip address to connect socket to
  * @return			-1 on failure to connect, socket descriptor on success
  */
-int mess_client::c_connect(int socketfd, const char *ipaddr)
+int MessengerClient::c_connect(int socketfd, const char *ipaddr)
 {
     int status;
     struct addrinfo hints, *res;
@@ -47,7 +47,7 @@ int mess_client::c_connect(int socketfd, const char *ipaddr)
  *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
  *   				-5 if socket is not connected
  */
-int mess_client::send_msg(int socketfd, const char *msg, const char *host, const char *type)
+int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, const char *type)
 {
     int len, bytes_sent, sendcount = 0;
     char msgLen[3];
@@ -116,7 +116,7 @@ int mess_client::send_msg(int socketfd, const char *msg, const char *host, const
  * @param count		Only attempt to resend 5 times so as not to hang the program if something goes wrong
  * @return 			-1 on error, total bytes sent otherwise
  */
-int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
+int MessengerClient::partialSend(int socketfd, const char *msg, int len, int count)
 {
     int status2 = 0;
 #ifdef _WIN32
@@ -149,7 +149,7 @@ int mess_client::partialSend(int socketfd, const char *msg, int len, int count)
  * @brief 			Slot function for signal called from mess_serv class.  Sends hostname to socket
  * @param s			Socket to send our hostname to
  */
-void mess_client::sendNameSlot(int s)
+void MessengerClient::sendNameSlot(int s)
 {
     char name[128] = {};
 
