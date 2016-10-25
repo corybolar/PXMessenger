@@ -37,18 +37,20 @@
 class MessengerServer : public QThread
 {
     Q_OBJECT
-    int udpRecieve(int i);
-    int tcpRecieve(int i);
-    int newConnection(int i);
 
 public:
     MessengerServer(QWidget *parent);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
-    int accept_new(int socketfd, sockaddr_storage *their_addr);		//Accept a new connection from a new peer.  Assigns a socket to the connection
-    void run();														//thread starter
-
     int set_fdmax(int m);											//update the fdmax variable to indicate the highest socket number.  Needed for select()
     void update_fds(int s);											//add new sockets to the master fd_set
+    void run();														//thread starter
+public slots:
+    void updateMessServFDSSlot(int s);
+private:
+    int udpRecieve(int i);
+    int tcpRecieve(int i);
+    int newConnection(int i);
+    int accept_new(int socketfd, sockaddr_storage *their_addr);		//Accept a new connection from a new peer.  Assigns a socket to the connection
     //Maybe change these to locals and pass them around instead?
     fd_set master, read_fds, write_fds;
     int fdmax = 0;

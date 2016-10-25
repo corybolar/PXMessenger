@@ -5,6 +5,14 @@ MessengerClient::MessengerClient()
 
 }
 
+void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
+{
+    if(this->c_connect(s, ipaddr.toStdString().c_str()) > 0)
+        emit connectionSuccessful(s);
+    else
+        emit connectionUnsuccessful(s);
+
+}
 
 /**
  * @brief 			This function connects a socket to a specific ip address.
@@ -32,6 +40,7 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
         freeaddrinfo(res);
         return -1;
     }
+    emit connectionSuccessful(socketfd);
     freeaddrinfo(res);
     return socketfd;
 }
@@ -106,6 +115,11 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
 
     }
     return bytes_sent;
+}
+
+void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type)
+{
+    this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str());
 }
 
 /**

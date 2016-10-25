@@ -35,6 +35,11 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
     return result;
 }
 
+void MessengerServer::updateMessServFDSSlot(int s)
+{
+    this->update_fds(s);
+}
+
 /**
  * @brief 				Add an FD to the set if its not already in there and check if its the new max
  * @param s				Socket descriptor number to add to set

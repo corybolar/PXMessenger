@@ -17,7 +17,7 @@ int main(int argc, char **argv)
         return 1;
     }
 #endif
-    Window window;
+    MessengerWindow window;
     window.show();
 
     int result1 = app.exec();
