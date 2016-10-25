@@ -40,6 +40,7 @@ class mess_serv : public QThread
     int udpRecieve(int i);
     int tcpRecieve(int i);
     int newConnection(int i);
+
 public:
     mess_serv(QWidget *parent);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
@@ -50,19 +51,19 @@ public:
     void update_fds(int s);											//add new sockets to the master fd_set
     //Maybe change these to locals and pass them around instead?
     fd_set master, read_fds, write_fds;
-    int fdmax;
-
-    void new_fds(int s);											//obsolete
+    int fdmax = 0;
 
 signals:
-    void mess_rec(const QString, const QString);					//return a message from a peer with their socket descriptor. REVISE
+    void mess_rec(const QString, const QString, bool);					//return a message from a peer with their socket descriptor. REVISE
     void new_client(int, const QString);							//
     void peerQuit(int);												//Alert of a peer disconnect
     void mess_peers(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
-private slots:
-    void recievePeerList(peerClass *peers);
+    void sendIps(int);
+    void sendName(int);
+    void ipCheck(QString);
+    void setPeerHostname(QString, QString);
 };
 
 #endif // MESS_SERV_H

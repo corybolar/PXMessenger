@@ -16,6 +16,7 @@ CONFIG += c++11 \
 		release \
 		debug
 }
+QMAKE_CXXFLAGS += -Wall
 
 SOURCES += \
     main.cpp \
