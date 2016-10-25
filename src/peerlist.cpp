@@ -26,6 +26,11 @@ int PeerClass::qsortCompare(const void *a, const void *b)
     return pA->hostname.compare(pB->hostname, Qt::CaseInsensitive);
 }
 
+void PeerClass::setLocalHostName(QString name)
+{
+
+}
+
 void PeerClass::assignSocket(struct peerDetails *p)
 {
     p->socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
@@ -59,17 +64,17 @@ void PeerClass::newTcpConnection(int s, QString ipaddr)
             knownPeersArray[i].socketDescriptor = s;
             //this->assignSocket(&(peers_class->peers[i]));
             knownPeersArray[i].isConnected = true;
-            emit removeItalicsOnItem(i);
+            emit setItalicsOnItem(i, 1);
             /*  addRemoveItalicsOnItem(int i) to MessengerWindow
-             *
-        if(messListWidget->item(i)->font().italic())
-        {
-        this->printToTextBrowser(peers_class->knownPeersArray[i].hostname + " on " + ipaddr + " reconnected", i, false);
-        QFont mfont = messListWidget->item(i)->font();
-        mfont.setItalic(false);
-        messListWidget->item(i)->setFont(mfont);
-        }
-        */
+     *
+    if(messListWidget->item(i)->font().italic())
+    {
+    this->printToTextBrowser(peers_class->knownPeersArray[i].hostname + " on " + ipaddr + " reconnected", i, false);
+    QFont mfont = messListWidget->item(i)->font();
+    mfont.setItalic(false);
+    messListWidget->item(i)->setFont(mfont);
+    }
+    */
             //qDebug() << "hi";
             return;
         }
@@ -104,7 +109,7 @@ void PeerClass::peerQuit(int s)
         {
             knownPeersArray[i].isConnected = 0;
             knownPeersArray[i].socketisValid = 0;
-            emit addItalicsOnItem(i);
+            emit setItalicsOnItem(i, 0);
             //emit printToTextBrowser(knownPeersArray[i].hostname + " on " + QString::fromUtf8(knownPeersArray[i].ipAddress) + " disconnected", i, false);
             this->assignSocket(&knownPeersArray[i]);
             return;
@@ -128,23 +133,64 @@ void PeerClass::sendIps(int i)
     //messClient->send_msg(i, msg2, localHostname, type);
     emit sendMsg(i, QString::fromUtf8(msg2), QString::fromUtf8(localHostname), QString::fromUtf8(type));
 }
-void PeerClass::connectionSuccessful(int s)
+void PeerClass::resultOfConnectionAttempt(int socket, bool result)
 {
     for(int i = 0; i < numberOfValidPeers; i++)
     {
-        if(knownPeersArray[i].socketDescriptor == s)
+        if(knownPeersArray[i].socketDescriptor == socket)
         {
-            knownPeersArray[i].isConnected = true;
-            emit updateMessServFDS(knownPeersArray[i].socketDescriptor);
-            if(strcmp(localHostname, knownPeersArray[i].hostname.toStdString().c_str()))
+            if(!result)
             {
-                emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
+                knownPeersArray[i].isConnected = true;
+                knownPeersArray[i].socketisValid = true;
+                emit updateMessServFDS(knownPeersArray[i].socketDescriptor);
+                if(strcmp(localHostname, knownPeersArray[i].hostname.toStdString().c_str()))
+                {
+                    emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
+                }
+            }
+            else
+            {
+
+                knownPeersArray[i].isConnected = false;
+                emit printToTextBrowser("Could not connect to " + knownPeersArray[i].hostname + " on socket " + QString::number(knownPeersArray[i].socketDescriptor), i, false);
+                emit setItalicsOnItem(i, 0);
             }
             return;
         }
     }
 }
+void PeerClass::resultOfTCPSend(int levelOfSuccess, int socket, QString msg, bool print)
+{
+    if(print)
+    {
+        int i;
+        for(i = 0; i < numberOfValidPeers; i++)
+        {
+            if(knownPeersArray[i].socketDescriptor == socket)
+            {
+                if(levelOfSuccess < 0)
+                {
+                    msg = "Message was not sent successfully, Broken Pipe.  Peer likely disconnected";
+                    peerQuit(socket);
+                }
+                else if(levelOfSuccess > 0)
+                {
+                    msg.append("\nThe previous message was only paritally sent.  This was very bad\nContact the administrator of this program immediately\nNumber of bytes sent: " + QString::number(levelOfSuccess));
+                }
+                else if(levelOfSuccess == 0)
+                {
 
+                }
+                emit printToTextBrowser(msg, i, true);
+
+                return;
+            }
+        }
+    }
+    if(levelOfSuccess<0)
+        peerQuit(socket);
+}
 /**
  * @brief				This is the function called when mess_discover recieves a udp packet starting with "/name:"
  * 						here we check to see if the ip of the selected host is already in the peers array and if not
@@ -174,16 +220,16 @@ void PeerClass::listpeers(QString hname, QString ipaddr, bool test, int s)
     {
         assignSocket(&(knownPeersArray[i]));
         emit connectToPeer(knownPeersArray[i].socketDescriptor, QString::fromUtf8(knownPeersArray[i].ipAddress));
-                        /*if(parentWindow->messClient->c_connect(knownPeersArray[i].socketDescriptor, knownPeersArray[i].ipAddress) >= 0)
-                    {
-                        knownPeersArray[i].isConnected = true;
-                        parentWindow->messServer->update_fds(knownPeersArray[i].socketDescriptor);
-                        if(strcmp(parentWindow->localHostname, knownPeersArray[i].hostname.toStdString().c_str()))
-                        {
-                        emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
-                        }
-                    }
-                    */
+        /*if(parentWindow->messClient->c_connect(knownPeersArray[i].socketDescriptor, knownPeersArray[i].ipAddress) >= 0)
+    {
+    knownPeersArray[i].isConnected = true;
+    parentWindow->messServer->update_fds(knownPeersArray[i].socketDescriptor);
+    if(strcmp(parentWindow->localHostname, knownPeersArray[i].hostname.toStdString().c_str()))
+    {
+    emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
+    }
+    }
+    */
     }
     else
     {

@@ -40,6 +40,7 @@ public:
     explicit PeerClass(QObject *parent);
     peerDetails knownPeersArray[255];
     void sortPeersByHostname(int len);
+    void setLocalHostName(QString name);
     int numberOfValidPeers = 0;
 public slots:
     void hostnameCheck(QString comp);
@@ -49,7 +50,8 @@ public slots:
     void peerQuit(int s);
     void setPeerHostname(QString hname, QString ipaddr);
     void sendIps(int i);
-    void connectionSuccessful(int s);
+    void resultOfConnectionAttempt(int socket, bool result);
+    void resultOfTCPSend(int levelOfSuccess, int socket, QString msg, bool print);
 private:
     Q_DISABLE_COPY(PeerClass)
     static int qsortCompare(const void *a, const void *b);
@@ -62,8 +64,7 @@ signals:
     void sendMsg(int, QString, QString, QString);
     void connectToPeer(int, QString);
     void updateMessServFDS(int);
-    void removeItalicsOnItem(int);
-    void addItalicsOnItem(int);
+    void setItalicsOnItem(int, bool);
 };
 
 

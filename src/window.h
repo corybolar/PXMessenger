@@ -84,8 +84,7 @@ private slots:
     //void hostnameCheck(QString comp);
     //void setPeerHostname(QString hname, QString ipaddr);
     void updateListWidget(int num);														//sort peerlist struct alphabetically by hostname
-    void addItalicsOnItem(int i);
-    void removeItalicsOnItem(int i);
+    void setItalicsOnItem(int i, bool italics);
 private:
     QPushButton *messSendButton;
     QPushButton *messQuitButton;
@@ -131,6 +130,11 @@ private:
     void createMessClient();
     void createMessServ();
     void createMessTime();
+    void connectPeerClassSignalsAndSlots();
+signals:
+    void connectToPeer(int, QString);
+    void sendMsg(int, QString, QString, QString);
+
 };
 
 #endif // WINDOW_H

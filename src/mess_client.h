@@ -39,8 +39,8 @@ private:
 private slots:
     void sendNameSlot(int);
 signals:
-    void connectionSuccessful(int);
-    void connectionUnsuccessful(int);
+    void resultOfConnectionAttempt(int, bool);
+    void resultOfTCPSend(int, int, QString, bool);
 };
 
 #endif // MESS_CLIENT_H
