@@ -137,14 +137,16 @@ void MessengerWindow::createMessTime()
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool
 void MessengerWindow::setItalicsOnItem(int i, bool italics)
 {
+    if(messListWidget->item(i)->font().italic() == italics)
+        return;
     QString changeInConnection;
-    if(!italics)
+    if(italics)
         changeInConnection = " disconnected";
     else
         changeInConnection = " reconnected";
     this->printToTextBrowser(peers_class->knownPeersArray[i].hostname + " on " + QString::fromUtf8(peers_class->knownPeersArray[i].ipAddress) + changeInConnection, i, false);
     QFont mfont = messListWidget->item(i)->font();
-    mfont.setItalic(!italics);
+    mfont.setItalic(italics);
     messListWidget->item(i)->setFont(mfont);
 }
 /**

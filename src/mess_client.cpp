@@ -34,12 +34,12 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
     {
         std::cout << strerror(errno) << std::endl;
         freeaddrinfo(res);
-        emit resultOfConnectionAttempt(socketfd, 1);
-        return -1;
+        //emit resultOfConnectionAttempt(socketfd, 1);
+        return 1;
     }
-    emit resultOfConnectionAttempt(socketfd, 0);
+    //emit resultOfConnectionAttempt(socketfd, 0);
     freeaddrinfo(res);
-    return socketfd;
+    return 0;
 }
 
 /**

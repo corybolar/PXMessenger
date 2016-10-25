@@ -64,7 +64,7 @@ void PeerClass::newTcpConnection(int s, QString ipaddr)
             knownPeersArray[i].socketDescriptor = s;
             //this->assignSocket(&(peers_class->peers[i]));
             knownPeersArray[i].isConnected = true;
-            emit setItalicsOnItem(i, 1);
+            emit setItalicsOnItem(i, 0);
             /*  addRemoveItalicsOnItem(int i) to MessengerWindow
      *
     if(messListWidget->item(i)->font().italic())
@@ -109,7 +109,7 @@ void PeerClass::peerQuit(int s)
         {
             knownPeersArray[i].isConnected = 0;
             knownPeersArray[i].socketisValid = 0;
-            emit setItalicsOnItem(i, 0);
+            emit setItalicsOnItem(i, 1);
             //emit printToTextBrowser(knownPeersArray[i].hostname + " on " + QString::fromUtf8(knownPeersArray[i].ipAddress) + " disconnected", i, false);
             this->assignSocket(&knownPeersArray[i]);
             return;
@@ -154,7 +154,7 @@ void PeerClass::resultOfConnectionAttempt(int socket, bool result)
 
                 knownPeersArray[i].isConnected = false;
                 emit printToTextBrowser("Could not connect to " + knownPeersArray[i].hostname + " on socket " + QString::number(knownPeersArray[i].socketDescriptor), i, false);
-                emit setItalicsOnItem(i, 0);
+                emit setItalicsOnItem(i, 1);
             }
             return;
         }
