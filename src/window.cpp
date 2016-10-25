@@ -296,7 +296,7 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
         ::close(peers_class->knownPeersArray[i].socketDescriptor);
 #endif
 #ifdef _WIN32
-        ::closesocket(peers_class->peers[i].socketdescriptor);
+        ::closesocket(peers_class->knownPeersArray[i].socketDescriptor);
 #endif
     }
     if(messServer != 0 && messServer->isRunning())
