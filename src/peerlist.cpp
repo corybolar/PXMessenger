@@ -30,7 +30,7 @@ void PeerWorkerClass::hostnameCheck(QString comp)
         if(itr.hostname == hname)
             return;
     }
-    listpeers(hname, ipaddr);
+    listpeers(hname, ipaddr, true, 0, "");
     return;
 }
 void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
@@ -159,14 +159,11 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
 void PeerWorkerClass::listpeers(QString hname, QString ipaddr, bool isThisFromUDP, int s, QUuid uuid)
 {
     peerDetails newPeer;
-
     for(auto &itr : peerDetailsHash)
     {
         if(itr.ipAddress == ipaddr)
             return;
     }
-
-
 
     if( isThisFromUDP )
     {

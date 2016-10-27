@@ -290,10 +290,12 @@ void MessengerWindow::quitButtonClicked()
 void MessengerWindow::updateListWidget(int num)
 {
     messListWidget->setUpdatesEnabled(false);
-    for(int i = 0; i < messListWidget->count() - 2; i++)
+    int count2 = messListWidget->count();
+    for(int i = 0; i < count2 - 2; i++)
     {
         delete messListWidget->takeItem(0);
     }
+    count2 = messListWidget->count();
     int count = peerWorker->peerDetailsHash.size()-1;
     for(auto &itr : peerWorker->peerDetailsHash)
     {
@@ -497,10 +499,13 @@ void MessengerWindow::printToTextBrowser(const QString str, QUuid uuid, bool mes
         peerWorker->peerDetailsHash[uuid].textBox.append(strnew + "\n");
     }
 
-    if(uuid == messListWidget->currentItem()->data(Qt::UserRole))
+    if(messListWidget->currentItem() != NULL)
     {
-        messTextBrowser->append(strnew);
-        qApp->alert(this, 0);
+        if(uuid == messListWidget->currentItem()->data(Qt::UserRole))
+        {
+            messTextBrowser->append(strnew);
+            qApp->alert(this, 0);
+        }
     }
     else if(message)
     {
