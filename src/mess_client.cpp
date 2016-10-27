@@ -4,6 +4,39 @@ MessengerClient::MessengerClient()
 {
 
 }
+void MessengerClient::udpSendSlot(QString msg)
+{
+    this->udpSend(msg.toStdString().c_str());
+}
+
+void MessengerClient::udpSend(const char* msg)
+{
+    int len;
+    int port2 = 13654;
+    struct sockaddr_in broadaddr;
+    struct in_addr localInterface;
+    int socketfd2;
+
+    memset(&broadaddr, 0, sizeof(broadaddr));
+    broadaddr.sin_family = AF_INET;
+    broadaddr.sin_addr.s_addr = inet_addr("226.1.1.1");
+    broadaddr.sin_port = htons(port2);
+
+    localInterface.s_addr = inet_addr("192.168.1.200");
+
+    if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
+        perror("socket:");
+   // if (setsockopt(socketfd2, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int)))
+    //if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_IF, INADDR_ANY, 0))
+     //   perror("setsockopt failed:");
+
+    len = strlen(msg);
+
+    for(int i = 0; i < 2; i++)
+    {
+        sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
+    }
+}
 void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
 {
     emit resultOfConnectionAttempt(s, this->c_connect(s, ipaddr.toStdString().c_str()));
@@ -50,7 +83,7 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
  *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
  *   				-5 if socket is not connected
  */
-int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, const char *type)
+int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, const char *type, const char *uuid)
 {
     int packetLen, bytes_sent, sendcount = 0;
     char msgLen[3];
@@ -60,16 +93,16 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
 
     if(!strcmp(type, "/msg") )
     {
-        packetLen = strlen(type) + strlen(host) + strlen(msg) + 2;
+        packetLen = strlen(uuid) + strlen(type) + strlen(host) + strlen(msg) + 2;
         print = true;
     }
     else if(!strcmp(type,"/global"))
     {
-        packetLen = strlen(type) + strlen(host) + strlen(msg) + 2;
+        packetLen = strlen(uuid) + strlen(type) + strlen(host) + strlen(msg) + 2;
     }
     else
     {
-        packetLen = strlen(type) + strlen(msg);
+        packetLen = strlen(uuid) + strlen(type) + strlen(msg);
     }
 
     sprintf(msgLen, "%03d", packetLen);
@@ -80,14 +113,15 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     char full_mess[packetLen] = {};
     char humanReadableMessage[packetLen-strlen(type)] = {};
     strncpy(full_mess, msgLen, 3);
+    strcat(full_mess, uuid);
 
     strcat(full_mess, type);
     if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
        strcat(full_mess, host);
        strcat(humanReadableMessage, host);
-       full_mess[strlen(host) + strlen(type) + packetLenLength] = ':';
-       full_mess[strlen(host) + strlen(type) + packetLenLength + 1] = ' ';
+       full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength] = ':';
+       full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength + 1] = ' ';
        humanReadableMessage[strlen(host)] = ':';
        humanReadableMessage[strlen(host) + 1] = ' ';
     }
@@ -126,9 +160,9 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     }
     return -5;
 }
-void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type)
+void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type, QString uuid)
 {
-    this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str());
+    this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str(), uuid.toStdString().c_str());
 }
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
@@ -175,6 +209,6 @@ void MessengerClient::sendNameSlot(int s)
     char name[128] = {};
 
     gethostname(name, sizeof name);
-    this->send_msg(s,name, "", "/hostname");
+    this->send_msg(s,name, "", "/hostname", "");
     return;
 }

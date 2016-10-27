@@ -2,11 +2,11 @@
 
 MessengerWindow::MessengerWindow()
 {
-    setFixedSize(700,500);
+    setFixedSize(700,550);
 
     gethostname(localHostname, sizeof localHostname);
 
-    peers_class = new PeerClass(this);
+    peerWorker = new PeerWorkerClass(this);
 
     createTextEdit();
 
@@ -30,11 +30,14 @@ MessengerWindow::MessengerWindow()
 
     connectPeerClassSignalsAndSlots();
 
-    char discovermess[138];
-    memset(discovermess, 0, sizeof(discovermess));
-    strncpy(discovermess, "/discover\0", 10);
-    strcat(discovermess, localHostname);
-    this->udpSend(discovermess);
+    emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+
+    timer = new QTimer(this);
+    connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
+    timer->start(5000);
+
+    QUuid ourUUID = QUuid::createUuid();
+    ourUUIDString = ourUUID.toString().mid(1,36).toUpper();
 }
 void MessengerWindow::createTextEdit()
 {
@@ -60,6 +63,10 @@ void MessengerWindow::createButtons()
 
     messQuitButton = new QPushButton("Quit", this);
     messQuitButton->setGeometry(160, 430, 80, 30);
+
+    messDebugButton = new QPushButton("Debug", this);
+    messDebugButton->setGeometry(160, 490, 80, 30);
+    connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
 }
 void MessengerWindow::createListWidget()
 {
@@ -89,10 +96,11 @@ void MessengerWindow::createMessClient()
     messClient = new MessengerClient();
     messClient->moveToThread(messClientThread);
     QObject::connect(messClientThread, SIGNAL(finished()), messClientThread, SLOT(deleteLater()));
-    QObject::connect(messClient, SIGNAL (resultOfConnectionAttempt(int, bool)), peers_class, SLOT(resultOfConnectionAttempt(int,bool)));
-    QObject::connect(messClient, SIGNAL (resultOfTCPSend(int, int, QString, bool)), peers_class, SLOT(resultOfTCPSend(int,int,QString,bool)));
-    QObject::connect(this, SIGNAL (sendMsg(int, QString, QString, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString)));
+    QObject::connect(messClient, SIGNAL (resultOfConnectionAttempt(int, bool)), peerWorker, SLOT(resultOfConnectionAttempt(int,bool)));
+    QObject::connect(messClient, SIGNAL (resultOfTCPSend(int, int, QString, bool)), peerWorker, SLOT(resultOfTCPSend(int,int,QString,bool)));
+    QObject::connect(this, SIGNAL (sendMsg(int, QString, QString, QString, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QString)));
     QObject::connect(this, SIGNAL (connectToPeer(int, QString)), messClient, SLOT(connectToPeerSlot(int, QString)));
+    QObject::connect(this, SIGNAL (sendUdp(QString)), messClient, SLOT(udpSendSlot(QString)));
     messClientThread->start();
 }
 void MessengerWindow::connectGuiSignalsAndSlots()
@@ -108,25 +116,25 @@ void MessengerWindow::connectGuiSignalsAndSlots()
 }
 void MessengerWindow::connectPeerClassSignalsAndSlots()
 {
-    QObject::connect(peers_class, SIGNAL (sendMsg(int, QString, QString, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString)));
-    QObject::connect(peers_class, SIGNAL (connectToPeer(int, QString)), messClient, SLOT(connectToPeerSlot(int, QString)));
-    QObject::connect(peers_class, SIGNAL (updateMessServFDS(int)), messServer, SLOT (updateMessServFDSSlot(int)));
-    QObject::connect(peers_class, SIGNAL (printToTextBrowser(QString, int, bool)), this, SLOT (printToTextBrowser(QString, int, bool)));
-    QObject::connect(peers_class, SIGNAL (setItalicsOnItem(int, bool)), this, SLOT (setItalicsOnItem(int, bool)));
-    QObject::connect(peers_class, SIGNAL (updateListWidget(int)), this, SLOT (updateListWidget(int)));
+    QObject::connect(peerWorker, SIGNAL (sendMsg(int, QString, QString, QString, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QString)));
+    QObject::connect(peerWorker, SIGNAL (connectToPeer(int, QString)), messClient, SLOT(connectToPeerSlot(int, QString)));
+    QObject::connect(peerWorker, SIGNAL (updateMessServFDS(int)), messServer, SLOT (updateMessServFDSSlot(int)));
+    QObject::connect(peerWorker, SIGNAL (printToTextBrowser(QString, int, bool)), this, SLOT (printToTextBrowser(QString, int, bool)));
+    QObject::connect(peerWorker, SIGNAL (setItalicsOnItem(int, bool)), this, SLOT (setItalicsOnItem(int, bool)));
+    QObject::connect(peerWorker, SIGNAL (updateListWidget(int)), this, SLOT (updateListWidget(int)));
 }
 void MessengerWindow::createMessServ()
 {
     messServer = new MessengerServer(this);
-    QObject::connect(messServer, SIGNAL (mess_rec(const QString, const QString, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, const QString, bool)) );
+    QObject::connect(messServer, SIGNAL (mess_rec(const QString, const QString, QString, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, const QString, QString, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
     QObject::connect(messServer, SIGNAL (sendName(int)), messClient, SLOT (sendNameSlot(int)));
-    QObject::connect(messServer, SIGNAL (new_client(int, const QString)), peers_class, SLOT (newTcpConnection(int, const QString)));
-    QObject::connect(messServer, SIGNAL (peerQuit(int)), peers_class, SLOT (peerQuit(int)));
-    QObject::connect(messServer, SIGNAL (mess_peers(QString, QString)), peers_class, SLOT (listpeers(QString, QString)));
-    QObject::connect(messServer, SIGNAL (sendIps(int)), peers_class, SLOT (sendIps(int)));
-    QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peers_class, SLOT (hostnameCheck(QString)));
-    QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QString)), peers_class, SLOT (setPeerHostname(QString, QString)));
+    QObject::connect(messServer, SIGNAL (new_client(int, const QString)), peerWorker, SLOT (newTcpConnection(int, const QString)));
+    QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
+    QObject::connect(messServer, SIGNAL (mess_peers(QString, QString)), peerWorker, SLOT (listpeers(QString, QString)));
+    QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
+    QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
+    QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QString)), peerWorker, SLOT (setPeerHostname(QString, QString)));
     messServer->start();
 }
 void MessengerWindow::createMessTime()
@@ -134,6 +142,20 @@ void MessengerWindow::createMessTime()
     messTime = time(0);
     currentTime = localtime( &messTime );
 }
+void MessengerWindow::debugButtonClicked()
+{
+    emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+}
+
+void MessengerWindow::timerout()
+{
+    if(peerWorker->numberOfValidPeers <= 1)
+    {
+        emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+        timer->start(5000);
+    }
+}
+
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool
 void MessengerWindow::setItalicsOnItem(int i, bool italics)
 {
@@ -144,7 +166,7 @@ void MessengerWindow::setItalicsOnItem(int i, bool italics)
         changeInConnection = " disconnected";
     else
         changeInConnection = " reconnected";
-    this->printToTextBrowser(peers_class->knownPeersArray[i].hostname + " on " + QString::fromUtf8(peers_class->knownPeersArray[i].ipAddress) + changeInConnection, i, false);
+    this->printToTextBrowser(peerWorker->knownPeersArray[i].hostname + " on " +peerWorker->knownPeersArray[i].ipAddress + changeInConnection, i, false);
     QFont mfont = messListWidget->item(i)->font();
     mfont.setItalic(italics);
     messListWidget->item(i)->setFont(mfont);
@@ -210,7 +232,7 @@ void MessengerWindow::removeMessagePendingStatus(QListWidgetItem* item)
     }
     else
     {
-        peers_class->knownPeersArray[messListWidget->row(item)].messagePending = false;
+        peerWorker->knownPeersArray[messListWidget->row(item)].messagePending = false;
     }
     temp = item->text();
     temp.remove(0, 3);
@@ -234,7 +256,7 @@ void MessengerWindow::currentItemChanged(QListWidgetItem *item1, QListWidgetItem
     }
     else
     {
-        messTextBrowser->setText(peers_class->knownPeersArray[index1].textBox);
+        messTextBrowser->setText(peerWorker->knownPeersArray[index1].textBox);
     }
     if(item1->background() == Qt::red)
     {
@@ -254,9 +276,9 @@ void MessengerWindow::quitButtonClicked()
 }
 void MessengerWindow::updateListWidget(int num)
 {
+    messListWidget->setUpdatesEnabled(false);
     if(num >= 1)
     {
-        qDebug() << messListWidget->count();
         if( ( messListWidget->count() - 2 ) < num)
         {
             messListWidget->insertItem(0, "");
@@ -269,8 +291,8 @@ void MessengerWindow::updateListWidget(int num)
         }
         for(int i = 0; i < ( messListWidget->count() - 2 ); i++)
         {
-            messListWidget->item(i)->setText(peers_class->knownPeersArray[i].hostname);
-            if(peers_class->knownPeersArray[i].messagePending)
+            messListWidget->item(i)->setText(peerWorker->knownPeersArray[i].hostname);
+            if(peerWorker->knownPeersArray[i].messagePending)
             {
                 this->changeListColor(i, 1);
                 messListWidget->item(i)->setText(" * " + messListWidget->item(i)->text() + " * ");
@@ -279,9 +301,18 @@ void MessengerWindow::updateListWidget(int num)
     }
     else
     {
-        messListWidget->insertItem(0, (peers_class->knownPeersArray[0].hostname));
+        messListWidget->insertItem(0, (peerWorker->knownPeersArray[0].hostname));
         globalChatIndex++;
     }
+    messListWidget->setUpdatesEnabled(true);
+        QUuid temp3 = QUuid::createUuid();
+        QString temp4 = temp3.toString();
+        messListWidget->item(0)->setData(Qt::UserRole, temp4);
+    MessListWidgetItem temp;
+    temp.setText("hi");
+    QString temp1 = messListWidget->item(0)->data(Qt::UserRole).toString();
+    QUuid temp2 = temp1;
+    qDebug() << temp1;
     return;
 }
 /**
@@ -290,10 +321,10 @@ void MessengerWindow::updateListWidget(int num)
  */
 void MessengerWindow::closeEvent(QCloseEvent *event)
 {
-    for(int i = 0; i < peers_class->numberOfValidPeers; i++)
+    for(int i = 0; i < peerWorker->numberOfValidPeers; i++)
     {
 #ifdef __unix__
-        ::close(peers_class->knownPeersArray[i].socketDescriptor);
+        ::close(peerWorker->knownPeersArray[i].socketDescriptor);
 #endif
 #ifdef _WIN32
         ::closesocket(peers_class->knownPeersArray[i].socketDescriptor);
@@ -312,40 +343,9 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
     messSystemTray->hide();
     //messSystemTray->deleteLater();
     //delete now;
-    delete peers_class;
+    delete peerWorker;
     //messSystemTray->hide();
     event->accept();
-}
-/*Send the "/discover" message to the local networks broadcast address
- * this will only send to computers in the 255.255.255.0 subnet*/
-void MessengerWindow::udpSend(const char* msg)
-{
-    int len;
-    int port2 = 13654;
-    struct sockaddr_in broadaddr;
-    int socketfd2;
-
-    if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
-        perror("socket:");
-#ifdef __unix__
-    int t1 = 1;
-    if (setsockopt(socketfd2, SOL_SOCKET, SO_BROADCAST, &t1, sizeof (int)))
-        perror("setsockopt failed:");
-#endif
-#ifdef _WIN32
-    if (setsockopt(socketfd2, SOL_SOCKET, SO_BROADCAST, "true", sizeof(int)))
-        perror("setsockopt failed:");
-#endif
-    memset(&broadaddr, 0, sizeof(broadaddr));
-    broadaddr.sin_family = AF_INET;
-    broadaddr.sin_addr.s_addr = inet_addr("192.168.1.255");
-    broadaddr.sin_port = htons(port2);
-    len = strlen(msg);
-
-    for(int i = 0; i < 2; i++)
-    {
-        sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
-    }
 }
 /**
  * @brief 				Send a message to every connected peer
@@ -353,11 +353,11 @@ void MessengerWindow::udpSend(const char* msg)
  */
 void MessengerWindow::globalSend(QString msg)
 {
-    for(int i = 0; i < peers_class->numberOfValidPeers; i++)
+    for(int i = 0; i < peerWorker->numberOfValidPeers; i++)
     {
-        if(peers_class->knownPeersArray[i].isConnected)
+        if(peerWorker->knownPeersArray[i].isConnected)
         {
-            messClient->send_msg(peers_class->knownPeersArray[i].socketDescriptor, msg.toStdString().c_str(), localHostname, "/global");
+            emit sendMsg(peerWorker->knownPeersArray[i].socketDescriptor, msg, localHostname, "/global", "");
         }
     }
     messTextEdit->setText("");
@@ -382,15 +382,15 @@ void MessengerWindow::sendButtonClicked()
         return;
     }
 
-    int s_socket = peers_class->knownPeersArray[index].socketDescriptor;
+    int s_socket = peerWorker->knownPeersArray[index].socketDescriptor;
 
     if(strcmp(c_str, "") != 0)
     {
-        if(!(peers_class->knownPeersArray[index].isConnected))
+        if(!(peerWorker->knownPeersArray[index].isConnected))
         {
-            emit connectToPeer(peers_class->knownPeersArray[index].socketDescriptor, QString::fromUtf8(peers_class->knownPeersArray[index].ipAddress));
+            emit connectToPeer(peerWorker->knownPeersArray[index].socketDescriptor, peerWorker->knownPeersArray[index].ipAddress);
         }
-        emit sendMsg(s_socket, str, localHostname, "/msg");
+        emit sendMsg(s_socket, str, localHostname, "/msg", ourUUIDString);
         messTextEdit->setText("");
     }
     return;
@@ -474,7 +474,7 @@ void MessengerWindow::printToTextBrowser(const QString str, int peerindex, bool 
     }
     else
     {
-        peers_class->knownPeersArray[peerindex].textBox.append(strnew + "\n");
+        peerWorker->knownPeersArray[peerindex].textBox.append(strnew + "\n");
     }
     if(peerindex == messListWidget->currentRow())
     {
@@ -484,10 +484,10 @@ void MessengerWindow::printToTextBrowser(const QString str, int peerindex, bool 
     else if(message)
     {
         this->changeListColor(peerindex, 1);
-        if( !( peers_class->knownPeersArray[peerindex].messagePending ) && ( peerindex != messListWidget->count()-1 ) )
+        if( !( peerWorker->knownPeersArray[peerindex].messagePending ) && ( peerindex != messListWidget->count()-1 ) )
         {
             messListWidget->item(peerindex)->setText(" * " + messListWidget->item(peerindex)->text() + " * ");
-            peers_class->knownPeersArray[peerindex].messagePending = true;
+            peerWorker->knownPeersArray[peerindex].messagePending = true;
         }
         else if(peerindex == messListWidget->count()-1 && !(globalChatAlerted))
         {
@@ -504,17 +504,19 @@ void MessengerWindow::printToTextBrowser(const QString str, int peerindex, bool 
  * @param ipstr				The ip address of the peer this message has come from
  * @param global			Whether this message should be displayed in the global textbox
  */
-void MessengerWindow::printToTextBrowserServerSlot(const QString str, const QString ipstr, bool global)
+void MessengerWindow::printToTextBrowserServerSlot(const QString str, const QString ipstr, QString uuid, bool global)
 {
+    QUuid temp = QUuid(uuid);
+    qDebug() << temp.toString();
     if(global)
     {
         this->focusWindow();
         this->printToTextBrowser(str, messListWidget->count()-1, true);
         return;
     }
-    for(int i = 0; i < peers_class->numberOfValidPeers; i++)
+    for(int i = 0; i < peerWorker->numberOfValidPeers; i++)
     {
-        if(ipstr.compare(QString::fromUtf8(peers_class->knownPeersArray[i].ipAddress)) == 0)
+        if(ipstr == peerWorker->knownPeersArray[i].ipAddress)
         {
             this->focusWindow();
             this->printToTextBrowser(str, i, true);

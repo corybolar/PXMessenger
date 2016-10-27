@@ -34,7 +34,7 @@
 #include <sys/fcntl.h>
 
 #include <mess_serv.h>
-//#include <mess_discover.h>
+#include <messlistwidgetitem.h>
 #include <mess_textedit.h>
 #include <mess_client.h>
 #include <peerlist.h>
@@ -69,17 +69,20 @@ protected:
 private slots:
     void sendButtonClicked();													//Send button event
     void quitButtonClicked();														//quit button, used to test the various destructors and close event
+    void debugButtonClicked();
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void printToTextBrowserServerSlot(const QString str, const QString ipstr, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
+    void printToTextBrowserServerSlot(const QString str, const QString ipstr, QString uuid, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
     void printToTextBrowser(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
+    void timerout();
 
     void updateListWidget(int num);														//sort peerlist struct alphabetically by hostname
     void setItalicsOnItem(int i, bool italics);
 private:
     QPushButton *messSendButton;
     QPushButton *messQuitButton;
+    QPushButton *messDebugButton;
     QIcon *messSystemTrayIcon;
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
@@ -89,11 +92,13 @@ private:
     QPushButton *m_sendDebugButton;
     QListWidget *messListWidget;
     QThread *messClientThread;
+    QTimer *timer;
+    QString ourUUIDString;
 
     MessengerTextEdit *messTextEdit;
     MessengerClient *messClient;
     MessengerServer *messServer;
-    PeerClass *peers_class;
+    PeerWorkerClass *peerWorker;
 
     time_t messTime;
     struct tm *currentTime;
@@ -104,7 +109,7 @@ private:
     int globalChatIndex = 1;
     bool globalChatAlerted = false;
 
-    void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
+    //void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
     void globalSend(QString msg);
 
     void focusWindow();
@@ -124,7 +129,8 @@ private:
     void connectPeerClassSignalsAndSlots();
 signals:
     void connectToPeer(int, QString);
-    void sendMsg(int, QString, QString, QString);
+    void sendMsg(int, QString, QString, QString, QString);
+    void sendUdp(QString);
 
 };
 

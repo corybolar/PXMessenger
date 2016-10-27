@@ -1,14 +1,16 @@
 #include <peerlist.h>
 
-PeerClass::PeerClass(QObject *parent) : QObject(parent)
+PeerWorkerClass::PeerWorkerClass(QObject *parent) : QObject(parent)
 {
-    gethostname(localHostname, sizeof localHostname);
+    char tempLocalName[128];
+    gethostname(tempLocalName, sizeof tempLocalName);
+    localHostname = QString::fromUtf8(tempLocalName);
 }
 /**
  * @brief 		use qsort to sort the peerlist structs alphabetically by their hostname
  * @param len	number of peers, this value is held in the peersLen member of Window
  */
-void PeerClass::sortPeersByHostname(int len)
+void PeerWorkerClass::sortPeersByHostname(int len)
 {
     qsort(knownPeersArray, len, sizeof(peerDetails), qsortCompare);
 }
@@ -18,18 +20,19 @@ void PeerClass::sortPeersByHostname(int len)
  * @param b		pointer to a member of peers (struct peerlist)
  * @return 		0 if equal, <1 if a before b, >1 if b before a
  */
-int PeerClass::qsortCompare(const void *a, const void *b)
+int PeerWorkerClass::qsortCompare(const void *a, const void *b)
 {
     peerDetails *pA = (peerDetails *)a;
     peerDetails *pB = (peerDetails *)b;
 
     return pA->hostname.compare(pB->hostname, Qt::CaseInsensitive);
 }
-void PeerClass::setLocalHostName(QString name)
+void PeerWorkerClass::setLocalHostName(QString name)
 {
+    localHostname = name;
 
 }
-void PeerClass::assignSocket(struct peerDetails *p)
+void PeerWorkerClass::assignSocket(struct peerDetails *p)
 {
     p->socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
     if(p->socketDescriptor < 0)
@@ -38,7 +41,7 @@ void PeerClass::assignSocket(struct peerDetails *p)
         p->socketisValid = 1;
     return;
 }
-void PeerClass::hostnameCheck(QString comp)
+void PeerWorkerClass::hostnameCheck(QString comp)
 {
     QStringList temp = comp.split('@');
     QString hname = temp[0];
@@ -53,11 +56,11 @@ void PeerClass::hostnameCheck(QString comp)
     listpeers(hname, ipaddr);
     return;
 }
-void PeerClass::newTcpConnection(int s, QString ipaddr)
+void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
 {
     for(int i = 0; i < numberOfValidPeers; i++)
     {
-        if(strcmp(knownPeersArray[i].ipAddress, ipaddr.toStdString().c_str()) == 0)
+        if(knownPeersArray[i].ipAddress == ipaddr)
         {
             knownPeersArray[i].socketDescriptor = s;
             //this->assignSocket(&(peers_class->peers[i]));
@@ -69,13 +72,13 @@ void PeerClass::newTcpConnection(int s, QString ipaddr)
     //If we got here it means this new peer is not in the list, where he came from we'll never know.
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
     //his ip address but will ask him for his name later on.
-    listpeers(ipaddr, ipaddr, true, s);
+    listpeers(ipaddr, ipaddr, false, s);
 }
-void PeerClass::listpeers(QString hname, QString ipaddr)
+void PeerWorkerClass::listpeers(QString hname, QString ipaddr)
 {
-    this->listpeers(hname, ipaddr, false, 0);
+    this->listpeers(hname, ipaddr, true, 0);
 }
-void PeerClass::setPeerHostname(QString hname, QString ipaddr)
+void PeerWorkerClass::setPeerHostname(QString hname, QString ipaddr)
 {
     for(int i = 0; i < numberOfValidPeers; i++)
     {
@@ -87,7 +90,7 @@ void PeerClass::setPeerHostname(QString hname, QString ipaddr)
         }
     }
 }
-void PeerClass::peerQuit(int s)
+void PeerWorkerClass::peerQuit(int s)
 {
     for(int i = 0; i < numberOfValidPeers; i++)
     {
@@ -102,24 +105,23 @@ void PeerClass::peerQuit(int s)
         }
     }
 }
-void PeerClass::sendIps(int i)
+void PeerWorkerClass::sendIps(int i)
 {
-    char type[5] = "/ip:";
-    char msg2[((numberOfValidPeers * 16) * 2)] = {};
+    QString type = "/ip:";
+    QString msg = "";
     for(int k = 0; k < numberOfValidPeers; k++)
     {
         if(knownPeersArray[k].isConnected)
         {
-            strcat(msg2, knownPeersArray[k].hostname.toStdString().c_str());
-            strcat(msg2, "@");
-            strcat(msg2, knownPeersArray[k].ipAddress);
-            strcat(msg2, ":");
+            msg.append(knownPeersArray[k].hostname);
+            msg.append("@");
+            msg.append(knownPeersArray[k].ipAddress);
+            msg.append(":");
         }
     }
-    //messClient->send_msg(i, msg2, localHostname, type);
-    emit sendMsg(i, QString::fromUtf8(msg2), QString::fromUtf8(localHostname), QString::fromUtf8(type));
+    emit sendMsg(i, msg, localHostname, type, "");
 }
-void PeerClass::resultOfConnectionAttempt(int socket, bool result)
+void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
 {
     for(int i = 0; i < numberOfValidPeers; i++)
     {
@@ -130,9 +132,9 @@ void PeerClass::resultOfConnectionAttempt(int socket, bool result)
                 knownPeersArray[i].isConnected = true;
                 knownPeersArray[i].socketisValid = true;
                 emit updateMessServFDS(knownPeersArray[i].socketDescriptor);
-                if(strcmp(localHostname, knownPeersArray[i].hostname.toStdString().c_str()))
+                if(localHostname != knownPeersArray[i].hostname)
                 {
-                    emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
+                    emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request", "");
                 }
             }
             else
@@ -146,7 +148,7 @@ void PeerClass::resultOfConnectionAttempt(int socket, bool result)
         }
     }
 }
-void PeerClass::resultOfTCPSend(int levelOfSuccess, int socket, QString msg, bool print)
+void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, int socket, QString msg, bool print)
 {
     if(print)
     {
@@ -185,11 +187,10 @@ void PeerClass::resultOfTCPSend(int levelOfSuccess, int socket, QString msg, boo
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerClass::listpeers(QString hname, QString ipaddr, bool test, int s)
+void PeerWorkerClass::listpeers(QString hname, QString ipaddr, bool isThisFromUDP, int s)
 {
     //MessengerWindow *parentWindow = qobject_cast<MessengerWindow>(this->parent());
     QByteArray ba = ipaddr.toLocal8Bit();
-    const char *ipstr = ba.data();
     int i = 0;
     for( ; ( knownPeersArray[i].isValid ); i++ )
     {
@@ -198,48 +199,48 @@ void PeerClass::listpeers(QString hname, QString ipaddr, bool test, int s)
             return;
         }
     }
+
+    for(auto &itr : peerDetailsHash)
+    {
+        if(itr.ipAddress == ipaddr)
+            return;
+    }
+
     knownPeersArray[i].hostname = hname;
     knownPeersArray[i].isValid = true;
-    strcpy(knownPeersArray[i].ipAddress, ipstr);
+    knownPeersArray[i].ipAddress = ipaddr;
     numberOfValidPeers++;
-    if( !test )
+
+    if( isThisFromUDP )
     {
         assignSocket(&(knownPeersArray[i]));
-        emit connectToPeer(knownPeersArray[i].socketDescriptor, QString::fromUtf8(knownPeersArray[i].ipAddress));
-        /*if(parentWindow->messClient->c_connect(knownPeersArray[i].socketDescriptor, knownPeersArray[i].ipAddress) >= 0)
-    {
-    knownPeersArray[i].isConnected = true;
-    parentWindow->messServer->update_fds(knownPeersArray[i].socketDescriptor);
-    if(strcmp(parentWindow->localHostname, knownPeersArray[i].hostname.toStdString().c_str()))
-    {
-    emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
-    }
-    }
-    */
+        emit connectToPeer(knownPeersArray[i].socketDescriptor, knownPeersArray[i].ipAddress);
     }
     else
     {
         knownPeersArray[i].socketDescriptor = s;
         knownPeersArray[i].isConnected = true;
-        emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request");
+        emit sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/request", "");
     }
 
-    qDebug() << "hostname: " << knownPeersArray[i].hostname << " @ ip:" << QString::fromUtf8(knownPeersArray[i].ipAddress);
+    qDebug() << "hostname: " << knownPeersArray[i].hostname << " @ ip:" << knownPeersArray[i].ipAddress;
 
-    if(!(hname.compare(ipaddr)))
+    if(hname == ipaddr)
     {
-        struct sockaddr_storage addr;
-        socklen_t socklen = sizeof(addr);
-        char ipstr2[INET6_ADDRSTRLEN];
-        char service[20];
-
-        getpeername(knownPeersArray[i].socketDescriptor, (struct sockaddr*)&addr, &socklen);
-        //struct sockaddr_in *temp = (struct sockaddr_in *)&addr;
-        //inet_ntop(AF_INET, &temp->sin_addr, ipstr2, sizeof ipstr2);
-        getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
         qDebug() << "need name, sending namerequest to" << ipaddr;
-        sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/namerequest");
+        sendMsg(knownPeersArray[i].socketDescriptor, "", "", "/namerequest", "");
     }
+
+    //UUID TESTING BELOW THIS
+    QUuid temp = QUuid::createUuid();
+    knownPeersArray[i].identifier = temp;
+
+    peerDetailsHash.insert(knownPeersArray[i].hostname, knownPeersArray[i]);
+    for(auto &itr : peerDetailsHash)
+    {
+        qDebug() << itr.hostname;
+    }
+    qDebug() << peerDetailsHash.size();
     sortPeersByHostname(numberOfValidPeers);
     emit updateListWidget(numberOfValidPeers);
 }

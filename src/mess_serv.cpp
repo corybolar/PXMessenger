@@ -153,6 +153,8 @@ int MessengerServer::tcpRecieve(int i)
         //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
         char bufLenStr[4] = {};
 
+        char recievedUUID[36] = {};
+
         //Get ip address of sender
         getpeername(i, (struct sockaddr*)&addr, &socklen);
         getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
@@ -171,11 +173,17 @@ moreToRead:
         bufLenStr[3] = '\0';
         //.char *bufLenStrTemp = bufLenStr;
         int bufLen = atoi(bufLenStr);
+        if(bufLen <= 0)
+            return 1;
         partialMsg = partialMsg+3;
+        //skip over the UUID, not checking this yet, initial stages
+        //FIX THIS AFTER MORE FUNCTIONALITY
+        strncpy(recievedUUID, partialMsg, 36);
+        partialMsg += 36;
 
 
         //These packets should be formatted like "/msghostname: msg\0"
-        if(strncmp(partialMsg, "/msg", 4) == 0)
+        if( !( strncmp(partialMsg, "/msg", 4) ) )
         {
             //The size of mes is the bufLen-4 (because we remove "/msg") +1 (because we need a null character at the end);
             char mes[bufLen-4+1] = {};
@@ -186,7 +194,7 @@ moreToRead:
             strncpy(mes, partialMsg+4, bufLen-4);
 
             //The following signal is going to the main thread and will call the slot prints(QString, QString)
-            emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2, false);
+            emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2, QString::fromUtf8(recievedUUID), false);
 
             //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
             if(partialMsg[bufLen] != '\0')
@@ -198,7 +206,7 @@ moreToRead:
                 return 0;
         }
         //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
-        else if(strncmp(partialMsg, "/ip", 3) == 0)
+        else if( !( strncmp(partialMsg, "/ip", 3) ) )
         {
             qDebug() << "/ip recieved from " << QString::fromUtf8(ipstr2);
             int count = 0;
@@ -257,7 +265,7 @@ moreToRead:
             //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
             char emitStr[bufLen-6] = {};
             strncpy(emitStr, (partialMsg+7), bufLen-7);
-            emit mess_rec(QString::fromUtf8(emitStr), ipstr2, true);
+            emit mess_rec(QString::fromUtf8(emitStr), ipstr2, QString::fromUtf8(recievedUUID), true);
             //Check to see if we need to reiterate because there is another message on the buffer
             if(partialMsg[bufLen] != '\0')
             {
@@ -321,7 +329,6 @@ int MessengerServer::udpRecieve(int i)
     si_other_len = sizeof(sockaddr);
     recvfrom(i, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
     getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service_disc, sizeof(service_disc), NI_NUMERICHOST);
-    //std::cout << "upd message: " << buf << std::endl << "from ip: " << ipstr << std::endl;
     if (strncmp(buf, "/discover", 9) == 0)
     {
         struct sockaddr_in addr;
@@ -392,6 +399,7 @@ int MessengerServer::listener()
     struct addrinfo hints, *res;
     int s_discover, s_listen;
     sockaddr_in si_me;
+    ip_mreq multicastGroup;
 
     //TCP STUFF
     memset(&hints, 0, sizeof hints);
@@ -412,12 +420,26 @@ int MessengerServer::listener()
 
     //UDP STUFF
     s_discover = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    setsockopt(s_discover, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int));
+    //setsockopt(s_discover, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int));
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
     si_me.sin_port = htons(PORT_DISCOVER);
     si_me.sin_addr.s_addr = INADDR_ANY;
-    bind(s_discover, (sockaddr *)&si_me, sizeof(sockaddr));
+    //setsockopt(s_discover, SOL_SOCKET, , "true", sizeof (int));
+    setsockopt(s_discover, SOL_SOCKET, SO_REUSEADDR, "true", sizeof (int));
+    if(bind(s_discover, (sockaddr *)&si_me, sizeof(sockaddr)))
+    {
+        perror("Binding datagram socket error");
+        close(s_discover);
+        exit(1);
+    }
+    else
+        printf("Binding datagram socket...OK.\n");
+
+    multicastGroup.imr_multiaddr.s_addr = inet_addr("226.1.1.1");
+    multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
+    setsockopt(s_discover, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
+
     //END OF UDP STUFF
 
     freeaddrinfo(res);
@@ -433,6 +455,9 @@ int MessengerServer::listener()
     tv.tv_sec = 0;
     tv.tv_usec = 250000;
 
+    //char buf1[1000];
+    //if(read(s_discover, buf1, sizeof(buf1)) > 0)
+     //   printf("the message is \"%s\"n", buf1);
     //END of setup for sockets, being infinite while loop to listen.
     //Select is used with a time limit to enable the main thread to close
     //this thread with a signal.

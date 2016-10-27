@@ -24,14 +24,16 @@ SOURCES += \
     mess_client.cpp \
     mess_serv.cpp \
     mess_textedit.cpp \
-    peerlist.cpp
+    peerlist.cpp \
+    messlistwidgetitem.cpp
 
 HEADERS += \
     window.h \
     mess_client.h \
     mess_serv.h \
     peerlist.h \
-    mess_textedit.h
+    mess_textedit.h \
+    messlistwidgetitem.h
 
 DISTFILES +=
 
