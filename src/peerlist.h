@@ -29,6 +29,7 @@ struct peerDetails{
     bool socketisValid = false;
     bool messagePending = false;
     int socketDescriptor = 0;
+    int listWidgetIndex = 0;
     //char ipAddress[INET6_ADDRSTRLEN] = {};
     QString ipAddress = "";
     QString hostname = "";
@@ -41,34 +42,33 @@ class PeerWorkerClass : public QObject
     Q_OBJECT
 public:
     explicit PeerWorkerClass(QObject *parent);
-    peerDetails knownPeersArray[255];
+    //peerDetails knownPeersArray[255];
     QHash<QUuid,peerDetails>peerDetailsHash;
-    void sortPeersByHostname(int len);
     void setLocalHostName(QString name);
-    int numberOfValidPeers = 0;
+    //int numberOfValidPeers = 0;
 public slots:
     void hostnameCheck(QString comp);
     void listpeers(QString hname, QString ipaddr);
-    void listpeers(QString hname, QString ipaddr, bool test, int s);
-    void newTcpConnection(int s, QString ipaddr);
+    void listpeers(QString hname, QString ipaddr, bool test, int s, QUuid uuid);
+    void newTcpConnection(int s, QString ipaddr, QUuid uuid);
+    void peerQuit(QUuid uuid);
     void peerQuit(int s);
-    void setPeerHostname(QString hname, QString ipaddr);
+    void setPeerHostname(QString hname, QUuid uuid);
     void sendIps(int i);
     void resultOfConnectionAttempt(int socket, bool result);
-    void resultOfTCPSend(int levelOfSuccess, int socket, QString msg, bool print);
+    void resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print);
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
-    static int qsortCompare(const void *a, const void *b);
     void assignSocket(peerDetails *p);
 
     QString localHostname;
 signals:
-    void printToTextBrowser(QString, int, bool);
+    void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(int);
-    void sendMsg(int, QString, QString, QString, QString);
+    void sendMsg(int, QString, QString, QString, QUuid);
     void connectToPeer(int, QString);
     void updateMessServFDS(int);
-    void setItalicsOnItem(int, bool);
+    void setItalicsOnItem(QUuid, bool);
 };
 
 

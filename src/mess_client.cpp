@@ -14,7 +14,7 @@ void MessengerClient::udpSend(const char* msg)
     int len;
     int port2 = 13654;
     struct sockaddr_in broadaddr;
-    struct in_addr localInterface;
+    //struct in_addr localInterface;
     int socketfd2;
 
     memset(&broadaddr, 0, sizeof(broadaddr));
@@ -22,7 +22,7 @@ void MessengerClient::udpSend(const char* msg)
     broadaddr.sin_addr.s_addr = inet_addr("226.1.1.1");
     broadaddr.sin_port = htons(port2);
 
-    localInterface.s_addr = inet_addr("192.168.1.200");
+    //localInterface.s_addr = inet_addr("192.168.1.200");
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
         perror("socket:");
@@ -32,7 +32,7 @@ void MessengerClient::udpSend(const char* msg)
 
     len = strlen(msg);
 
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 1; i++)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
@@ -100,6 +100,10 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     {
         packetLen = strlen(uuid) + strlen(type) + strlen(host) + strlen(msg) + 2;
     }
+    else if(!strcmp(type,"/uuid"))
+    {
+        packetLen = strlen(uuid) + strlen(type);
+    }
     else
     {
         packetLen = strlen(uuid) + strlen(type) + strlen(msg);
@@ -134,19 +138,19 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     {
         if(bytes_sent >= packetLen)
         {
-            emit resultOfTCPSend(0, socketfd, QString::fromUtf8(humanReadableMessage), print);
+            emit resultOfTCPSend(0, QString::fromUtf8(uuid), QString::fromUtf8(humanReadableMessage), print);
             return bytes_sent;
         }
         else
         {
             std::cout << "Partial Send has failed not all bytes sent" << std::endl;
-            emit resultOfTCPSend(bytes_sent, socketfd, QString::fromUtf8(humanReadableMessage), print);
+            emit resultOfTCPSend(bytes_sent, QString::fromUtf8(uuid), QString::fromUtf8(humanReadableMessage), print);
             return bytes_sent;
         }
     }
     else
     {
-        emit resultOfTCPSend(-1, socketfd, QString::fromUtf8(humanReadableMessage), print);
+        emit resultOfTCPSend(-1, QString::fromUtf8(uuid), QString::fromUtf8(humanReadableMessage), print);
 #ifdef _WIN32
         return -5;
 #else
@@ -160,9 +164,9 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     }
     return -5;
 }
-void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type, QString uuid)
+void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type, QUuid uuid)
 {
-    this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str(), uuid.toStdString().c_str());
+    this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str());
 }
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
@@ -204,11 +208,11 @@ int MessengerClient::partialSend(int socketfd, const char *msg, int len, int cou
  * @brief 			Slot function for signal called from mess_serv class.  Sends hostname to socket
  * @param s			Socket to send our hostname to
  */
-void MessengerClient::sendNameSlot(int s)
+void MessengerClient::sendNameSlot(int s, QString uuid)
 {
     char name[128] = {};
 
     gethostname(name, sizeof name);
-    this->send_msg(s,name, "", "/hostname", "");
+    this->send_msg(s,name, "", "/hostname", uuid.toStdString().c_str());
     return;
 }

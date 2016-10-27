@@ -1,9 +1,8 @@
 #include <mess_serv.h>
 
-MessengerServer::MessengerServer(QWidget *parent) : QThread(parent)
+MessengerServer::MessengerServer(QWidget *parent, QString hostname) : QThread(parent)
 {
-
-
+    localHostname = hostname;
 }
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
@@ -26,9 +25,12 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
 
     socklen_t addr_size = sizeof(sockaddr);
     result = (accept(s, (struct sockaddr *)&their_addr, &addr_size));
-    //inet_ntop(AF_INET, &(((struct sockaddr_in*)&their_addr)->sin_addr), ipstr, sizeof(ipstr));
+
     getnameinfo(((struct sockaddr*)&their_addr), addr_size, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
-    emit new_client(result, QString::fromUtf8(ipstr, strlen(ipstr)));
+
+    QUuid uuid = QUuid::createUuid();
+    emit newConnectionRecieved(result, QString::fromUtf8(ipstr, strlen(ipstr)), uuid);
+
     this->update_fds(result);
     return result;
 }
@@ -139,176 +141,192 @@ int MessengerServer::tcpRecieve(int i)
     //Normal message coming here
     else
     {
-        //partialMsg points to the start of the original buffer.
-        //If there is more than one message on it, it will be increased to where the
-        //next message begins
-        char *partialMsg = buf;
-
         //These are variable for determining the ip address of the sender
         struct sockaddr_storage addr;
         socklen_t socklen = sizeof(addr);
         char ipstr2[INET6_ADDRSTRLEN];
         char service[20];
 
-        //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
-        char bufLenStr[4] = {};
-
-        char recievedUUID[36] = {};
-
         //Get ip address of sender
         getpeername(i, (struct sockaddr*)&addr, &socklen);
         getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
 
-        //We come back to here if theres more than one message in buf
-moreToRead:
-
-        //The first three characters of each message should be the length of the message.
-        //We parse this to an integer so as not to confuse messages with one another
-        //when more than one are recieved from the same socket at the same time
-        //If we encounter a valid character after this length, we come back here
-        //and iterate through the if statements again.
-        bufLenStr[0] = partialMsg[0];
-        bufLenStr[1] = partialMsg[1];
-        bufLenStr[2] = partialMsg[2];
-        bufLenStr[3] = '\0';
-        //.char *bufLenStrTemp = bufLenStr;
-        int bufLen = atoi(bufLenStr);
-        if(bufLen <= 0)
-            return 1;
-        partialMsg = partialMsg+3;
-        //skip over the UUID, not checking this yet, initial stages
-        //FIX THIS AFTER MORE FUNCTIONALITY
-        strncpy(recievedUUID, partialMsg, 36);
-        partialMsg += 36;
-
-
-        //These packets should be formatted like "/msghostname: msg\0"
-        if( !( strncmp(partialMsg, "/msg", 4) ) )
-        {
-            //The size of mes is the bufLen-4 (because we remove "/msg") +1 (because we need a null character at the end);
-            char mes[bufLen-4+1] = {};
-            //Copy the string in buf starting at buf[4] until we reach the length of the message
-            //We dont want to keep the "/msg" substring, hence the +/- 4 here.
-            //Remember, we added 3 to buf above to ignore the size of the message
-            //buf is actually at buf[7] from its original location
-            strncpy(mes, partialMsg+4, bufLen-4);
-
-            //The following signal is going to the main thread and will call the slot prints(QString, QString)
-            emit mess_rec(QString::fromUtf8(mes, strlen(mes)), ipstr2, QString::fromUtf8(recievedUUID), false);
-
-            //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
-            if(partialMsg[bufLen] != '\0')
-            {
-                partialMsg += bufLen;
-                goto moreToRead;
-            }
-            else
-                return 0;
-        }
-        //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
-        else if( !( strncmp(partialMsg, "/ip", 3) ) )
-        {
-            qDebug() << "/ip recieved from " << QString::fromUtf8(ipstr2);
-            int count = 0;
-
-            //We need to extract each hostname and ip set out of the message and send them to the main thread
-            //to check if whether we already know about them or not
-            for(int k = 4; k < bufLen; k++)
-            {
-                //Theres probably a better way to do this
-                if(partialMsg[k] == ':')
-                {
-                    char temp[INET_ADDRSTRLEN + 28] = {};
-                    strncpy(temp, partialMsg+(k-count), count);
-                    count = 0;
-                    if((strlen(temp) < 2))
-                        *temp = 0;
-                    else
-                        //The following signal is going to the main thread and will call the slot ipCheck(QString)
-                        emit hostnameCheck(QString::fromUtf8(temp));
-                }
-                else
-                    count++;
-            }
-            //Check to see if we need to reiterate because there is another message on the buffer
-            if(partialMsg[bufLen] != '\0')
-            {
-                partialMsg += bufLen;
-                goto moreToRead;
-            }
-            else
-                return 0;
-
-
-        }
-        //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
-        //These packets should come formatted like "/request\0"
-        else if(!(strncmp(partialMsg, "/request", 8)))
-        {
-            qDebug() << "/request recieved from " << QString::fromUtf8(ipstr2) << "\nsending ips";
-            //The following signal is going to the m_client object and thread and will call the slot sendIps(int)
-            //The int here is the socketdescriptor we want to send our ip set too.
-            emit sendIps(i);
-            //Check to see if we need to reiterate because there is another message on the buffer
-            if(partialMsg[8] != '\0')
-            {
-                partialMsg += 8;
-                goto moreToRead;
-            }
-            else
-                return 0;
-        }
-        //These packets are messages sent to the global chat room
-        //These packets should come formatted like "/globalhostname: msg\0"
-        else if(!(strncmp(partialMsg, "/global", 7)))
-        {
-            //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
-            char emitStr[bufLen-6] = {};
-            strncpy(emitStr, (partialMsg+7), bufLen-7);
-            emit mess_rec(QString::fromUtf8(emitStr), ipstr2, QString::fromUtf8(recievedUUID), true);
-            //Check to see if we need to reiterate because there is another message on the buffer
-            if(partialMsg[bufLen] != '\0')
-            {
-                partialMsg += bufLen;
-                goto moreToRead;
-            }
-            else
-                return 0;
-        }
-        //This packet is an updated hostname for the computer that sent it
-        //These packets should come formatted like "/hostnameHostname1\0"
-        else if(!(strncmp(partialMsg, "/hostname", 9)))
-        {
-            qDebug() << "/hostname recieved" << QString::fromUtf8(ipstr2);
-            //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
-            char emitStr[bufLen-8] = {};
-            strncpy(emitStr, (partialMsg+9), bufLen-9);
-            qDebug() << "hello";
-            emit setPeerHostname(QString::fromUtf8(emitStr), QString::fromUtf8(ipstr2));
-            if(partialMsg[bufLen] != '\0')
-            {
-                partialMsg += bufLen;
-                goto moreToRead;
-            }
-            else
-                return 0;
-        }
-        //This packet is asking us to communicate an updated hostname to the sender
-        //These packets should come formatted like "/namerequest\0"
-        else if(!(strncmp(partialMsg, "/namerequest", 12)))
-        {
-            qDebug() << "/namerequest recieved from " << QString::fromUtf8(ipstr2) << "\nsending hostname";
-            emit sendName(i);
-            if(partialMsg[bufLen] != '\0')
-            {
-                partialMsg += bufLen;
-                goto moreToRead;
-            }
-            else
-                return 0;
-        }
+        this->singleMessageIterator(i, buf, ipstr2);
     }
     return 1;
+}
+int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
+{
+    //partialMsg points to the start of the original buffer.
+    //If there is more than one message on it, it will be increased to where the
+    //next message begins
+    char *partialMsg = buf;
+
+    //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
+    char bufLenStr[4] = {};
+
+    //We come back to here if theres more than one message in buf
+moreToRead:
+
+    //The first three characters of each message should be the length of the message.
+    //We parse this to an integer so as not to confuse messages with one another
+    //when more than one are recieved from the same socket at the same time
+    //If we encounter a valid character after this length, we come back here
+    //and iterate through the if statements again.
+    bufLenStr[0] = partialMsg[0];
+    bufLenStr[1] = partialMsg[1];
+    bufLenStr[2] = partialMsg[2];
+    bufLenStr[3] = '\0';
+    //.char *bufLenStrTemp = bufLenStr;
+    int bufLen = atoi(bufLenStr);
+    bufLen -= 38;
+    if(bufLen <= 0)
+        return 1;
+    partialMsg = partialMsg+3;
+    //skip over the UUID, not checking this yet, initial stages
+    //FIX THIS AFTER MORE FUNCTIONALITY
+    QUuid quuid = QString::fromUtf8(partialMsg, 38);
+    if(quuid.isNull())
+        return -1;
+    partialMsg += 38;
+
+
+    //These packets should be formatted like "/msghostname: msg\0"
+    if( !( strncmp(partialMsg, "/msg", 4) ) )
+    {
+        //Copy the string in buf starting at buf[4] until we reach the length of the message
+        //We dont want to keep the "/msg" substring, hence the +/- 4 here.
+        //Remember, we added 3 to buf above to ignore the size of the message
+        //buf is actually at buf[7] from its original location
+
+        //The following signal is going to the main thread and will call the slot prints(QString, QString)
+        emit mess_rec(QString::fromUtf8(partialMsg+4, bufLen-4), ipstr, quuid, false);
+
+        //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+    }
+    //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
+    else if( !( strncmp(partialMsg, "/ip", 3) ) )
+    {
+        qDebug() << "/ip recieved from " << QString::fromUtf8(ipstr);
+        int count = 0;
+
+        //We need to extract each hostname and ip set out of the message and send them to the main thread
+        //to check if whether we already know about them or not
+        for(int k = 4; k < bufLen; k++)
+        {
+            //Theres probably a better way to do this
+            if(partialMsg[k] == ':')
+            {
+                char temp[INET_ADDRSTRLEN + 28] = {};
+                strncpy(temp, partialMsg+(k-count), count);
+                count = 0;
+                if((strlen(temp) < 2))
+                    *temp = 0;
+                else
+                    //The following signal is going to the main thread and will call the slot ipCheck(QString)
+                    emit hostnameCheck(QString::fromUtf8(temp));
+            }
+            else
+                count++;
+        }
+        //Check to see if we need to reiterate because there is another message on the buffer
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+
+
+    }
+    else if(!(strncmp(partialMsg, "/uuid", 5)))
+    {
+        //emit recievedUUIDForConnection(QString::fromUtf8(recievedUUID), ipstr2);
+        qDebug() << quuid.toString();
+        emit recievedUUIDForConnection(QString::fromUtf8(ipstr), QString::fromUtf8(ipstr), false, i, quuid);
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+
+    }
+    //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
+    //These packets should come formatted like "/request\0"
+    else if(!(strncmp(partialMsg, "/request", 8)))
+    {
+        qDebug() << "/request recieved from " << QString::fromUtf8(ipstr) << "\nsending ips";
+        //The following signal is going to the m_client object and thread and will call the slot sendIps(int)
+        //The int here is the socketdescriptor we want to send our ip set too.
+        emit sendIps(i);
+        //Check to see if we need to reiterate because there is another message on the buffer
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+    }
+    //These packets are messages sent to the global chat room
+    //These packets should come formatted like "/globalhostname: msg\0"
+    else if(!(strncmp(partialMsg, "/global", 7)))
+    {
+        //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
+        char emitStr[bufLen-6] = {};
+        strncpy(emitStr, (partialMsg+7), bufLen-7);
+        emit mess_rec(QString::fromUtf8(emitStr), ipstr, quuid, true);
+        //Check to see if we need to reiterate because there is another message on the buffer
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+    }
+    //This packet is an updated hostname for the computer that sent it
+    //These packets should come formatted like "/hostnameHostname1\0"
+    else if(!(strncmp(partialMsg, "/hostname", 9)))
+    {
+        qDebug() << "/hostname recieved" << QString::fromUtf8(ipstr);
+        //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
+        char emitStr[bufLen-8] = {};
+        strncpy(emitStr, (partialMsg+9), bufLen-9);
+        qDebug() << "hello";
+        emit setPeerHostname(QString::fromUtf8(emitStr), quuid);
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+    }
+    //This packet is asking us to communicate an updated hostname to the sender
+    //These packets should come formatted like "/namerequest\0"
+    else if(!(strncmp(partialMsg, "/namerequest", 12)))
+    {
+        qDebug() << "/namerequest recieved from " << QString::fromUtf8(ipstr) << "\nsending hostname";
+        emit sendName(i, quuid.toString());
+        if(partialMsg[bufLen] != '\0')
+        {
+            partialMsg += bufLen;
+            this->singleMessageIterator(i, partialMsg, ipstr);
+        }
+        else
+            return 0;
+    }
 }
 /**
  * @brief 				UDP packet recieved. Remember, these are connectionless
@@ -374,6 +392,7 @@ int MessengerServer::udpRecieve(int i)
 
         hname = QString::fromUtf8(name);
         ipaddr = QString::fromUtf8(ipstr);
+        emit
 
         emit mess_peers(hname, ipaddr);
     }
@@ -384,6 +403,8 @@ int MessengerServer::udpRecieve(int i)
 
     return 0;
 }
+
+
 /**
  * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
  *						the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked

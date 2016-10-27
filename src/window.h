@@ -73,12 +73,12 @@ private slots:
     void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void printToTextBrowserServerSlot(const QString str, const QString ipstr, QString uuid, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
-    void printToTextBrowser(QString str, int peerindex, bool message);					//Updates the main text box and stores text history in peerlist struct
+    void printToTextBrowserServerSlot(const QString str, const QString ipstr, QUuid uuid, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
+    void printToTextBrowser(QString str, QUuid uuid, bool message);					//Updates the main text box and stores text history in peerlist struct
     void timerout();
 
     void updateListWidget(int num);														//sort peerlist struct alphabetically by hostname
-    void setItalicsOnItem(int i, bool italics);
+    void setItalicsOnItem(QUuid uuid, bool italics);
 private:
     QPushButton *messSendButton;
     QPushButton *messQuitButton;
@@ -106,7 +106,7 @@ private:
     int numberOfValidPeers = 0;														//Length of peers array
     char localHostname[128] = {};
     QString globalChat = "";
-    int globalChatIndex = 1;
+    QUuid globalChatUuid;
     bool globalChatAlerted = false;
 
     //void udpSend(const char *msg);											//send a UDP discover request to the broadcast address of the network
@@ -129,7 +129,7 @@ private:
     void connectPeerClassSignalsAndSlots();
 signals:
     void connectToPeer(int, QString);
-    void sendMsg(int, QString, QString, QString, QString);
+    void sendMsg(int, QString, QString, QString, QUuid);
     void sendUdp(QString);
 
 };

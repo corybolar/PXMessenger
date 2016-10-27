@@ -39,7 +39,7 @@ class MessengerServer : public QThread
     Q_OBJECT
 
 public:
-    MessengerServer(QWidget *parent);
+    MessengerServer(QWidget *parent, QString hostname);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
     int set_fdmax(int m);											//update the fdmax variable to indicate the highest socket number.  Needed for select()
     void update_fds(int s);											//add new sockets to the master fd_set
@@ -54,18 +54,22 @@ private:
     //Maybe change these to locals and pass them around instead?
     fd_set master, read_fds, write_fds;
     int fdmax = 0;
+    QString localHostname;
 
+    int singleMessageIterator(int i, char *buf, char *ipstr);
 signals:
-    void mess_rec(const QString, const QString, QString, bool);					//return a message from a peer with their socket descriptor. REVISE
-    void new_client(int, const QString);							//
+    void mess_rec(const QString, const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
+    void newConnectionRecieved(int, const QString, QUuid);							//
+    void recievedUUIDForConnection(QString, QString, bool, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
     void mess_peers(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
     void sendIps(int);
-    void sendName(int);
+    void sendName(int, QString);
     void hostnameCheck(QString);
-    void setPeerHostname(QString, QString);
+    void setPeerHostname(QString, QUuid);
+    void sendMsg(int, QString, QString, QString, QUuid);
 };
 
 #endif // MESS_SERV_H
