@@ -103,7 +103,7 @@ void PeerWorkerClass::sendIps(int i)
     QUuid uuid;
     for(auto & itr : peerDetailsHash)
     {
-        if(itr.isConnected)
+        if(itr.isConnected && (itr.hostname != itr.ipAddress))
         {
             msg.append(itr.hostname);
             msg.append("@");

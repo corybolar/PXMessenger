@@ -301,6 +301,15 @@ void MessengerWindow::updateListWidget(int num)
     {
         itr.listWidgetIndex = count;
         messListWidget->insertItem(0, itr.hostname);
+        if(itr.messagePending)
+        {
+            this->changeListColor(0, 0);
+            messListWidget->item(0)->setText(" * " + itr.hostname + "*");
+        }
+        if(!(itr.isConnected))
+        {
+            messListWidget->item(0)->font().setItalic(1);
+        }
         messListWidget->item(0)->setData(Qt::UserRole, itr.identifier);
         count--;
     }
