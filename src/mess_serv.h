@@ -58,11 +58,11 @@ private:
 
     int singleMessageIterator(int i, char *buf, char *ipstr);
 signals:
-    void mess_rec(const QString, const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
+    void messageRecieved(const QString, const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
     void newConnectionRecieved(int, const QString, QUuid);							//
     void recievedUUIDForConnection(QString, QString, bool, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
-    void mess_peers(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
+    void updNameRecieved(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
     void sendIps(int);

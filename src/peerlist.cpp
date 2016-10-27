@@ -30,7 +30,7 @@ void PeerWorkerClass::hostnameCheck(QString comp)
         if(itr.hostname == hname)
             return;
     }
-    listpeers(hname, ipaddr, true, 0, "");
+    updatePeerDetailsHash(hname, ipaddr, true, 0, "");
     return;
 }
 void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
@@ -54,11 +54,11 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
     //his ip address but will ask him for his name later on.
     emit sendMsg(s, "", "", "/uuid", uuid);
-    listpeers(ipaddr, ipaddr, false, s, uuid);
+    updatePeerDetailsHash(ipaddr, ipaddr, false, s, uuid);
 }
-void PeerWorkerClass::listpeers(QString hname, QString ipaddr)
+void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr)
 {
-    this->listpeers(hname, ipaddr, true, 0, "");
+    this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");
 }
 
 void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
@@ -156,7 +156,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerWorkerClass::listpeers(QString hname, QString ipaddr, bool isThisFromUDP, int s, QUuid uuid)
+void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool isThisFromUDP, int s, QUuid uuid)
 {
     peerDetails newPeer;
     for(auto &itr : peerDetailsHash)

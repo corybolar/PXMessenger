@@ -30,7 +30,6 @@ struct peerDetails{
     bool messagePending = false;
     int socketDescriptor = 0;
     int listWidgetIndex = 0;
-    //char ipAddress[INET6_ADDRSTRLEN] = {};
     QString ipAddress = "";
     QString hostname = "";
     QString textBox = "";
@@ -42,14 +41,12 @@ class PeerWorkerClass : public QObject
     Q_OBJECT
 public:
     explicit PeerWorkerClass(QObject *parent);
-    //peerDetails knownPeersArray[255];
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
-    //int numberOfValidPeers = 0;
 public slots:
     void hostnameCheck(QString comp);
-    void listpeers(QString hname, QString ipaddr);
-    void listpeers(QString hname, QString ipaddr, bool test, int s, QUuid uuid);
+    void updatePeerDetailsHash(QString hname, QString ipaddr);
+    void updatePeerDetailsHash(QString hname, QString ipaddr, bool test, int s, QUuid uuid);
     void newTcpConnection(int s, QString ipaddr, QUuid uuid);
     void peerQuit(QUuid uuid);
     void peerQuit(int s);
@@ -70,7 +67,5 @@ signals:
     void updateMessServFDS(int);
     void setItalicsOnItem(QUuid, bool);
 };
-
-
 
 #endif // PEERLIST_H

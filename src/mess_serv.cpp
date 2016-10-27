@@ -200,7 +200,7 @@ moreToRead:
         //buf is actually at buf[7] from its original location
 
         //The following signal is going to the main thread and will call the slot prints(QString, QString)
-        emit mess_rec(QString::fromUtf8(partialMsg+4, bufLen-4), ipstr, quuid, false);
+        emit messageRecieved(QString::fromUtf8(partialMsg+4, bufLen-4), ipstr, quuid, false);
 
         //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
         if(partialMsg[bufLen] != '\0')
@@ -285,7 +285,7 @@ moreToRead:
         //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
         char emitStr[bufLen-6] = {};
         strncpy(emitStr, (partialMsg+7), bufLen-7);
-        emit mess_rec(QString::fromUtf8(emitStr), ipstr, quuid, true);
+        emit messageRecieved(QString::fromUtf8(emitStr), ipstr, quuid, true);
         //Check to see if we need to reiterate because there is another message on the buffer
         if(partialMsg[bufLen] != '\0')
         {
@@ -394,7 +394,7 @@ int MessengerServer::udpRecieve(int i)
         ipaddr = QString::fromUtf8(ipstr);
         emit
 
-        emit mess_peers(hname, ipaddr);
+        emit updNameRecieved(hname, ipaddr);
     }
     else
     {

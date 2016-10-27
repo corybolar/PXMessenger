@@ -131,13 +131,13 @@ void MessengerWindow::createMessServ()
 {
     messServer = new MessengerServer(this, localHostname);
     QObject::connect(messServer, SIGNAL (sendMsg(int, QString, QString, QString, QUuid)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid)));
-    QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, bool, int, QUuid)), peerWorker, SLOT(listpeers(QString, QString, bool, int, QUuid)));
-    QObject::connect(messServer, SIGNAL (mess_rec(const QString, const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, const QString, QUuid, bool)) );
+    QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, bool, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, bool, int, QUuid)));
+    QObject::connect(messServer, SIGNAL (messageRecieved(const QString, const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, const QString, QUuid, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
     QObject::connect(messServer, SIGNAL (sendName(int, QString)), messClient, SLOT (sendNameSlot(int, QString)));
     QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString, QUuid)), peerWorker, SLOT (newTcpConnection(int, QString, QUuid)));
     QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
-    QObject::connect(messServer, SIGNAL (mess_peers(QString, QString)), peerWorker, SLOT (listpeers(QString, QString)));
+    QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString)), peerWorker, SLOT (updatePeerDetailsHash(QString, QString)));
     QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
     QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
     QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QUuid)), peerWorker, SLOT (setPeerHostname(QString, QUuid)));
