@@ -176,6 +176,7 @@ void PeerWorkerClass::listpeers(QString hname, QString ipaddr, bool isThisFromUD
     {
         newPeer.socketDescriptor = s;
         newPeer.isConnected = true;
+        newPeer.socketisValid = true;
         emit sendMsg(s, "", "", "/request", uuid);
     }
 
