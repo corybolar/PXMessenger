@@ -156,7 +156,10 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
     for(auto &itr : peerDetailsHash)
     {
         if(itr.ipAddress == ipaddr)
+        {
+            updateListWidget(peerDetailsHash.size());
             return;
+        }
     }
 
     if( haveWeNotHeardOfThisPeer )

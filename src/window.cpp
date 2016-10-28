@@ -314,35 +314,6 @@ void MessengerWindow::updateListWidget(int num)
         messListWidget->item(0)->setData(Qt::UserRole, itr.identifier);
         count--;
     }
-    /*
-    if(num >= 1)
-    {
-        if( ( messListWidget->count() - 2 ) < num)
-        {
-            messListWidget->insertItem(0, "");
-            globalChatIndex++;
-        }
-        else if( ( messListWidget->count() - 2 ) > num)
-        {
-            messListWidget->removeItemWidget(messListWidget->item(num));
-            globalChatIndex--;
-        }
-        for(int i = 0; i < ( messListWidget->count() - 2 ); i++)
-        {
-            messListWidget->item(i)->setText(peerWorker->knownPeersArray[i].hostname);
-            if(peerWorker->knownPeersArray[i].messagePending)
-            {
-                this->changeListColor(i, 1);
-                messListWidget->item(i)->setText(" * " + messListWidget->item(i)->text() + " * ");
-            }
-        }
-    }
-    else
-    {
-        messListWidget->insertItem(0, (peerWorker->knownPeersArray[0].hostname));
-        globalChatIndex++;
-    }
-    */
     messListWidget->setUpdatesEnabled(true);
     return;
 }
@@ -519,22 +490,29 @@ void MessengerWindow::printToTextBrowser(const QString str, QUuid uuid, bool mes
         if(uuid == messListWidget->currentItem()->data(Qt::UserRole))
         {
             messTextBrowser->append(strnew);
+            if(message)
+                this->focusWindow();
             qApp->alert(this, 0);
         }
     }
     else if(message)
     {
-        this->changeListColor(peerWorker->peerDetailsHash[uuid].listWidgetIndex, 1);
-        if( !( peerWorker->peerDetailsHash[uuid].messagePending ) && ( messListWidget->currentRow() != messListWidget->count()-1 ) )
+        if(uuid == globalChatUuid)
         {
+            this->changeListColor(messListWidget->count() - 1, 1);
+            if(!globalChatAlerted)
+            {
+                messListWidget->item(messListWidget->count() - 1)->setText(" * " + messListWidget->item(messListWidget->count() - 1)->text() + " * ");
+                globalChatAlerted = true;
+            }
+        }
+        else if( !( peerWorker->peerDetailsHash[uuid].messagePending ) && ( messListWidget->currentRow() != messListWidget->count()-1 ) )
+        {
+            this->changeListColor(peerWorker->peerDetailsHash[uuid].listWidgetIndex, 1);
             messListWidget->item(peerWorker->peerDetailsHash[uuid].listWidgetIndex)->setText(" * " + messListWidget->item(peerWorker->peerDetailsHash[uuid].listWidgetIndex)->text() + " * ");
             peerWorker->peerDetailsHash[uuid].messagePending = true;
         }
-        else if(messListWidget->currentRow() == messListWidget->count()-1 && !(globalChatAlerted))
-        {
-            messListWidget->item(peerWorker->peerDetailsHash[uuid].listWidgetIndex)->setText(" * " + messListWidget->item(peerWorker->peerDetailsHash[uuid].listWidgetIndex)->text() + " * ");
-            globalChatAlerted = true;
-        }
+        this->focusWindow();
     }
     return;
 }
@@ -547,7 +525,6 @@ void MessengerWindow::printToTextBrowser(const QString str, QUuid uuid, bool mes
  */
 void MessengerWindow::printToTextBrowserServerSlot(const QString str, const QString ipstr, QUuid uuid, bool global)
 {
-    this->focusWindow();
     if(global)
     {
         this->printToTextBrowser(str, globalChatUuid, true);

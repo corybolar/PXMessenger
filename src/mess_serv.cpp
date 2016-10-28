@@ -165,9 +165,6 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
     char bufLenStr[4] = {};
 
-    //We come back to here if theres more than one message in buf
-moreToRead:
-
     //The first three characters of each message should be the length of the message.
     //We parse this to an integer so as not to confuse messages with one another
     //when more than one are recieved from the same socket at the same time
@@ -327,6 +324,7 @@ moreToRead:
         else
             return 0;
     }
+    return -1;
 }
 /**
  * @brief 				UDP packet recieved. Remember, these are connectionless
