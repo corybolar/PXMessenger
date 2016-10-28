@@ -45,7 +45,7 @@ void MessengerClient::udpSend(const char* msg)
 
 void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
 {
-    emit resultOfConnectionAttempt(s, this->c_connect(s, ipaddr.toStdString().c_str()));
+    this->c_connect(s, ipaddr.toStdString().c_str());
 }
 /**
  * @brief 			This function connects a socket to a specific ip address.
@@ -71,10 +71,15 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
     {
         std::cout << strerror(errno) << std::endl;
         freeaddrinfo(res);
-        //emit resultOfConnectionAttempt(socketfd, 1);
+        emit resultOfConnectionAttempt(socketfd, status);
+#ifdef _WIN32
+        closesocket(socketfd);
+#else
+        close(socketfd);
+#endif
         return 1;
     }
-    //emit resultOfConnectionAttempt(socketfd, 0);
+    emit resultOfConnectionAttempt(socketfd, status);
     freeaddrinfo(res);
     return 0;
 }

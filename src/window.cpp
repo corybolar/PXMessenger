@@ -472,7 +472,8 @@ void MessengerWindow::sendButtonClicked()
     {
         if(!(peerWorker->peerDetailsHash[uuidOfSelectedItem].isConnected))
         {
-            emit connectToPeer(peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor, peerWorker->peerDetailsHash[uuidOfSelectedItem].ipAddress);
+            int s = socket(AF_INET, SOCK_STREAM, 0);
+            emit connectToPeer(s, peerWorker->peerDetailsHash[uuidOfSelectedItem].ipAddress);
         }
         emit sendMsg(peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor, str, localHostname, "/msg", uuidOfSelectedItem);
         messTextEdit->setText("");
