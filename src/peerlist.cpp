@@ -38,8 +38,8 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
 
             peerDetailsHash.insert(uuid, p);
             emit sendMsg(s, "", "", "/uuid", uuid);
-            emit setItalicsOnItem(p.identifier,0);
             emit updateListWidget(0, uuid);
+            emit setItalicsOnItem(p.identifier,0);
             return;
         }
     }
