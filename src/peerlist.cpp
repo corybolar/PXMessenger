@@ -50,7 +50,6 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
     //This line gives him the uuid of the connection.  He doesn't have this because
     //we created this uuid.  The server in the relationship always creates the uuid
     emit sendMsg(s, "", localHostname, "/uuid", uuid);
-    emit sendMsg(s, "", "", "/request", uuid);
 
     updatePeerDetailsHash(ipaddr, ipaddr, false, s, uuid);
 }
@@ -89,6 +88,13 @@ void PeerWorkerClass::peerQuit(int s)
         if(itr.socketDescriptor == s)
         {
             this->peerQuit(itr.identifier);
+#ifdef _WIN32
+        closesocket(itr.socketDescriptor);
+#else
+        close(itr.socketDescriptor);
+#endif
+            //int s1 = socket(AF_INET, SOCK_STREAM, 0);
+            //emit connectToPeer(s1, itr.ipAddress);
             return;
         }
     }
@@ -181,6 +187,9 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
                 qDebug() << "Warning: changing uuid for a peer, they should be the same here";
                 peerDetailsHash.take(itr.identifier);
                 itr.identifier = uuid;
+                itr.socketDescriptor = s;
+                itr.socketisValid = true;
+                itr.isConnected = true;
                 peerDetailsHash.insert(uuid, itr);
             }
             return;

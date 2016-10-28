@@ -2,7 +2,7 @@
 
 MessengerWindow::MessengerWindow()
 {
-    setFixedSize(700,550);
+    setFixedSize(900,600);
 
     gethostname(localHostname, sizeof localHostname);
 
@@ -43,38 +43,39 @@ MessengerWindow::MessengerWindow()
 void MessengerWindow::createTextEdit()
 {
     messTextEdit = new MessengerTextEdit(this);
-    messTextEdit->setGeometry(10, 250, 380, 100);
+    messTextEdit->setGeometry(10, 380, 620, 120);
 }
 void MessengerWindow::createTextBrowser()
 {
     messTextBrowser= new QTextBrowser(this);
-    messTextBrowser->setGeometry(10, 10, 380, 230);
+    messTextBrowser->setGeometry(10, 10, 620, 350);
     messTextBrowser->setText("Use the selection pane on the right to message a FRIEND!");
 }
 void MessengerWindow::createLineEdit()
 {
     messLineEdit = new QLineEdit(this);
-    messLineEdit->setGeometry(410, 10, 200, 30);
+    messLineEdit->setGeometry(640, 10, 200, 30);
     messLineEdit->setText(QString::fromUtf8(localHostname));
 }
 void MessengerWindow::createButtons()
 {
     messSendButton = new QPushButton("Send", this);
-    messSendButton->setGeometry(160,370,80,30);
+    messSendButton->setGeometry(260,510,80,30);
 
     messQuitButton = new QPushButton("Quit", this);
-    messQuitButton->setGeometry(160, 430, 80, 30);
+    messQuitButton->setGeometry(260, 550, 80, 30);
 
     messDebugButton = new QPushButton("Debug", this);
-    messDebugButton->setGeometry(160, 490, 80, 30);
+    messDebugButton->setGeometry(260, 490, 80, 30);
     connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
+    messDebugButton->hide();
 }
 void MessengerWindow::createListWidget()
 {
     globalChatUuid = QUuid::createUuid();
 
     messListWidget = new QListWidget(this);
-    messListWidget->setGeometry(410, 60, 200, 290);
+    messListWidget->setGeometry(640, 60, 200, 300);
     messListWidget->insertItem(0, "--------------------");
     messListWidget->insertItem(1, "Global Chat");
     messListWidget->item(1)->setData(Qt::UserRole, globalChatUuid);
@@ -153,6 +154,14 @@ void MessengerWindow::debugButtonClicked()
     for(auto &itr : peerWorker->peerDetailsHash)
         emit sendMsg(itr.socketDescriptor, "this is a garbage uuid", localHostname, "/msg", QUuid::createUuid());
 }
+QString MessengerWindow::getFormattedTime()
+{
+    char time_str[12];
+    messTime = time(0);
+    currentTime = localtime(&messTime);
+    strftime(time_str, 12, "(%H:%M:%S) ", currentTime);
+    return time_str;
+}
 
 void MessengerWindow::timerout()
 {
@@ -178,7 +187,7 @@ void MessengerWindow::setItalicsOnItem(QUuid uuid, bool italics)
         changeInConnection = " disconnected";
     else
         changeInConnection = " reconnected";
-    this->printToTextBrowser(peerWorker->peerDetailsHash[uuid].hostname + " on " +peerWorker->peerDetailsHash[uuid].ipAddress + changeInConnection, uuid, false);
+    this->printToTextBrowser(this->getFormattedTime() + peerWorker->peerDetailsHash[uuid].hostname + " on " +peerWorker->peerDetailsHash[uuid].ipAddress + changeInConnection, uuid, false);
 }
 /**
  * @brief 				Stops more than 1000 characters being entered into the QTextEdit object as that is as many as we can send
@@ -522,11 +531,7 @@ void MessengerWindow::printToTextBrowser(const QString str, QUuid uuid, bool mes
     QString strnew;
     if(message)
     {
-        char time_str[12];
-        messTime = time(0);
-        currentTime = localtime(&messTime);
-        strftime(time_str, 12, "(%H:%M:%S) ", currentTime);
-        strnew = QString::fromUtf8(time_str) + str;
+        strnew = this->getFormattedTime() + str;
     }
     else
     {

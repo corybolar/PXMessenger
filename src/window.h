@@ -127,6 +127,7 @@ private:
     void createMessServ();
     void createMessTime();
     void connectPeerClassSignalsAndSlots();
+    QString getFormattedTime();
 signals:
     void connectToPeer(int, QString);
     void sendMsg(int, QString, QString, QString, QUuid);
