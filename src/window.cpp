@@ -125,7 +125,7 @@ void MessengerWindow::connectPeerClassSignalsAndSlots()
     QObject::connect(peerWorker, SIGNAL (updateMessServFDS(int)), messServer, SLOT (updateMessServFDSSlot(int)));
     QObject::connect(peerWorker, SIGNAL (printToTextBrowser(QString, QUuid, bool)), this, SLOT (printToTextBrowser(QString, QUuid, bool)));
     QObject::connect(peerWorker, SIGNAL (setItalicsOnItem(QUuid, bool)), this, SLOT (setItalicsOnItem(QUuid, bool)));
-    QObject::connect(peerWorker, SIGNAL (updateListWidget(int)), this, SLOT (updateListWidget(int)));
+    QObject::connect(peerWorker, SIGNAL (updateListWidget(int, QUuid)), this, SLOT (updateListWidget(int, QUuid)));
 }
 void MessengerWindow::createMessServ()
 {
@@ -288,8 +288,74 @@ void MessengerWindow::quitButtonClicked()
 {
     this->close();
 }
-void MessengerWindow::updateListWidget(int num)
+
+void MessengerWindow::updateListWidget(int num, QUuid uuid)
 {
+    messListWidget->setUpdatesEnabled(false);
+    int count = messListWidget->count() - 2;
+    bool insertion = false;
+    if(count == 0)
+    {
+        messListWidget->insertItem(0, peerWorker->peerDetailsHash.value(uuid).hostname);
+        messListWidget->item(0)->setData(Qt::UserRole, uuid);
+        peerWorker->peerDetailsHash[uuid].listWidgetIndex = 0;
+
+    }
+    else
+    {
+        for(int i = 0; i < count; i++)
+        {
+            QUuid u = messListWidget->item(i)->data(Qt::UserRole).toString();
+            QString str = peerWorker->peerDetailsHash.value(u).hostname;
+            if(peerWorker->peerDetailsHash.value(uuid).hostname < str)
+            {
+                messListWidget->insertItem(i, str);
+                messListWidget->item(i)->setData(Qt::UserRole, uuid);
+                peerWorker->peerDetailsHash[uuid].listWidgetIndex = i;
+                peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
+                insertion = true;
+                break;
+            }
+            else if(peerWorker->peerDetailsHash.value(uuid).hostname > str)
+            {
+                if(i == (count-2) )
+                {
+                    messListWidget->insertItem(i+1, str);
+                    messListWidget->item(i+1)->setData(Qt::UserRole, uuid);
+                    insertion = true;
+                    break;
+
+                }
+            }
+            else if(peerWorker->peerDetailsHash.value(uuid).hostname == str && uuid != u )
+            {
+                messListWidget->insertItem(i, str);
+                messListWidget->item(i)->setData(Qt::UserRole, uuid);
+                peerWorker->peerDetailsHash[uuid].listWidgetIndex = i;
+                peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
+                insertion = true;
+                break;
+            }
+            else if(uuid == u)
+            {
+                if(peerWorker->peerDetailsHash[uuid].messagePending)
+                {
+                    messListWidget->item(i)->setText(" * " + peerWorker->peerDetailsHash[uuid].hostname + " * ");
+                }
+                else
+                {
+                    messListWidget->item(i)->setText(peerWorker->peerDetailsHash[uuid].hostname);
+                }
+                break;
+            }
+        }
+    }
+    /*
+    int index = -1;
+    if(messListWidget->currentItem() != NULL)
+    {
+        index = messListWidget->currentIndex();
+    }
     messListWidget->setUpdatesEnabled(false);
     int count2 = messListWidget->count();
     for(int i = 0; i < count2 - 2; i++)
@@ -314,6 +380,7 @@ void MessengerWindow::updateListWidget(int num)
         messListWidget->item(0)->setData(Qt::UserRole, itr.identifier);
         count--;
     }
+    */
     messListWidget->setUpdatesEnabled(true);
     return;
 }

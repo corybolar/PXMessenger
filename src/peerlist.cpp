@@ -61,7 +61,7 @@ void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
     if(peerDetailsHash[uuid].isValid)
     {
         peerDetailsHash[uuid].hostname = hname;
-        emit updateListWidget(peerDetailsHash.size());
+        emit updateListWidget(peerDetailsHash[uuid].listWidgetIndex, uuid);
     }
     else
         peerDetailsHash.remove(uuid);
@@ -157,7 +157,11 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
     {
         if(itr.ipAddress == ipaddr)
         {
-            updateListWidget(peerDetailsHash.size());
+            if(!haveWeNotHeardOfThisPeer)
+            {
+                peerDetailsHash[uuid].hostname = hname;
+                emit updateListWidget(itr.listWidgetIndex, itr.identifier);
+            }
             return;
         }
     }
@@ -169,13 +173,11 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
         emit connectToPeer(s, ipaddr);
         return;
     }
-    else
-    {
-        newPeer.socketDescriptor = s;
-        newPeer.isConnected = true;
-        newPeer.socketisValid = true;
-        emit sendMsg(s, "", "", "/request", uuid);
-    }
+
+    newPeer.socketDescriptor = s;
+    newPeer.isConnected = true;
+    newPeer.socketisValid = true;
+    emit sendMsg(s, "", "", "/request", uuid);
 
     newPeer.hostname = hname;
     newPeer.isValid = true;
@@ -191,5 +193,5 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
     newPeer.identifier = uuid;
 
     peerDetailsHash.insert(uuid, newPeer);
-    emit updateListWidget(peerDetailsHash.size());
+    emit updateListWidget(newPeer.listWidgetIndex, newPeer.identifier);
 }

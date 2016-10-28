@@ -29,7 +29,7 @@ struct peerDetails{
     bool socketisValid = false;
     bool messagePending = false;
     int socketDescriptor = 0;
-    int listWidgetIndex = 0;
+    int listWidgetIndex = -1;
     QString ipAddress = "";
     QString hostname = "";
     QString textBox = "";
@@ -59,7 +59,7 @@ private:
     QString localHostname;
 signals:
     void printToTextBrowser(QString, QUuid, bool);
-    void updateListWidget(int);
+    void updateListWidget(int, QUuid);
     void sendMsg(int, QString, QString, QString, QUuid);
     void connectToPeer(int, QString);
     void updateMessServFDS(int);

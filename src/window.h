@@ -77,7 +77,7 @@ private slots:
     void printToTextBrowser(QString str, QUuid uuid, bool message);					//Updates the main text box and stores text history in peerlist struct
     void timerout();
 
-    void updateListWidget(int num);														//sort peerlist struct alphabetically by hostname
+    void updateListWidget(int num, QUuid uuid);														//sort peerlist struct alphabetically by hostname
     void setItalicsOnItem(QUuid uuid, bool italics);
 private:
     QPushButton *messSendButton;
