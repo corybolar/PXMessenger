@@ -57,6 +57,13 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
 void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr)
 {
     //assignSocket(&(knownPeersArray[i]));
+    for(auto &itr : peerDetailsHash)
+    {
+        if(itr.ipAddress == ipaddr)
+        {
+            return;
+        }
+    }
     int s = socket(AF_INET, SOCK_STREAM, 0);
     emit connectToPeer(s, ipaddr);
     //this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");

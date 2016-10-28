@@ -292,7 +292,7 @@ void MessengerWindow::quitButtonClicked()
 void MessengerWindow::updateListWidget(int num, QUuid uuid)
 {
     messListWidget->setUpdatesEnabled(false);
-    int count = messListWidget->count() - 2;
+    int count = messListWidget->count() - 1;
     bool insertion = false;
     if(count == 0)
     {
@@ -325,8 +325,6 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
                     messListWidget->insertItem(i+1, peerWorker->peerDetailsHash.value(uuid).hostname);
                     messListWidget->item(i+1)->setData(Qt::UserRole, uuid);
                     insertion = true;
-                    break;
-
                 }
             }
             else if(peerWorker->peerDetailsHash.value(uuid).hostname == str && uuid != u )
