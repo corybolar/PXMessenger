@@ -307,20 +307,20 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
         {
             QUuid u = messListWidget->item(i)->data(Qt::UserRole).toString();
             QString str = peerWorker->peerDetailsHash.value(u).hostname;
-            if(peerWorker->peerDetailsHash.value(uuid).hostname < str)
+            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) > 0)
             {
-                messListWidget->insertItem(i, str);
+                messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
                 messListWidget->item(i)->setData(Qt::UserRole, uuid);
                 peerWorker->peerDetailsHash[uuid].listWidgetIndex = i;
                 peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
                 insertion = true;
                 break;
             }
-            else if(peerWorker->peerDetailsHash.value(uuid).hostname > str)
+            else if(peerWorker->peerDetailsHash.value(uuid).hostname < str)
             {
                 if(i == (count-2) )
                 {
-                    messListWidget->insertItem(i+1, str);
+                    messListWidget->insertItem(i+1, peerWorker->peerDetailsHash.value(uuid).hostname);
                     messListWidget->item(i+1)->setData(Qt::UserRole, uuid);
                     insertion = true;
                     break;

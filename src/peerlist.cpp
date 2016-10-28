@@ -164,6 +164,17 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
     {
         if(itr.ipAddress == ipaddr)
         {
+            if(itr.hostname != hname)
+            {
+                itr.hostname = hname;
+            }
+            if(itr.identifier != uuid)
+            {
+                qDebug() << "Warning: changing uuid for a peer, they should be the same here";
+                peerDetailsHash.take(itr.identifier);
+                itr.identifier = uuid;
+                peerDetailsHash.insert(uuid, itr);
+            }
             return;
         }
     }
