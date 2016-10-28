@@ -38,6 +38,7 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
 
             peerDetailsHash.insert(uuid, p);
             emit sendMsg(s, "", localHostname, "/uuid", uuid);
+            emit sendMsg(s, "", "", "/request", uuid);
             emit updateListWidget(0, uuid);
             emit setItalicsOnItem(p.identifier,0);
             return;
@@ -93,8 +94,8 @@ void PeerWorkerClass::peerQuit(int s)
 #else
         close(itr.socketDescriptor);
 #endif
-            //int s1 = socket(AF_INET, SOCK_STREAM, 0);
-            //emit connectToPeer(s1, itr.ipAddress);
+            int s1 = socket(AF_INET, SOCK_STREAM, 0);
+            emit connectToPeer(s1, itr.ipAddress);
             return;
         }
     }
@@ -185,12 +186,15 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
             if(itr.identifier != uuid)
             {
                 qDebug() << "Warning: changing uuid for a peer, they should be the same here";
-                peerDetailsHash.take(itr.identifier);
-                itr.identifier = uuid;
-                itr.socketDescriptor = s;
-                itr.socketisValid = true;
-                itr.isConnected = true;
-                peerDetailsHash.insert(uuid, itr);
+                peerDetails p = peerDetailsHash.take(itr.identifier);
+                p.identifier = uuid;
+                p.socketDescriptor = s;
+                p.socketisValid = true;
+                p.isConnected = true;
+                peerDetailsHash.insert(uuid, p);
+                emit sendMsg(s, "", "", "/request", uuid);
+                emit updateListWidget(0, uuid);
+                emit setItalicsOnItem(p.identifier,0);
             }
             return;
         }
