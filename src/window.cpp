@@ -329,11 +329,14 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
             }
             else if(peerWorker->peerDetailsHash.value(uuid).hostname == str && uuid != u )
             {
-                messListWidget->insertItem(i, str);
-                messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                peerWorker->peerDetailsHash[uuid].listWidgetIndex = i;
-                peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
-                insertion = true;
+                if(peerWorker->peerDetailsHash[uuid].messagePending)
+                {
+                    messListWidget->item(i)->setText(" * " + peerWorker->peerDetailsHash[uuid].hostname + " * ");
+                }
+                else
+                {
+                    messListWidget->item(i)->setText(peerWorker->peerDetailsHash[uuid].hostname);
+                }
                 break;
             }
             else if(uuid == u)

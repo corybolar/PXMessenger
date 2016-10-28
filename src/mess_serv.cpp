@@ -248,7 +248,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     {
         //emit recievedUUIDForConnection(QString::fromUtf8(recievedUUID), ipstr2);
         qDebug() << quuid.toString();
-        emit recievedUUIDForConnection(QString::fromUtf8(ipstr), QString::fromUtf8(ipstr), false, i, quuid);
+        emit recievedUUIDForConnection(QString::fromUtf8(partialMsg + 5, bufLen), QString::fromUtf8(ipstr), false, i, quuid);
         if(partialMsg[bufLen] != '\0')
         {
             partialMsg += bufLen;

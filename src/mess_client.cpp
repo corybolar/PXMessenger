@@ -102,7 +102,7 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     }
     else if(!strcmp(type,"/uuid"))
     {
-        packetLen = strlen(uuid) + strlen(type);
+        packetLen = strlen(uuid) + strlen(type) + strlen(host);
     }
     else
     {
@@ -120,6 +120,10 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     strcat(full_mess, uuid);
 
     strcat(full_mess, type);
+    if(!strcmp(type, "/uuid"))
+    {
+        strcat(full_mess, host);
+    }
     if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
        strcat(full_mess, host);

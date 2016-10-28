@@ -39,6 +39,8 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
             peerDetailsHash.insert(uuid, p);
             emit sendMsg(s, "", "", "/uuid", uuid);
             emit setItalicsOnItem(p.identifier,0);
+            emit updateListWidget(0, uuid);
+            return;
         }
     }
     //If we got here it means this new peer is not in the list, where he came from we'll never know.
@@ -47,12 +49,17 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
 
     //This line gives him the uuid of the connection.  He doesn't have this because
     //we created this uuid.  The server in the relationship always creates the uuid
-    emit sendMsg(s, "", "", "/uuid", uuid);
+    emit sendMsg(s, "", localHostname, "/uuid", uuid);
+    emit sendMsg(s, "", "", "/request", uuid);
+
     updatePeerDetailsHash(ipaddr, ipaddr, false, s, uuid);
 }
 void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr)
 {
-    this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");
+    //assignSocket(&(knownPeersArray[i]));
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    emit connectToPeer(s, ipaddr);
+    //this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");
 }
 
 void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
@@ -125,12 +132,12 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
     {
         if(levelOfSuccess < 0)
         {
-             msg = "Message was not sent successfully, Broken Pipe.  Peer likely disconnected";
-             peerQuit(uuid);
+            msg = "Message was not sent successfully, Broken Pipe.  Peer likely disconnected";
+            peerQuit(uuid);
         }
         if(levelOfSuccess > 0)
         {
-             msg.append("\nThe previous message was only paritally sent.  This was very bad\nContact the administrator of this program immediately\nNumber of bytes sent: " + QString::number(levelOfSuccess));
+            msg.append("\nThe previous message was only paritally sent.  This was very bad\nContact the administrator of this program immediately\nNumber of bytes sent: " + QString::number(levelOfSuccess));
         }
         if(levelOfSuccess == 0)
         {
@@ -157,41 +164,29 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
     {
         if(itr.ipAddress == ipaddr)
         {
-            if(!haveWeNotHeardOfThisPeer)
-            {
-                peerDetailsHash[uuid].hostname = hname;
-                emit updateListWidget(itr.listWidgetIndex, itr.identifier);
-            }
             return;
         }
     }
-
-    if( haveWeNotHeardOfThisPeer )
-    {
-        //assignSocket(&(knownPeersArray[i]));
-        s = socket(AF_INET, SOCK_STREAM, 0);
-        emit connectToPeer(s, ipaddr);
-        return;
-    }
-
     newPeer.socketDescriptor = s;
     newPeer.isConnected = true;
     newPeer.socketisValid = true;
-    emit sendMsg(s, "", "", "/request", uuid);
-
-    newPeer.hostname = hname;
     newPeer.isValid = true;
     newPeer.ipAddress = ipaddr;
+    newPeer.identifier = uuid;
+
     qDebug() << "hostname: " << newPeer.hostname << " @ ip:" << newPeer.ipAddress;
+
 
     if(hname == ipaddr)
     {
         qDebug() << "need name, sending namerequest to" << ipaddr;
         sendMsg(newPeer.socketDescriptor, "", "", "/namerequest", uuid);
+        peerDetailsHash.insert(uuid, newPeer);
     }
-
-    newPeer.identifier = uuid;
-
-    peerDetailsHash.insert(uuid, newPeer);
-    emit updateListWidget(newPeer.listWidgetIndex, newPeer.identifier);
+    else
+    {
+        newPeer.hostname = hname;
+        peerDetailsHash.insert(uuid, newPeer);
+        emit updateListWidget(newPeer.listWidgetIndex, newPeer.identifier);
+    }
 }
