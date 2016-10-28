@@ -319,8 +319,8 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
         {
             QUuid u = messListWidget->item(i)->data(Qt::UserRole).toString();
             QString str = messListWidget->item(i)->text();
-            if(str.compare(" * "))
-                str.mid(3, str.length()-3);
+            if((str.startsWith(" * ")))
+                str = str.mid(3, str.length()-6);
             if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) > 0)
             {
                 messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
