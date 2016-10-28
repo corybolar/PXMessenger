@@ -64,6 +64,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr)
             return;
         }
     }
+
     int s = socket(AF_INET, SOCK_STREAM, 0);
     emit connectToPeer(s, ipaddr);
     //this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");

@@ -34,7 +34,7 @@ MessengerWindow::MessengerWindow()
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
-    //timer->start(5000);
+    timer->start(250);
 
     QUuid ourUUID = QUuid::createUuid();
     ourUUIDString = ourUUID.toString();
@@ -156,11 +156,7 @@ void MessengerWindow::debugButtonClicked()
 
 void MessengerWindow::timerout()
 {
-    if(peerWorker->peerDetailsHash.size() <= 1)
-    {
-        emit sendUdp("/discover" + QString::fromUtf8(localHostname));
-        timer->start(5000);
-    }
+    emit sendUdp("/discover" + QString::fromUtf8(localHostname));
 }
 
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool

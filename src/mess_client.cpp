@@ -32,11 +32,12 @@ void MessengerClient::udpSend(const char* msg)
 
     len = strlen(msg);
 
-    for(int i = 0; i < 2; i++)
+    for(int i = 0; i < 1; i++)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
 }
+
 void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
 {
     emit resultOfConnectionAttempt(s, this->c_connect(s, ipaddr.toStdString().c_str()));
