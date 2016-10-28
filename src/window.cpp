@@ -66,9 +66,9 @@ void MessengerWindow::createButtons()
     messQuitButton->setGeometry(260, 550, 80, 30);
 
     messDebugButton = new QPushButton("Debug", this);
-    messDebugButton->setGeometry(260, 490, 80, 30);
+    messDebugButton->setGeometry(460, 510, 80, 30);
     connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
-    messDebugButton->hide();
+    //messDebugButton->hide();
 }
 void MessengerWindow::createListWidget()
 {
@@ -151,8 +151,14 @@ void MessengerWindow::createMessTime()
 }
 void MessengerWindow::debugButtonClicked()
 {
+    int count = 0;
     for(auto &itr : peerWorker->peerDetailsHash)
-        emit sendMsg(itr.socketDescriptor, "this is a garbage uuid", localHostname, "/msg", QUuid::createUuid());
+    {
+        if(count == 1)
+        {
+            ::close(itr.socketDescriptor);
+        }
+    }
 }
 QString MessengerWindow::getFormattedTime()
 {
