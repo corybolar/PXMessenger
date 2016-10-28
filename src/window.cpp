@@ -157,6 +157,7 @@ void MessengerWindow::debugButtonClicked()
 void MessengerWindow::timerout()
 {
     emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+    timer->stop();
 }
 
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool

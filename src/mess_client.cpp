@@ -36,6 +36,11 @@ void MessengerClient::udpSend(const char* msg)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
+#ifdef _WIN32
+        closesocket(socketfd2);
+#else
+        close(socketfd2);
+#endif
 }
 
 void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
