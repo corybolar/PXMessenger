@@ -93,8 +93,8 @@ void PeerWorkerClass::peerQuit(int s)
 #else
         close(itr.socketDescriptor);
 #endif
-            int s1 = socket(AF_INET, SOCK_STREAM, 0);
-            emit connectToPeer(s1, itr.ipAddress);
+            //int s1 = socket(AF_INET, SOCK_STREAM, 0);
+            //emit connectToPeer(s1, itr.ipAddress);
             return;
         }
     }

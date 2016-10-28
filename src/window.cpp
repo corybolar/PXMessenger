@@ -151,12 +151,12 @@ void MessengerWindow::createMessTime()
 }
 void MessengerWindow::debugButtonClicked()
 {
-    int count = 0;
     for(auto &itr : peerWorker->peerDetailsHash)
     {
-        if(count == 1)
+        if(itr.hostname == "archlaptop" || itr.hostname == "Computer")
         {
             ::close(itr.socketDescriptor);
+            FD_CLR(itr.socketDescriptor, &(messServer->master));
         }
     }
 }
@@ -306,7 +306,7 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
     messListWidget->setUpdatesEnabled(false);
     int count = messListWidget->count() - 1;
     bool insertion = false;
-    if(count == 0)
+    if(count == 1)
     {
         messListWidget->insertItem(0, peerWorker->peerDetailsHash.value(uuid).hostname);
         messListWidget->item(0)->setData(Qt::UserRole, uuid);

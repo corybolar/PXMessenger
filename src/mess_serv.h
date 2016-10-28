@@ -44,6 +44,7 @@ public:
     int set_fdmax(int m);											//update the fdmax variable to indicate the highest socket number.  Needed for select()
     void update_fds(int s);											//add new sockets to the master fd_set
     void run();														//thread starter
+    fd_set master, read_fds, write_fds;
 public slots:
     void updateMessServFDSSlot(int s);
 private:
@@ -52,7 +53,6 @@ private:
     int newConnection(int i);
     int accept_new(int socketfd, sockaddr_storage *their_addr);		//Accept a new connection from a new peer.  Assigns a socket to the connection
     //Maybe change these to locals and pass them around instead?
-    fd_set master, read_fds, write_fds;
     int fdmax = 0;
     QString localHostname;
 
