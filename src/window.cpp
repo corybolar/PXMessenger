@@ -150,7 +150,8 @@ void MessengerWindow::createMessTime()
 }
 void MessengerWindow::debugButtonClicked()
 {
-    emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+    for(auto &itr : peerWorker->peerDetailsHash)
+        emit sendMsg(itr.socketDescriptor, "this is a garbage uuid", localHostname, "/msg", QUuid::createUuid());
 }
 
 void MessengerWindow::timerout()
@@ -402,18 +403,17 @@ void MessengerWindow::sendButtonClicked()
         return;
     }
     QString str = messTextEdit->toPlainText();
-    const char* c_str = str.toStdString().c_str();
 
     int index = messListWidget->currentRow();
     QUuid uuidOfSelectedItem = messListWidget->item(index)->data(Qt::UserRole).toString();
-    if( ( uuidOfSelectedItem == globalChatUuid) && ( strcmp(c_str, "") != 0) )
+    if( ( uuidOfSelectedItem == globalChatUuid) && !( str.isEmpty() ) )
     {
         globalSend(str);
         messTextEdit->setText("");
         return;
     }
 
-    if(strcmp(c_str, "") != 0)
+    if(!(str.isEmpty()))
     {
         if(!(peerWorker->peerDetailsHash[uuidOfSelectedItem].isConnected))
         {
@@ -495,7 +495,13 @@ void MessengerWindow::printToTextBrowser(const QString str, QUuid uuid, bool mes
 
     if(uuid.isNull())
     {
-        messTextBrowser->append(strnew);
+        //messTextBrowser->append(strnew);
+        return;
+    }
+    if(!(peerWorker->peerDetailsHash[uuid].isValid) && ( uuid != globalChatUuid ))
+    {
+        peerWorker->peerDetailsHash.remove(uuid);
+        qDebug() << "Message from invalid uuid, rejection";
         return;
     }
 

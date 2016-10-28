@@ -11,15 +11,6 @@ void PeerWorkerClass::setLocalHostName(QString name)
     localHostname = name;
 
 }
-void PeerWorkerClass::assignSocket(struct peerDetails *p)
-{
-    p->socketDescriptor = socket(AF_INET, SOCK_STREAM, 0);
-    if(p->socketDescriptor < 0)
-        perror("socket:");
-    else
-        p->socketisValid = 1;
-    return;
-}
 void PeerWorkerClass::hostnameCheck(QString comp)
 {
     QStringList temp = comp.split('@');
@@ -53,6 +44,9 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
     //If we got here it means this new peer is not in the list, where he came from we'll never know.
     //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
     //his ip address but will ask him for his name later on.
+
+    //This line gives him the uuid of the connection.  He doesn't have this because
+    //we created this uuid.  The server in the relationship always creates the uuid
     emit sendMsg(s, "", "", "/uuid", uuid);
     updatePeerDetailsHash(ipaddr, ipaddr, false, s, uuid);
 }
@@ -156,7 +150,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool isThisFromUDP, int s, QUuid uuid)
+void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool haveWeNotHeardOfThisPeer, int s, QUuid uuid)
 {
     peerDetails newPeer;
     for(auto &itr : peerDetailsHash)
@@ -165,7 +159,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
             return;
     }
 
-    if( isThisFromUDP )
+    if( haveWeNotHeardOfThisPeer )
     {
         //assignSocket(&(knownPeersArray[i]));
         s = socket(AF_INET, SOCK_STREAM, 0);

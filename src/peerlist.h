@@ -46,7 +46,7 @@ public:
 public slots:
     void hostnameCheck(QString comp);
     void updatePeerDetailsHash(QString hname, QString ipaddr);
-    void updatePeerDetailsHash(QString hname, QString ipaddr, bool test, int s, QUuid uuid);
+    void updatePeerDetailsHash(QString hname, QString ipaddr, bool haveWeNotHeardOfThisPeer, int s, QUuid uuid);
     void newTcpConnection(int s, QString ipaddr, QUuid uuid);
     void peerQuit(QUuid uuid);
     void peerQuit(int s);
@@ -56,8 +56,6 @@ public slots:
     void resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print);
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
-    void assignSocket(peerDetails *p);
-
     QString localHostname;
 signals:
     void printToTextBrowser(QString, QUuid, bool);
