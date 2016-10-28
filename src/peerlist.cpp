@@ -37,7 +37,7 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
             p.identifier = uuid;
 
             peerDetailsHash.insert(uuid, p);
-            emit sendMsg(s, "", "", "/uuid", uuid);
+            emit sendMsg(s, "", localHostname, "/uuid", uuid);
             emit updateListWidget(0, uuid);
             emit setItalicsOnItem(p.identifier,0);
             return;
@@ -198,6 +198,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
 
     if(hname == ipaddr)
     {
+        emit sendMsg(s, "", "", "/request", uuid);
         qDebug() << "need name, sending namerequest to" << ipaddr;
         sendMsg(newPeer.socketDescriptor, "", "", "/namerequest", uuid);
         peerDetailsHash.insert(uuid, newPeer);
