@@ -4,9 +4,27 @@ MessengerWindow::MessengerWindow()
 {
     setFixedSize(900,600);
 
-    gethostname(localHostname, sizeof localHostname);
+    char computerHostname[128];
+    gethostname(computerHostname, sizeof computerHostname);
 
-    peerWorker = new PeerWorkerClass(this);
+#ifdef __unix__
+    struct passwd *user;
+    user = getpwuid(getuid());
+    strcat(localHostname, user->pw_name);
+    strcat(localHostname, "@");
+    strcat(localHostname, computerHostname);
+#elif _WIN32
+    char user[UNLEN+1];
+    DWORD user_size = sizeof(user);
+    if(GetUserName(user, &user_size))
+    {
+        strcat(localHostname, user);
+        strcat(localHostname, "@");
+    }
+    strcat(localHostname, computerHostname);
+#endif
+
+    peerWorker = new PeerWorkerClass(this, localHostname);
 
     createTextEdit();
 
@@ -55,7 +73,7 @@ void MessengerWindow::createLineEdit()
 {
     messLineEdit = new QLineEdit(this);
     messLineEdit->setGeometry(640, 10, 200, 30);
-    messLineEdit->setText(QString::fromUtf8(localHostname));
+    messLineEdit->setText((QString::fromUtf8(localHostname)));
 }
 void MessengerWindow::createButtons()
 {
@@ -100,6 +118,7 @@ void MessengerWindow::createMessClient()
     messClientThread = new QThread(this);
     messClient = new MessengerClient();
     messClient->moveToThread(messClientThread);
+    messClient->setLocalHostname((localHostname));
     QObject::connect(messClientThread, SIGNAL(finished()), messClientThread, SLOT(deleteLater()));
     QObject::connect(messClient, SIGNAL (resultOfConnectionAttempt(int, bool)), peerWorker, SLOT(resultOfConnectionAttempt(int,bool)));
     QObject::connect(messClient, SIGNAL (resultOfTCPSend(int, QString, QString, bool)), peerWorker, SLOT(resultOfTCPSend(int,QString,QString,bool)));
@@ -130,7 +149,8 @@ void MessengerWindow::connectPeerClassSignalsAndSlots()
 }
 void MessengerWindow::createMessServ()
 {
-    messServer = new MessengerServer(this, localHostname);
+    messServer = new MessengerServer(this);
+    messServer->setLocalHostname(QString::fromUtf8(localHostname));
     QObject::connect(messServer, SIGNAL (sendMsg(int, QString, QString, QString, QUuid)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid)));
     QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, bool, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, bool, int, QUuid)));
     QObject::connect(messServer, SIGNAL (messageRecieved(const QString, const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, const QString, QUuid, bool)) );
@@ -338,6 +358,8 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
                     messListWidget->item(i+1)->setData(Qt::UserRole, uuid);
                     insertion = true;
                 }
+                else
+                    continue;
             }
             else if(peerWorker->peerDetailsHash.value(uuid).hostname == str && uuid != u )
             {
@@ -367,37 +389,6 @@ void MessengerWindow::updateListWidget(int num, QUuid uuid)
             }
         }
     }
-    /*
-    int index = -1;
-    if(messListWidget->currentItem() != NULL)
-    {
-        index = messListWidget->currentIndex();
-    }
-    messListWidget->setUpdatesEnabled(false);
-    int count2 = messListWidget->count();
-    for(int i = 0; i < count2 - 2; i++)
-    {
-        delete messListWidget->takeItem(0);
-    }
-    count2 = messListWidget->count();
-    int count = peerWorker->peerDetailsHash.size()-1;
-    for(auto &itr : peerWorker->peerDetailsHash)
-    {
-        itr.listWidgetIndex = count;
-        messListWidget->insertItem(0, itr.hostname);
-        if(itr.messagePending)
-        {
-            this->changeListColor(0, 0);
-            messListWidget->item(0)->setText(" * " + itr.hostname + "*");
-        }
-        if(!(itr.isConnected))
-        {
-            messListWidget->item(0)->font().setItalic(1);
-        }
-        messListWidget->item(0)->setData(Qt::UserRole, itr.identifier);
-        count--;
-    }
-    */
     messListWidget->setUpdatesEnabled(true);
     return;
 }

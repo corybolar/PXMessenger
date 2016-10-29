@@ -1,10 +1,8 @@
 #include <peerlist.h>
 
-PeerWorkerClass::PeerWorkerClass(QObject *parent) : QObject(parent)
+PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname) : QObject(parent)
 {
-    char tempLocalName[128];
-    gethostname(tempLocalName, sizeof tempLocalName);
-    localHostname = QString::fromUtf8(tempLocalName);
+    localHostname = hostname;
 }
 void PeerWorkerClass::setLocalHostName(QString name)
 {
@@ -13,9 +11,11 @@ void PeerWorkerClass::setLocalHostName(QString name)
 }
 void PeerWorkerClass::hostnameCheck(QString comp)
 {
-    QStringList temp = comp.split('@');
+    QStringList temp = comp.split(':');
     QString hname = temp[0];
+    hname = hname.remove(hname.length(), 1);
     QString ipaddr = temp[1];
+    ipaddr.chop(1);
     for(auto &itr : peerDetailsHash)
     {
         if(itr.hostname == hname)
@@ -121,10 +121,11 @@ void PeerWorkerClass::sendIps(int i)
     {
         if(itr.isConnected && (itr.hostname != itr.ipAddress))
         {
+            msg.append("[");
             msg.append(itr.hostname);
-            msg.append("@");
-            msg.append(itr.ipAddress);
             msg.append(":");
+            msg.append(itr.ipAddress);
+            msg.append("]");
         }
         if(itr.socketDescriptor == i)
         {

@@ -4,6 +4,12 @@ MessengerClient::MessengerClient()
 {
 
 }
+void MessengerClient::setLocalHostname(char *hostname)
+{
+    localHostname = hostname;
+    qDebug() << *localHostname;
+}
+
 void MessengerClient::udpSendSlot(QString msg)
 {
     this->udpSend(msg.toStdString().c_str());
@@ -225,9 +231,6 @@ int MessengerClient::partialSend(int socketfd, const char *msg, int len, int cou
  */
 void MessengerClient::sendNameSlot(int s, QString uuid)
 {
-    char name[128] = {};
-
-    gethostname(name, sizeof name);
-    this->send_msg(s,name, "", "/hostname", uuid.toStdString().c_str());
+    this->send_msg(s, localHostname, "", "/hostname", uuid.toStdString().c_str());
     return;
 }

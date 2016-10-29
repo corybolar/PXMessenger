@@ -46,6 +46,7 @@
 #include <arpa/nameser.h>
 #include <netinet/in.h>
 #include <resolv.h>
+#include <pwd.h>
 #endif
 
 #ifdef _WIN32
@@ -104,7 +105,7 @@ private:
     struct tm *currentTime;
 
     int numberOfValidPeers = 0;														//Length of peers array
-    char localHostname[128] = {};
+    char localHostname[256] = {};
     QString globalChat = "";
     QUuid globalChatUuid;
     bool globalChatAlerted = false;

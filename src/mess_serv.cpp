@@ -1,9 +1,15 @@
 #include <mess_serv.h>
 
-MessengerServer::MessengerServer(QWidget *parent, QString hostname) : QThread(parent)
+MessengerServer::MessengerServer(QWidget *parent) : QThread(parent)
+{
+
+}
+void MessengerServer::setLocalHostname(QString hostname)
 {
     localHostname = hostname;
+    qDebug() << &localHostname;
 }
+
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
  */
@@ -219,7 +225,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         for(int k = 4; k < bufLen; k++)
         {
             //Theres probably a better way to do this
-            if(partialMsg[k] == ':')
+            if(partialMsg[k] == '[' || partialMsg[k] == ']')
             {
                 char temp[INET_ADDRSTRLEN + 28] = {};
                 strncpy(temp, partialMsg+(k-count), count);

@@ -39,12 +39,13 @@ class MessengerServer : public QThread
     Q_OBJECT
 
 public:
-    MessengerServer(QWidget *parent, QString hostname);
+    MessengerServer(QWidget *parent);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
     int set_fdmax(int m);											//update the fdmax variable to indicate the highest socket number.  Needed for select()
     void update_fds(int s);											//add new sockets to the master fd_set
     void run();														//thread starter
     fd_set master, read_fds, write_fds;
+    void setLocalHostname(QString hostname);
 public slots:
     void updateMessServFDSSlot(int s);
 private:

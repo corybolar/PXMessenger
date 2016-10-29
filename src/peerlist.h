@@ -40,7 +40,7 @@ class PeerWorkerClass : public QObject
 {
     Q_OBJECT
 public:
-    explicit PeerWorkerClass(QObject *parent);
+    explicit PeerWorkerClass(QObject *parent, QString hostname);
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
 public slots:
