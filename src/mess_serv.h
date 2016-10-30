@@ -60,7 +60,7 @@ private:
     int singleMessageIterator(int i, char *buf, char *ipstr);
 signals:
     void messageRecieved(const QString, const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
-    void newConnectionRecieved(int, const QString, QUuid);							//
+    void newConnectionRecieved(int, const QString);							//
     void recievedUUIDForConnection(QString, QString, bool, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
     void updNameRecieved(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address

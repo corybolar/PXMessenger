@@ -2,9 +2,10 @@ TEMPLATE = app
 TARGET = PXMessenger
 
 QT = core gui widgets multimedia
+LIBS += -liniparser
 
 win32 {
-LIBS = -lws2_32
+LIBS += -lws2_32 \
 }
 
 win32 {
@@ -25,7 +26,8 @@ SOURCES += \
     mess_serv.cpp \
     mess_textedit.cpp \
     peerlist.cpp \
-    messlistwidgetitem.cpp
+    messlistwidgetitem.cpp \
+    inireader.cpp
 
 HEADERS += \
     window.h \
@@ -33,7 +35,8 @@ HEADERS += \
     mess_serv.h \
     peerlist.h \
     mess_textedit.h \
-    messlistwidgetitem.h
+    messlistwidgetitem.h \
+    inireader.h
 
 DISTFILES +=
 

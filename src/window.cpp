@@ -1,7 +1,8 @@
 #include <window.h>
 
-MessengerWindow::MessengerWindow()
+MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 {
+    ourUUIDString = uuid.toString();
     setFixedSize(900,600);
 
     char computerHostname[128];
@@ -13,10 +14,16 @@ MessengerWindow::MessengerWindow()
     strcat(localHostname, user->pw_name);
     strcat(localHostname, "@");
     strcat(localHostname, computerHostname);
+    if(uuidNum > 0)
+    {
+        char temp[3];
+        sprintf(temp, "%d", uuidNum);
+        strcat(localHostname, temp);
+    }
 #elif _WIN32
     char user[UNLEN+1];
-    DWORD user_size = sizeof(user);
-    if(GetUserName(user, &user_size))
+    DWORD user_size = UNLEN+1;
+    if(GetUserName((TCHAR*)user, &user_size))
     {
         strcat(localHostname, user);
         strcat(localHostname, "@");
@@ -24,7 +31,7 @@ MessengerWindow::MessengerWindow()
     strcat(localHostname, computerHostname);
 #endif
 
-    peerWorker = new PeerWorkerClass(this, localHostname);
+    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
 
     createTextEdit();
 
@@ -53,10 +60,7 @@ MessengerWindow::MessengerWindow()
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
     timer->start(250);
-
-    QUuid ourUUID = QUuid::createUuid();
-    ourUUIDString = ourUUID.toString();
-
+    qDebug() << ourUUIDString;
 }
 void MessengerWindow::createTextEdit()
 {
@@ -156,7 +160,7 @@ void MessengerWindow::createMessServ()
     QObject::connect(messServer, SIGNAL (messageRecieved(const QString, const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, const QString, QUuid, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
     QObject::connect(messServer, SIGNAL (sendName(int, QString)), messClient, SLOT (sendNameSlot(int, QString)));
-    QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString, QUuid)), peerWorker, SLOT (newTcpConnection(int, QString, QUuid)));
+    QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString)), peerWorker, SLOT (newTcpConnection(int, QString)));
     QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
     QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString)), peerWorker, SLOT (updatePeerDetailsHash(QString, QString)));
     QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
@@ -434,7 +438,7 @@ void MessengerWindow::globalSend(QString msg)
     {
         if(itr.isConnected)
         {
-            emit sendMsg(itr.socketDescriptor, msg, localHostname, "/global", itr.identifier);
+            emit sendMsg(itr.socketDescriptor, msg, localHostname, "/global", ourUUIDString);
         }
     }
     messTextEdit->setText("");

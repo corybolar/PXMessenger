@@ -53,6 +53,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
+#include <lmcons.h>
 #endif
 
 #define PORT "13653"
@@ -62,7 +63,7 @@ class MessengerWindow : public QWidget
     Q_OBJECT
 
 public:
-    MessengerWindow();
+    MessengerWindow(QUuid uuid, int uuidNum);
 
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler

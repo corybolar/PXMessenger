@@ -1,8 +1,9 @@
 #include <peerlist.h>
 
-PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname) : QObject(parent)
+PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid) : QObject(parent)
 {
     localHostname = hostname;
+    localUUID = uuid;
 }
 void PeerWorkerClass::setLocalHostName(QString name)
 {
@@ -24,36 +25,17 @@ void PeerWorkerClass::hostnameCheck(QString comp)
     updatePeerDetailsHash(hname, ipaddr, true, 0, "");
     return;
 }
-void PeerWorkerClass::newTcpConnection(int s, QString ipaddr, QUuid uuid)
+void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
 {
-    for(auto &itr : peerDetailsHash)
-    {
-        if(itr.ipAddress == ipaddr)
-        {
-            peerDetails p = peerDetailsHash.take(itr.identifier);
-
-            p.ipAddress = ipaddr;
-            p.socketDescriptor = s;
-            p.identifier = uuid;
-
-            peerDetailsHash.insert(uuid, p);
-            emit sendMsg(s, "", localHostname, "/uuid", uuid);
-            emit sendMsg(s, "", "", "/request", uuid);
-            emit updateListWidget(0, uuid);
-            emit setItalicsOnItem(p.identifier,0);
-            return;
-        }
-    }
-    //If we got here it means this new peer is not in the list, where he came from we'll never know.
-    //But actually, when this happens we need to get his hostname.  Temporarily we will make his hostname
-    //his ip address but will ask him for his name later on.
-
-    //This line gives him the uuid of the connection.  He doesn't have this because
-    //we created this uuid.  The server in the relationship always creates the uuid
-    emit sendMsg(s, "", localHostname, "/uuid", uuid);
-
-    updatePeerDetailsHash(ipaddr, ipaddr, false, s, uuid);
+    this->sendIdentityMsg(s);
 }
+void PeerWorkerClass::sendIdentityMsg(int s)
+{
+    emit sendMsg(s, "", localHostname, "/uuid", localUUID);
+    emit sendMsg(s, "", "", "/request", localUUID);
+}
+
+
 void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr)
 {
     //assignSocket(&(knownPeersArray[i]));
@@ -116,7 +98,6 @@ void PeerWorkerClass::sendIps(int i)
 {
     QString type = "/ip:";
     QString msg = "";
-    QUuid uuid;
     for(auto & itr : peerDetailsHash)
     {
         if(itr.isConnected && (itr.hostname != itr.ipAddress))
@@ -127,18 +108,15 @@ void PeerWorkerClass::sendIps(int i)
             msg.append(itr.ipAddress);
             msg.append("]");
         }
-        if(itr.socketDescriptor == i)
-        {
-            uuid = itr.identifier;
-        }
     }
-    emit sendMsg(i, msg, localHostname, type, uuid);
+    emit sendMsg(i, msg, localHostname, type, localUUID);
 }
 void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
 {
     if(!result)
     {
         emit updateMessServFDS(socket);
+        emit sendIdentityMsg(socket);
     }
 }
 void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print)
@@ -175,52 +153,26 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  */
 void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool haveWeNotHeardOfThisPeer, int s, QUuid uuid)
 {
-    peerDetails newPeer;
     for(auto &itr : peerDetailsHash)
     {
-        if(itr.ipAddress == ipaddr)
+        if(itr.identifier == uuid)
         {
-            if(itr.hostname != hname)
-            {
-                itr.hostname = hname;
-            }
-            if(itr.identifier != uuid)
-            {
-                qDebug() << "Warning: changing uuid for a peer, they should be the same here";
-                peerDetails p = peerDetailsHash.take(itr.identifier);
-                p.identifier = uuid;
-                p.socketDescriptor = s;
-                p.socketisValid = true;
-                p.isConnected = true;
-                peerDetailsHash.insert(uuid, p);
-                emit sendMsg(s, "", "", "/request", uuid);
-                emit updateListWidget(0, uuid);
-                emit setItalicsOnItem(p.identifier,0);
-            }
             return;
         }
     }
+
+    peerDetails newPeer;
+
     newPeer.socketDescriptor = s;
     newPeer.isConnected = true;
     newPeer.socketisValid = true;
     newPeer.isValid = true;
     newPeer.ipAddress = ipaddr;
     newPeer.identifier = uuid;
+    newPeer.hostname = hname;
 
     qDebug() << "hostname: " << newPeer.hostname << " @ ip:" << newPeer.ipAddress;
 
-
-    if(hname == ipaddr)
-    {
-        emit sendMsg(s, "", "", "/request", uuid);
-        qDebug() << "need name, sending namerequest to" << ipaddr;
-        sendMsg(newPeer.socketDescriptor, "", "", "/namerequest", uuid);
-        peerDetailsHash.insert(uuid, newPeer);
-    }
-    else
-    {
-        newPeer.hostname = hname;
-        peerDetailsHash.insert(uuid, newPeer);
-        emit updateListWidget(newPeer.listWidgetIndex, newPeer.identifier);
-    }
+    peerDetailsHash.insert(uuid, newPeer);
+    emit updateListWidget(newPeer.listWidgetIndex, newPeer.identifier);
 }

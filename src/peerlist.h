@@ -40,14 +40,14 @@ class PeerWorkerClass : public QObject
 {
     Q_OBJECT
 public:
-    explicit PeerWorkerClass(QObject *parent, QString hostname);
+    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid);
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
 public slots:
     void hostnameCheck(QString comp);
     void updatePeerDetailsHash(QString hname, QString ipaddr);
     void updatePeerDetailsHash(QString hname, QString ipaddr, bool haveWeNotHeardOfThisPeer, int s, QUuid uuid);
-    void newTcpConnection(int s, QString ipaddr, QUuid uuid);
+    void newTcpConnection(int s, QString ipaddr);
     void peerQuit(QUuid uuid);
     void peerQuit(int s);
     void setPeerHostname(QString hname, QUuid uuid);
@@ -57,6 +57,8 @@ public slots:
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
     QString localHostname;
+    QString localUUID;
+    void sendIdentityMsg(int s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(int, QUuid);

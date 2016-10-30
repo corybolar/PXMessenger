@@ -35,7 +35,7 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
     getnameinfo(((struct sockaddr*)&their_addr), addr_size, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
 
     QUuid uuid = QUuid::createUuid();
-    emit newConnectionRecieved(result, QString::fromUtf8(ipstr, strlen(ipstr)), uuid);
+    emit newConnectionRecieved(result, QString::fromUtf8(ipstr, strlen(ipstr)));
 
     this->update_fds(result);
     return result;
