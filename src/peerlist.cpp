@@ -22,7 +22,7 @@ void PeerWorkerClass::hostnameCheck(QString comp)
         if(itr.hostname == hname)
             return;
     }
-    updatePeerDetailsHash(hname, ipaddr, true, 0, "");
+    updatePeerDetailsHash(hname, ipaddr, 0, "");
     return;
 }
 void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
@@ -31,8 +31,8 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
 }
 void PeerWorkerClass::sendIdentityMsg(int s)
 {
-    emit sendMsg(s, "", localHostname, "/uuid", localUUID);
-    emit sendMsg(s, "", "", "/request", localUUID);
+    emit sendMsg(s, "", localHostname, "/uuid", localUUID, "");
+    emit sendMsg(s, "", "", "/request", localUUID, "");
 }
 
 
@@ -58,7 +58,7 @@ void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
     if(peerDetailsHash[uuid].isValid)
     {
         peerDetailsHash[uuid].hostname = hname;
-        emit updateListWidget(peerDetailsHash[uuid].listWidgetIndex, uuid);
+        emit updateListWidget(uuid);
     }
     else
         peerDetailsHash.remove(uuid);
@@ -109,7 +109,7 @@ void PeerWorkerClass::sendIps(int i)
             msg.append("]");
         }
     }
-    emit sendMsg(i, msg, localHostname, type, localUUID);
+    emit sendMsg(i, msg, localHostname, type, localUUID, "");
 }
 void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
 {
@@ -137,7 +137,9 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
         {
 
         }
-        emit printToTextBrowser(msg, uuid, true);
+        emit printToTextBrowser(msg, uuid, print);
+
+
         return;
     }
     if(levelOfSuccess<0)
@@ -151,7 +153,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool haveWeNotHeardOfThisPeer, int s, QUuid uuid)
+void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, int s, QUuid uuid)
 {
     for(auto &itr : peerDetailsHash)
     {
@@ -174,5 +176,5 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, bool 
     qDebug() << "hostname: " << newPeer.hostname << " @ ip:" << newPeer.ipAddress;
 
     peerDetailsHash.insert(uuid, newPeer);
-    emit updateListWidget(newPeer.listWidgetIndex, newPeer.identifier);
+    emit updateListWidget(newPeer.identifier);
 }

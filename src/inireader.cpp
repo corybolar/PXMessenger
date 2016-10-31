@@ -28,7 +28,7 @@ void IniReader::resetUUID(int num, QUuid uuid, const char* ini_name)
         fprintf(stderr, "cannot parse file: %s\n", ini_name);
         return;
     }
-    iniparser_dump(ini, stderr);
+    //iniparser_dump(ini, stderr);
 
     sprintf(key, "UUIDS:%d", num);
 
@@ -51,7 +51,7 @@ int IniReader::checkAllowMoreThanOneInstance(const char *ini_name)
         fprintf(stderr, "cannot parse file: %s\n", ini_name);
         return -1 ;
     }
-    iniparser_dump(ini2, stderr);
+    //iniparser_dump(ini2, stderr);
 
     //printf("Config:\n");
     b = iniparser_getboolean(ini2, "Config:AllowMoreThanOneInstance", -1);
@@ -71,7 +71,7 @@ QUuid IniReader::getUUID(const char *ini_name, int num)
         fprintf(stderr, "cannot parse file: %s\n", ini_name);
         return NULL;
     }
-    iniparser_dump(ini, stderr);
+    //iniparser_dump(ini, stderr);
 
     //printf("UUIDS:\n");
 

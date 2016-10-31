@@ -31,7 +31,6 @@ int main(int argc, char **argv)
     iniRdr.checkAllowMoreThanOneInstance(ini_name);
     int i = iniRdr.getUUIDNumber(ini_name);
     QUuid uuid = iniRdr.getUUID(ini_name, i);
-    qDebug() << "------------------" << uuid.toString();
 
     MessengerWindow *window = new MessengerWindow(uuid, i);
     window->show();

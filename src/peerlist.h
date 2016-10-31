@@ -46,7 +46,7 @@ public:
 public slots:
     void hostnameCheck(QString comp);
     void updatePeerDetailsHash(QString hname, QString ipaddr);
-    void updatePeerDetailsHash(QString hname, QString ipaddr, bool haveWeNotHeardOfThisPeer, int s, QUuid uuid);
+    void updatePeerDetailsHash(QString hname, QString ipaddr, int s, QUuid uuid);
     void newTcpConnection(int s, QString ipaddr);
     void peerQuit(QUuid uuid);
     void peerQuit(int s);
@@ -61,8 +61,8 @@ private:
     void sendIdentityMsg(int s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
-    void updateListWidget(int, QUuid);
-    void sendMsg(int, QString, QString, QString, QUuid);
+    void updateListWidget(QUuid);
+    void sendMsg(int, QString, QString, QString, QUuid, QString);
     void connectToPeer(int, QString);
     void updateMessServFDS(int);
     void setItalicsOnItem(QUuid, bool);

@@ -46,6 +46,7 @@ public:
     void run();														//thread starter
     fd_set master, read_fds, write_fds;
     void setLocalHostname(QString hostname);
+    void setLocalUUID(QString uuid);
 public slots:
     void updateMessServFDSSlot(int s);
 private:
@@ -56,21 +57,22 @@ private:
     //Maybe change these to locals and pass them around instead?
     int fdmax = 0;
     QString localHostname;
+    QString localUUID;
 
     int singleMessageIterator(int i, char *buf, char *ipstr);
 signals:
-    void messageRecieved(const QString, const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
+    void messageRecieved(const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
     void newConnectionRecieved(int, const QString);							//
-    void recievedUUIDForConnection(QString, QString, bool, int, QUuid);
+    void recievedUUIDForConnection(QString, QString, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
     void updNameRecieved(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
     void sendIps(int);
-    void sendName(int, QString);
+    void sendName(int, QString, QString);
     void hostnameCheck(QString);
     void setPeerHostname(QString, QUuid);
-    void sendMsg(int, QString, QString, QString, QUuid);
+    void sendMsg(int, QString, QString, QString, QUuid, QString);
 };
 
 #endif // MESS_SERV_H

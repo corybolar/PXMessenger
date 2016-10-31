@@ -9,6 +9,10 @@ void MessengerServer::setLocalHostname(QString hostname)
     localHostname = hostname;
     qDebug() << &localHostname;
 }
+void MessengerServer::setLocalUUID(QString uuid)
+{
+    localUUID = uuid;
+}
 
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
@@ -34,7 +38,7 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
 
     getnameinfo(((struct sockaddr*)&their_addr), addr_size, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
 
-    QUuid uuid = QUuid::createUuid();
+    //QUuid uuid = QUuid::createUuid();
     emit newConnectionRecieved(result, QString::fromUtf8(ipstr, strlen(ipstr)));
 
     this->update_fds(result);
@@ -203,7 +207,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         //buf is actually at buf[7] from its original location
 
         //The following signal is going to the main thread and will call the slot prints(QString, QString)
-        emit messageRecieved(QString::fromUtf8(partialMsg+4, bufLen-4), ipstr, quuid, false);
+        emit messageRecieved(QString::fromUtf8(partialMsg+4, bufLen-4), quuid, false);
 
         //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
         if(partialMsg[bufLen] != '\0')
@@ -253,8 +257,8 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     else if(!(strncmp(partialMsg, "/uuid", 5)))
     {
         //emit recievedUUIDForConnection(QString::fromUtf8(recievedUUID), ipstr2);
-        qDebug() << quuid.toString();
-        emit recievedUUIDForConnection(QString::fromUtf8(partialMsg + 5, bufLen - 5), QString::fromUtf8(ipstr), false, i, quuid);
+        qDebug() << "uuid recieved: " + quuid.toString();
+        emit recievedUUIDForConnection(QString::fromUtf8(partialMsg + 5, bufLen - 5), QString::fromUtf8(ipstr), i, quuid);
         if(partialMsg[bufLen] != '\0')
         {
             partialMsg += bufLen;
@@ -288,7 +292,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
         char emitStr[bufLen-6] = {};
         strncpy(emitStr, (partialMsg+7), bufLen-7);
-        emit messageRecieved(QString::fromUtf8(emitStr), ipstr, quuid, true);
+        emit messageRecieved(QString::fromUtf8(emitStr), quuid, true);
         //Check to see if we need to reiterate because there is another message on the buffer
         if(partialMsg[bufLen] != '\0')
         {
@@ -306,7 +310,6 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
         char emitStr[bufLen-8] = {};
         strncpy(emitStr, (partialMsg+9), bufLen-9);
-        qDebug() << "hello";
         emit setPeerHostname(QString::fromUtf8(emitStr), quuid);
         if(partialMsg[bufLen] != '\0')
         {
@@ -321,7 +324,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     else if(!(strncmp(partialMsg, "/namerequest", 12)))
     {
         qDebug() << "/namerequest recieved from " << QString::fromUtf8(ipstr) << "\nsending hostname";
-        emit sendName(i, quuid.toString());
+        emit sendName(i, quuid.toString(), localUUID);
         if(partialMsg[bufLen] != '\0')
         {
             partialMsg += bufLen;
