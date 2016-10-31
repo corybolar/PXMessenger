@@ -413,6 +413,12 @@ void MessengerWindow::updateListWidget(QUuid uuid)
  */
 void MessengerWindow::closeEvent(QCloseEvent *event)
 {
+    if(messServer != 0 && messServer->isRunning())
+    {
+        messServer->requestInterruption();
+        messServer->quit();
+        messServer->wait();
+    }
     for(auto &itr : peerWorker->peerDetailsHash)
     {
 #ifdef __unix__
@@ -421,12 +427,6 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
 #ifdef _WIN32
         ::closesocket(itr.socketDescriptor);
 #endif
-    }
-    if(messServer != 0 && messServer->isRunning())
-    {
-        messServer->requestInterruption();
-        messServer->quit();
-        messServer->wait();
     }
     messClientThread->quit();
     messClientThread->wait();
