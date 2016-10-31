@@ -1,5 +1,4 @@
 #include <QApplication>
-//extern "C" { #include <iniparser.h> }
 #include <messinireader.h>
 #include <stdlib.h>
 #include <stdio.h>

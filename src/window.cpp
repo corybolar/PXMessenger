@@ -17,12 +17,6 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     strcat(localHostname, user->pw_name);
     strcat(localHostname, "@");
     strcat(localHostname, computerHostname);
-    if(uuidNum > 0)
-    {
-        char temp[3];
-        sprintf(temp, "%d", uuidNum);
-        strcat(localHostname, temp);
-    }
 #elif _WIN32
     char user[UNLEN+1];
     DWORD user_size = UNLEN+1;
@@ -33,7 +27,12 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     }
     strcat(localHostname, computerHostname);
 #endif
-
+    if(uuidNum > 0)
+    {
+        char temp[3];
+        sprintf(temp, "%d", uuidNum);
+        strcat(localHostname, temp);
+    }
     peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString, ourListenerPort);
 
     createTextEdit();
