@@ -31,13 +31,13 @@ class MessengerClient : public QObject
     Q_OBJECT
 public:
     MessengerClient();
-    int c_connect(int socketfd, const char *ipaddr);					//Connect a socket to and ip address
+    int c_connect(int socketfd, const char *ipaddr, const char *service);					//Connect a socket to and ip address
     int send_msg(int socketfd, const char *msg, const char *host, const char *type, const char *uuid, const char *theiruuid);	//send a message through an already connected socket to the specified ip address
     void setLocalHostname(char *hostname);
     void setlocalUUID(QString uuid);
 public slots:
     void sendMsgSlot(int s, QString msg, QString host, QString type, QUuid uuid, QString theiruuid);
-    void connectToPeerSlot(int s, QString ipaddr);
+    void connectToPeerSlot(int s, QString ipaddr, QString service);
     void udpSendSlot(QString msg);
 private:
     int partialSend(int socketfd, const char *msg, int len, int count);			//deal with the kernel not sending all of our message in one go

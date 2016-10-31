@@ -29,6 +29,7 @@ struct peerDetails{
     bool socketisValid = false;
     bool messagePending = false;
     int socketDescriptor = 0;
+    QString portNumber = "-1";
     int listWidgetIndex = -1;
     QString ipAddress = "";
     QString hostname = "";
@@ -40,13 +41,13 @@ class PeerWorkerClass : public QObject
 {
     Q_OBJECT
 public:
-    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid);
+    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid, QString port);
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
 public slots:
     void hostnameCheck(QString comp);
-    void updatePeerDetailsHash(QString hname, QString ipaddr);
-    void updatePeerDetailsHash(QString hname, QString ipaddr, int s, QUuid uuid);
+    void attemptConnection(QString portNumber, QString ipaddr);
+    void updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid);
     void newTcpConnection(int s, QString ipaddr);
     void peerQuit(QUuid uuid);
     void peerQuit(int s);
@@ -57,13 +58,14 @@ public slots:
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
     QString localHostname;
+    QString ourListenerPort;
     QString localUUID;
     void sendIdentityMsg(int s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid);
     void sendMsg(int, QString, QString, QString, QUuid, QString);
-    void connectToPeer(int, QString);
+    void connectToPeer(int, QString, QString);
     void updateMessServFDS(int);
     void setItalicsOnItem(QUuid, bool);
 };

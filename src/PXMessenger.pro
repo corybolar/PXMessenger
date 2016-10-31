@@ -58,4 +58,3 @@ MOC_DIR = ../build-unix/moc
 RCC_DIR = ../build-unix/rcc
 UI_DIR = ../build-unix/ui
 }
-

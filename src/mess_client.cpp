@@ -7,7 +7,6 @@ MessengerClient::MessengerClient()
 void MessengerClient::setLocalHostname(char *hostname)
 {
     localHostname = hostname;
-    qDebug() << *localHostname;
 }
 void MessengerClient::setlocalUUID(QString uuid)
 {
@@ -22,7 +21,7 @@ void MessengerClient::udpSendSlot(QString msg)
 void MessengerClient::udpSend(const char* msg)
 {
     int len;
-    int port2 = 13654;
+    int port2 = 13649;
     struct sockaddr_in broadaddr;
     //struct in_addr localInterface;
     int socketfd2;
@@ -53,9 +52,9 @@ void MessengerClient::udpSend(const char* msg)
 #endif
 }
 
-void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
+void MessengerClient::connectToPeerSlot(int s, QString ipaddr, QString service)
 {
-    this->c_connect(s, ipaddr.toStdString().c_str());
+    this->c_connect(s, ipaddr.toStdString().c_str(), service.toStdString().c_str());
 }
 /**
  * @brief 			This function connects a socket to a specific ip address.
@@ -63,7 +62,7 @@ void MessengerClient::connectToPeerSlot(int s, QString ipaddr)
  * @param ipaddr	ip address to connect socket to
  * @return			-1 on failure to connect, socket descriptor on success
  */
-int MessengerClient::c_connect(int socketfd, const char *ipaddr)
+int MessengerClient::c_connect(int socketfd, const char *ipaddr, const char *service)
 {
     int status;
     struct addrinfo hints, *res;
@@ -72,7 +71,7 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((status = getaddrinfo(ipaddr, PORT, &hints, &res)) != 0) {
+    if ((status = getaddrinfo(ipaddr, service, &hints, &res)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
         return 2;
     }
@@ -89,6 +88,7 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr)
 #endif
         return 1;
     }
+    qDebug() << "Successfully connected to" << ipaddr << "on port" << service << "on socket" << socketfd;
     emit resultOfConnectionAttempt(socketfd, status);
     freeaddrinfo(res);
     return 0;

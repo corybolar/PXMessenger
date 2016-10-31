@@ -30,8 +30,7 @@
 //The first port is for the TCP listener, the second is for the UDP listener
 //Different data types because we are still using getaddrinfo to load
 //the tcp socket structures vs manually loading the UDP structures.
-#define PORT "13653"
-#define PORT_DISCOVER 13654
+#define PORT_DISCOVER 13649
 #define BACKLOG 20
 
 class MessengerServer : public QThread
@@ -47,6 +46,7 @@ public:
     fd_set master, read_fds, write_fds;
     void setLocalHostname(QString hostname);
     void setLocalUUID(QString uuid);
+    void setListnerPortNumber(QString port);
 public slots:
     void updateMessServFDSSlot(int s);
 private:
@@ -58,12 +58,13 @@ private:
     int fdmax = 0;
     QString localHostname;
     QString localUUID;
+    QString ourListenerPort;
 
     int singleMessageIterator(int i, char *buf, char *ipstr);
 signals:
     void messageRecieved(const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
     void newConnectionRecieved(int, const QString);							//
-    void recievedUUIDForConnection(QString, QString, int, QUuid);
+    void recievedUUIDForConnection(QString, QString, QString, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
     void updNameRecieved(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
@@ -73,6 +74,7 @@ signals:
     void hostnameCheck(QString);
     void setPeerHostname(QString, QUuid);
     void sendMsg(int, QString, QString, QString, QUuid, QString);
+    void sendUdp(QString);
 };
 
 #endif // MESS_SERV_H

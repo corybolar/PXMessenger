@@ -7,11 +7,14 @@ MessengerServer::MessengerServer(QWidget *parent) : QThread(parent)
 void MessengerServer::setLocalHostname(QString hostname)
 {
     localHostname = hostname;
-    qDebug() << &localHostname;
 }
 void MessengerServer::setLocalUUID(QString uuid)
 {
     localUUID = uuid;
+}
+void MessengerServer::setListnerPortNumber(QString port)
+{
+    ourListenerPort = port;
 }
 
 /**
@@ -231,7 +234,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
             //Theres probably a better way to do this
             if(partialMsg[k] == '[' || partialMsg[k] == ']')
             {
-                char temp[INET_ADDRSTRLEN + 28] = {};
+                char temp[INET_ADDRSTRLEN + 5 + 38] = {};
                 strncpy(temp, partialMsg+(k-count), count);
                 count = 0;
                 if((strlen(temp) < 2))
@@ -258,7 +261,9 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     {
         //emit recievedUUIDForConnection(QString::fromUtf8(recievedUUID), ipstr2);
         qDebug() << "uuid recieved: " + quuid.toString();
-        emit recievedUUIDForConnection(QString::fromUtf8(partialMsg + 5, bufLen - 5), QString::fromUtf8(ipstr), i, quuid);
+        QString hostandport = QString::fromUtf8(partialMsg+5, bufLen-5);
+        QStringList hpsplit = hostandport.split(":");
+        emit recievedUUIDForConnection(hpsplit[0], QString::fromUtf8(ipstr), hpsplit[1], i, quuid);
         if(partialMsg[bufLen] != '\0')
         {
             partialMsg += bufLen;
@@ -342,8 +347,8 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
  */
 int MessengerServer::udpRecieve(int i)
 {
-    QString hname;
-    QString ipaddr;
+    QString portNumber;
+    QString ipAddress;
     socklen_t si_other_len;
     sockaddr_in si_other;
     char service_disc[20];
@@ -366,7 +371,7 @@ int MessengerServer::udpRecieve(int i)
         addr.sin_port = htons(PORT_DISCOVER);
         char name[28] = {};
         char fname[34] = {};
-        gethostname(name, sizeof name);
+        strcpy(name, ourListenerPort.toStdString().c_str());
         strcpy(fname, "/name:\0");
         strcat(fname, name);
         int len = strlen(fname);
@@ -394,14 +399,14 @@ int MessengerServer::udpRecieve(int i)
     //when this is recieved it add the sender to the list of peers and connects to him
     else if ((status_disc = strncmp(buf, "/name:", 6)) == 0)
     {
-        char name[28];
-        strcpy(name, &buf[6]);
+        char port[28];
+        strcpy(port, &buf[6]);
 
-        hname = QString::fromUtf8(name);
-        ipaddr = QString::fromUtf8(ipstr);
+        portNumber = QString::fromUtf8(port);
+        ipAddress = QString::fromUtf8(ipstr);
         emit
 
-        emit updNameRecieved(hname, ipaddr);
+        emit updNameRecieved(portNumber, ipAddress);
     }
     else
     {
@@ -435,7 +440,7 @@ int MessengerServer::listener()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    getaddrinfo(NULL, PORT, &hints, &res);
+    getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
 
     if((s_listen = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
         perror("socket error: ");
@@ -468,9 +473,12 @@ int MessengerServer::listener()
     multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
     setsockopt(s_discover, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
 
-    //END OF UDP STUFF
-
     freeaddrinfo(res);
+    //END OF UDP STUFF
+    //send our discover packet to find other computers
+    emit sendUdp("/discover:" + ourListenerPort);
+
+
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
     //FD_ZERO(&write_fds);

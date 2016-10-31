@@ -8,6 +8,9 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     char computerHostname[128];
     gethostname(computerHostname, sizeof computerHostname);
 
+    ourListenerPort = ourListenerPort.number(ourListenerPort.toInt() + uuidNum);
+    qDebug() << "Our port to listen on:" << ourListenerPort;
+
 #ifdef __unix__
     struct passwd *user;
     user = getpwuid(getuid());
@@ -31,7 +34,7 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     strcat(localHostname, computerHostname);
 #endif
 
-    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
+    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString, ourListenerPort);
 
     createTextEdit();
 
@@ -55,12 +58,12 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     connectPeerClassSignalsAndSlots();
 
-    emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+    //emit sendUdp("/discover" + QString::fromUtf8(localHostname));
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
     timer->start(250);
-    qDebug() << ourUUIDString;
+    qDebug() << "Our UUID:" << ourUUIDString;
 }
 void MessengerWindow::createTextEdit()
 {
@@ -128,8 +131,7 @@ void MessengerWindow::createMessClient()
     QObject::connect(messClient, SIGNAL (resultOfConnectionAttempt(int, bool)), peerWorker, SLOT(resultOfConnectionAttempt(int,bool)));
     QObject::connect(messClient, SIGNAL (resultOfTCPSend(int, QString, QString, bool)), peerWorker, SLOT(resultOfTCPSend(int,QString,QString,bool)));
     QObject::connect(this, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
-    QObject::connect(this, SIGNAL (connectToPeer(int, QString)), messClient, SLOT(connectToPeerSlot(int, QString)));
-    QObject::connect(this, SIGNAL (sendUdp(QString)), messClient, SLOT(udpSendSlot(QString)));
+    QObject::connect(this, SIGNAL (connectToPeer(int, QString, QString)), messClient, SLOT(connectToPeerSlot(int, QString, QString)));
     messClientThread->start();
 }
 void MessengerWindow::connectGuiSignalsAndSlots()
@@ -146,7 +148,7 @@ void MessengerWindow::connectGuiSignalsAndSlots()
 void MessengerWindow::connectPeerClassSignalsAndSlots()
 {
     QObject::connect(peerWorker, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
-    QObject::connect(peerWorker, SIGNAL (connectToPeer(int, QString)), messClient, SLOT(connectToPeerSlot(int, QString)));
+    QObject::connect(peerWorker, SIGNAL (connectToPeer(int, QString, QString)), messClient, SLOT(connectToPeerSlot(int, QString, QString)));
     QObject::connect(peerWorker, SIGNAL (updateMessServFDS(int)), messServer, SLOT (updateMessServFDSSlot(int)));
     QObject::connect(peerWorker, SIGNAL (printToTextBrowser(QString, QUuid, bool)), this, SLOT (printToTextBrowser(QString, QUuid, bool)));
     QObject::connect(peerWorker, SIGNAL (setItalicsOnItem(QUuid, bool)), this, SLOT (setItalicsOnItem(QUuid, bool)));
@@ -156,17 +158,19 @@ void MessengerWindow::createMessServ()
 {
     messServer = new MessengerServer(this);
     messServer->setLocalHostname(QString::fromUtf8(localHostname));
+    messServer->setListnerPortNumber(ourListenerPort);
     QObject::connect(messServer, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
-    QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, int, QUuid)));
+    QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, QString, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, QString, int, QUuid)));
     QObject::connect(messServer, SIGNAL (messageRecieved(const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, QUuid, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
     QObject::connect(messServer, SIGNAL (sendName(int, QString, QString)), messClient, SLOT (sendNameSlot(int, QString, QString)));
     QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString)), peerWorker, SLOT (newTcpConnection(int, QString)));
     QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
-    QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString)), peerWorker, SLOT (updatePeerDetailsHash(QString, QString)));
+    QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString)), peerWorker, SLOT (attemptConnection(QString, QString)));
     QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
     QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
     QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QUuid)), peerWorker, SLOT (setPeerHostname(QString, QUuid)));
+    QObject::connect(messServer, SIGNAL (sendUdp(QString)), messClient, SLOT(udpSendSlot(QString)));
     messServer->start();
 }
 void MessengerWindow::createMessTime()
@@ -196,7 +200,7 @@ QString MessengerWindow::getFormattedTime()
 
 void MessengerWindow::timerout()
 {
-    emit sendUdp("/discover" + QString::fromUtf8(localHostname));
+    //emit sendUdp("/discover" + QString::fromUtf8(localHostname));
     timer->stop();
 }
 
@@ -472,7 +476,7 @@ void MessengerWindow::sendButtonClicked()
         if(!(peerWorker->peerDetailsHash[uuidOfSelectedItem].isConnected))
         {
             int s = socket(AF_INET, SOCK_STREAM, 0);
-            emit connectToPeer(s, peerWorker->peerDetailsHash[uuidOfSelectedItem].ipAddress);
+            emit connectToPeer(s, peerWorker->peerDetailsHash[uuidOfSelectedItem].ipAddress, peerWorker->peerDetailsHash[uuidOfSelectedItem].portNumber);
         }
         emit sendMsg(peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor, str, localHostname, "/msg", ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");

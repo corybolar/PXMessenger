@@ -1,9 +1,10 @@
 #include <peerlist.h>
 
-PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid) : QObject(parent)
+PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid, QString port) : QObject(parent)
 {
     localHostname = hostname;
     localUUID = uuid;
+    ourListenerPort = port;
 }
 void PeerWorkerClass::setLocalHostName(QString name)
 {
@@ -13,17 +14,14 @@ void PeerWorkerClass::setLocalHostName(QString name)
 void PeerWorkerClass::hostnameCheck(QString comp)
 {
     QStringList temp = comp.split(':');
-    QString hname = temp[0];
-    hname = hname.remove(hname.length(), 1);
-    QString ipaddr = temp[1];
-    ipaddr.chop(1);
-    for(auto &itr : peerDetailsHash)
-    {
-        if(itr.hostname == hname)
-            return;
-    }
-    updatePeerDetailsHash(hname, ipaddr, 0, "");
-    return;
+    QString ipaddr = temp[0];
+    //ipaddr= ipaddr.remove(ipaddr.length(), 1);
+    QString port = temp[1];
+    QString uuid = temp[2];
+    if(peerDetailsHash.contains(uuid))
+        return;
+    else
+        attemptConnection(port, ipaddr);
 }
 void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
 {
@@ -31,37 +29,35 @@ void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
 }
 void PeerWorkerClass::sendIdentityMsg(int s)
 {
-    emit sendMsg(s, "", localHostname, "/uuid", localUUID, "");
+    emit sendMsg(s, "", localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
     emit sendMsg(s, "", "", "/request", localUUID, "");
 }
 
 
-void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr)
+void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr)
 {
     //assignSocket(&(knownPeersArray[i]));
     for(auto &itr : peerDetailsHash)
     {
-        if(itr.ipAddress == ipaddr)
+        if(itr.ipAddress == ipaddr && itr.portNumber == portNumber)
         {
             return;
         }
     }
 
     int s = socket(AF_INET, SOCK_STREAM, 0);
-    emit connectToPeer(s, ipaddr);
+    emit connectToPeer(s, ipaddr, portNumber);
     //this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");
 }
 
 void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
 {
 
-    if(peerDetailsHash[uuid].isValid)
+    if(peerDetailsHash.contains(uuid))
     {
         peerDetailsHash[uuid].hostname = hname;
         emit updateListWidget(uuid);
     }
-    else
-        peerDetailsHash.remove(uuid);
     return;
 }
 void PeerWorkerClass::peerQuit(int s)
@@ -77,7 +73,7 @@ void PeerWorkerClass::peerQuit(int s)
         close(itr.socketDescriptor);
 #endif
             int s1 = socket(AF_INET, SOCK_STREAM, 0);
-            emit connectToPeer(s1, itr.ipAddress);
+            emit connectToPeer(s1, itr.ipAddress, itr.portNumber);
             return;
         }
     }
@@ -103,9 +99,11 @@ void PeerWorkerClass::sendIps(int i)
         if(itr.isConnected && (itr.hostname != itr.ipAddress))
         {
             msg.append("[");
-            msg.append(itr.hostname);
-            msg.append(":");
             msg.append(itr.ipAddress);
+            msg.append(":");
+            msg.append(itr.portNumber);
+            msg.append(":");
+            msg.append(itr.identifier.toString());
             msg.append("]");
         }
     }
@@ -153,7 +151,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, int s, QUuid uuid)
+void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid)
 {
     for(auto &itr : peerDetailsHash)
     {
@@ -172,6 +170,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, int s
     newPeer.ipAddress = ipaddr;
     newPeer.identifier = uuid;
     newPeer.hostname = hname;
+    newPeer.portNumber = port;
 
     qDebug() << "hostname: " << newPeer.hostname << " @ ip:" << newPeer.ipAddress;
 

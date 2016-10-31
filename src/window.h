@@ -56,7 +56,7 @@
 #include <lmcons.h>
 #endif
 
-#define PORT "13653"
+//#define LPORTBASE "13653"
 
 class MessengerWindow : public QWidget
 {
@@ -96,6 +96,7 @@ private:
     QThread *messClientThread;
     QTimer *timer;
     QString ourUUIDString;
+    QString ourListenerPort = "13650";
 
     MessengerTextEdit *messTextEdit;
     MessengerClient *messClient;
@@ -131,7 +132,7 @@ private:
     void connectPeerClassSignalsAndSlots();
     QString getFormattedTime();
 signals:
-    void connectToPeer(int, QString);
+    void connectToPeer(int, QString, QString);
     void sendMsg(int, QString, QString, QString, QUuid, QString);
     void sendUdp(QString);
 
