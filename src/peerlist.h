@@ -47,10 +47,9 @@ public:
 public slots:
     void setListenerPort(QString port);
     void hostnameCheck(QString comp);
-    void attemptConnection(QString portNumber, QString ipaddr);
+    void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
     void updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid);
     void newTcpConnection(int s, QString ipaddr);
-    void peerQuit(QUuid uuid);
     void peerQuit(int s);
     void setPeerHostname(QString hname, QUuid uuid);
     void sendIps(int i);

@@ -24,7 +24,7 @@ void PeerWorkerClass::hostnameCheck(QString comp)
     if(peerDetailsHash.contains(uuid))
         return;
     else
-        attemptConnection(port, ipaddr);
+        attemptConnection(port, ipaddr, uuid);
 }
 void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
 {
@@ -37,17 +37,25 @@ void PeerWorkerClass::sendIdentityMsg(int s)
 }
 
 
-void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr)
+void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
 {
     for(auto &itr : peerDetailsHash)
     {
-        if(itr.ipAddress == ipaddr && itr.portNumber == portNumber)
+        if(itr.ipAddress == ipaddr && itr.portNumber == portNumber && (itr.isConnected))
         {
             return;
         }
     }
 
     int s = socket(AF_INET, SOCK_STREAM, 0);
+    peerDetails newPeer;
+    newPeer.identifier = uuid;
+    newPeer.ipAddress = ipaddr;
+    newPeer.socketDescriptor = s;
+    newPeer.portNumber = portNumber;
+    newPeer.socketisValid = true;
+    newPeer.isConnected = true;
+    peerDetailsHash.insert(newPeer.identifier, newPeer);
     emit connectToPeer(s, ipaddr, portNumber);
 }
 
@@ -67,32 +75,21 @@ void PeerWorkerClass::peerQuit(int s)
     {
         if(itr.socketDescriptor == s)
         {
-            this->peerQuit(itr.identifier);
 #ifdef _WIN32
-        closesocket(itr.socketDescriptor);
+            closesocket(itr.socketDescriptor);
 #else
-        close(itr.socketDescriptor);
+            close(itr.socketDescriptor);
 #endif
-            int s1 = socket(AF_INET, SOCK_STREAM, 0);
+            peerDetailsHash[itr.identifier].socketisValid = 0;
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].socketDescriptor = -1;
+            int s1 = socket(AF_INET, SOCK_STREAM, 0);
             emit connectToPeer(s1, itr.ipAddress, itr.portNumber);
             return;
         }
     }
 }
 
-void PeerWorkerClass::peerQuit(QUuid uuid)
-{
-    if(peerDetailsHash.value(uuid).isValid)
-    {
-        peerDetailsHash[uuid].isConnected = 0;
-        peerDetailsHash[uuid].socketisValid = 0;
-        emit setItalicsOnItem(uuid, 1);
-    }
-    else
-        peerDetailsHash.remove(uuid);
-}
 void PeerWorkerClass::sendIps(int i)
 {
     QString type = "/ip:";
@@ -119,6 +116,12 @@ void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
         emit updateMessServFDS(socket);
         emit sendIdentityMsg(socket);
     }
+    else
+    {
+        for(auto &itr : peerDetailsHash)
+            if(itr.socketDescriptor == socket)
+                peerDetailsHash[itr.identifier].isConnected = false;
+    }
 }
 void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print)
 {
@@ -128,7 +131,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
         if(levelOfSuccess < 0)
         {
             msg = "Message was not sent successfully, Broken Pipe.  Peer likely disconnected";
-            peerQuit(uuid);
+            peerQuit(peerDetailsHash.value(uuid).socketDescriptor);
         }
         if(levelOfSuccess > 0)
         {
@@ -144,7 +147,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
         return;
     }
     if(levelOfSuccess<0)
-        peerQuit(uuid);
+        peerQuit(peerDetailsHash.value(uuid).socketDescriptor);
 }
 /**
  * @brief				This is the function called when mess_discover recieves a udp packet starting with "/name:"
@@ -158,13 +161,18 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QStri
 {
     for(auto &itr : peerDetailsHash)
     {
-        if(itr.identifier == uuid && itr.socketisValid == true)
+        if(itr.identifier == uuid && itr.isValid == true)
         {
             return;
         }
     }
-
     peerDetails newPeer;
+    if(peerDetailsHash.contains(uuid))
+    {
+        newPeer.textBox = peerDetailsHash[uuid].textBox;
+        peerDetailsHash.take(uuid);
+    }
+
 
     newPeer.socketDescriptor = s;
     newPeer.isConnected = true;

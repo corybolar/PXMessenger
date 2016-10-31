@@ -365,14 +365,15 @@ int MessengerServer::udpRecieve(int i)
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = si_other.sin_addr.s_addr;
         addr.sin_port = htons(PORT_DISCOVER);
-        char name[28] = {};
-        char fname[34] = {};
+        char name[50] = {};
+        char fname[60] = {};
         strcpy(name, ourListenerPort.toStdString().c_str());
+        strcat(name, localUUID.toStdString().c_str());
         strcpy(fname, "/name:\0");
         strcat(fname, name);
         int len = strlen(fname);
 
-        for(int k = 0; k < 1; k++)
+        for(int k = 0; k < 2; k++)
         {
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
         }
@@ -395,14 +396,15 @@ int MessengerServer::udpRecieve(int i)
     //when this is recieved it add the sender to the list of peers and connects to him
     else if ((status_disc = strncmp(buf, "/name:", 6)) == 0)
     {
-        char port[28];
-        strcpy(port, &buf[6]);
+        char fullid[50];
+        strcpy(fullid, &buf[6]);
 
-        portNumber = QString::fromUtf8(port);
+        QString fullidStr = QString::fromUtf8(fullid);
+        portNumber = fullidStr.left(fullidStr.indexOf("{"));
+        QString uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
         ipAddress = QString::fromUtf8(ipstr);
-        emit
 
-        emit updNameRecieved(portNumber, ipAddress);
+        emit updNameRecieved(portNumber, ipAddress, uuid);
     }
     else
     {

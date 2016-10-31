@@ -66,7 +66,7 @@ signals:
     void newConnectionRecieved(int, const QString);							//
     void recievedUUIDForConnection(QString, QString, QString, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
-    void updNameRecieved(QString hname, QString ipaddr);					//return info of discovered peers hostname and ip address
+    void updNameRecieved(QString hname, QString ipaddr, QString uuid);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
     void sendIps(int);

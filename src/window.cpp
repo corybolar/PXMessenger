@@ -159,12 +159,13 @@ void MessengerWindow::createMessServ()
 {
     messServer = new MessengerServer(this);
     messServer->setLocalHostname(QString::fromUtf8(localHostname));
+    messServer->setLocalUUID(ourUUIDString);
     QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, QString, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, QString, int, QUuid)));
     QObject::connect(messServer, SIGNAL (messageRecieved(const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, QUuid, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
     QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString)), peerWorker, SLOT (newTcpConnection(int, QString)));
     QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
-    QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString)), peerWorker, SLOT (attemptConnection(QString, QString)));
+    QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString, QString)), peerWorker, SLOT (attemptConnection(QString, QString, QString)));
     QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
     QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
     QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QUuid)), peerWorker, SLOT (setPeerHostname(QString, QUuid)));
@@ -353,7 +354,10 @@ void MessengerWindow::updateListWidget(QUuid uuid)
                 messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
                 messListWidget->item(i)->setData(Qt::UserRole, uuid);
                 peerWorker->peerDetailsHash[uuid].listWidgetIndex = i;
-                peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
+                if(!(u.isNull()))
+                {
+                    peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
+                }
                 break;
             }
             else if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) < 0)
