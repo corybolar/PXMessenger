@@ -19,9 +19,11 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     strcat(localHostname, computerHostname);
 #elif _WIN32
     char user[UNLEN+1];
+    TCHAR t_user[UNLEN+1];
     DWORD user_size = UNLEN+1;
-    if(GetUserName((TCHAR*)user, &user_size))
+    if(GetUserName(t_user, &user_size))
     {
+        wcstombs(user, t_user, UNLEN+1);
         strcat(localHostname, user);
         strcat(localHostname, "@");
     }

@@ -72,7 +72,7 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr, const char *ser
     hints.ai_socktype = SOCK_STREAM;
 
     if ((status = getaddrinfo(ipaddr, service, &hints, &res)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        fprintf(stderr, "getaddrinfo: %s\n", (char*)gai_strerror(status));
         return 2;
     }
 

@@ -9,6 +9,7 @@ LIBS += -lws2_32 \
 
 win32 {
 CONFIG += c++11 \
+        debug \
         release 
 }
 unix {
