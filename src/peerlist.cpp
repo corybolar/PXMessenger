@@ -1,21 +1,24 @@
 #include <peerlist.h>
 
-PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid, QString port) : QObject(parent)
+PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid) : QObject(parent)
 {
     localHostname = hostname;
     localUUID = uuid;
-    ourListenerPort = port;
 }
 void PeerWorkerClass::setLocalHostName(QString name)
 {
     localHostname = name;
 
 }
+void PeerWorkerClass::setListenerPort(QString port)
+{
+    ourListenerPort = port;
+}
+
 void PeerWorkerClass::hostnameCheck(QString comp)
 {
     QStringList temp = comp.split(':');
     QString ipaddr = temp[0];
-    //ipaddr= ipaddr.remove(ipaddr.length(), 1);
     QString port = temp[1];
     QString uuid = temp[2];
     if(peerDetailsHash.contains(uuid))
@@ -36,7 +39,6 @@ void PeerWorkerClass::sendIdentityMsg(int s)
 
 void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr)
 {
-    //assignSocket(&(knownPeersArray[i]));
     for(auto &itr : peerDetailsHash)
     {
         if(itr.ipAddress == ipaddr && itr.portNumber == portNumber)
@@ -47,7 +49,6 @@ void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr)
 
     int s = socket(AF_INET, SOCK_STREAM, 0);
     emit connectToPeer(s, ipaddr, portNumber);
-    //this->updatePeerDetailsHash(hname, ipaddr, true, 0, "");
 }
 
 void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
@@ -73,6 +74,8 @@ void PeerWorkerClass::peerQuit(int s)
         close(itr.socketDescriptor);
 #endif
             int s1 = socket(AF_INET, SOCK_STREAM, 0);
+            peerDetailsHash[itr.identifier].isConnected = false;
+            peerDetailsHash[itr.identifier].socketDescriptor = -1;
             emit connectToPeer(s1, itr.ipAddress, itr.portNumber);
             return;
         }

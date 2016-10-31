@@ -46,7 +46,6 @@ public:
     fd_set master, read_fds, write_fds;
     void setLocalHostname(QString hostname);
     void setLocalUUID(QString uuid);
-    void setListnerPortNumber(QString port);
 public slots:
     void updateMessServFDSSlot(int s);
 private:
@@ -61,6 +60,7 @@ private:
     QString ourListenerPort;
 
     int singleMessageIterator(int i, char *buf, char *ipstr);
+    int getPortNumber(int socket);
 signals:
     void messageRecieved(const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
     void newConnectionRecieved(int, const QString);							//
@@ -75,6 +75,7 @@ signals:
     void setPeerHostname(QString, QUuid);
     void sendMsg(int, QString, QString, QString, QUuid, QString);
     void sendUdp(QString);
+    void setListenerPort(QString);
 };
 
 #endif // MESS_SERV_H

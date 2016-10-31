@@ -8,9 +8,6 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     char computerHostname[128];
     gethostname(computerHostname, sizeof computerHostname);
 
-    ourListenerPort = ourListenerPort.number(ourListenerPort.toInt() + uuidNum);
-    qDebug() << "Our port to listen on:" << ourListenerPort;
-
 #ifdef __unix__
     struct passwd *user;
     user = getpwuid(getuid());
@@ -35,7 +32,7 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
         sprintf(temp, "%d", uuidNum);
         strcat(localHostname, temp);
     }
-    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString, ourListenerPort);
+    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
 
     createTextEdit();
 
@@ -49,9 +46,9 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     createSystemTray();
 
-    createMessClient();
-
     createMessServ();
+
+    createMessClient();
 
     createMessTime();
 
@@ -133,6 +130,9 @@ void MessengerWindow::createMessClient()
     QObject::connect(messClient, SIGNAL (resultOfTCPSend(int, QString, QString, bool)), peerWorker, SLOT(resultOfTCPSend(int,QString,QString,bool)));
     QObject::connect(this, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
     QObject::connect(this, SIGNAL (connectToPeer(int, QString, QString)), messClient, SLOT(connectToPeerSlot(int, QString, QString)));
+    QObject::connect(messServer, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
+    QObject::connect(messServer, SIGNAL (sendName(int, QString, QString)), messClient, SLOT (sendNameSlot(int, QString, QString)));
+    QObject::connect(messServer, SIGNAL (sendUdp(QString)), messClient, SLOT(udpSendSlot(QString)));
     messClientThread->start();
 }
 void MessengerWindow::connectGuiSignalsAndSlots()
@@ -159,19 +159,16 @@ void MessengerWindow::createMessServ()
 {
     messServer = new MessengerServer(this);
     messServer->setLocalHostname(QString::fromUtf8(localHostname));
-    messServer->setListnerPortNumber(ourListenerPort);
-    QObject::connect(messServer, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
     QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, QString, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, QString, int, QUuid)));
     QObject::connect(messServer, SIGNAL (messageRecieved(const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, QUuid, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
-    QObject::connect(messServer, SIGNAL (sendName(int, QString, QString)), messClient, SLOT (sendNameSlot(int, QString, QString)));
     QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString)), peerWorker, SLOT (newTcpConnection(int, QString)));
     QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
     QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString)), peerWorker, SLOT (attemptConnection(QString, QString)));
     QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
     QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
     QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QUuid)), peerWorker, SLOT (setPeerHostname(QString, QUuid)));
-    QObject::connect(messServer, SIGNAL (sendUdp(QString)), messClient, SLOT(udpSendSlot(QString)));
+    QObject::connect(messServer, SIGNAL (setListenerPort(QString)), peerWorker, SLOT (setListenerPort(QString)));
     messServer->start();
 }
 void MessengerWindow::createMessTime()
@@ -179,6 +176,7 @@ void MessengerWindow::createMessTime()
     messTime = time(0);
     currentTime = localtime( &messTime );
 }
+
 void MessengerWindow::debugButtonClicked()
 {
     for(auto &itr : peerWorker->peerDetailsHash)

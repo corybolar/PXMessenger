@@ -9,10 +9,10 @@ bool MessIniReader::checkAllowMoreThanOne()
     QSettings inisettings;
     if(inisettings.contains("config/AllowMoreThanOneInstance"))
     {
-        return inisettings.value("config/AllowMoreThanOneInstance", false).toBool();
+        return inisettings.value("config/AllowMoreThanOneInstance", true).toBool();
     }
-    inisettings.setValue("config/AllowMoreThanOneInstance", false);
-    return false;
+    inisettings.setValue("config/AllowMoreThanOneInstance", true);
+    return true;
 }
 int MessIniReader::getUUIDNumber()
 {

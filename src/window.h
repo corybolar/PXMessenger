@@ -95,7 +95,6 @@ private:
     QThread *messClientThread;
     QTimer *timer;
     QString ourUUIDString;
-    QString ourListenerPort = "13650";
 
     MessengerTextEdit *messTextEdit;
     MessengerClient *messClient;

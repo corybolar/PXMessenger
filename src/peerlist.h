@@ -41,10 +41,11 @@ class PeerWorkerClass : public QObject
 {
     Q_OBJECT
 public:
-    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid, QString port);
+    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid);
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
 public slots:
+    void setListenerPort(QString port);
     void hostnameCheck(QString comp);
     void attemptConnection(QString portNumber, QString ipaddr);
     void updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid);

@@ -28,7 +28,7 @@ void MessengerClient::udpSend(const char* msg)
 
     memset(&broadaddr, 0, sizeof(broadaddr));
     broadaddr.sin_family = AF_INET;
-    broadaddr.sin_addr.s_addr = inet_addr("226.1.1.1");
+    broadaddr.sin_addr.s_addr = inet_addr("239.1.1.1");
     broadaddr.sin_port = htons(port2);
 
     //localInterface.s_addr = inet_addr("192.168.1.200");

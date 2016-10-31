@@ -12,10 +12,6 @@ void MessengerServer::setLocalUUID(QString uuid)
 {
     localUUID = uuid;
 }
-void MessengerServer::setListnerPortNumber(QString port)
-{
-    ourListenerPort = port;
-}
 
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
@@ -415,6 +411,18 @@ int MessengerServer::udpRecieve(int i)
 
     return 0;
 }
+int MessengerServer::getPortNumber(int socket)
+{
+    sockaddr_in needPortNumber;
+    memset(&needPortNumber, 0, sizeof(needPortNumber));
+    socklen_t needPortNumberLen = sizeof(needPortNumber);
+    if(getsockname(socket, (struct sockaddr*)&needPortNumber, &needPortNumberLen) != 0)
+    {
+        printf("getsockname: %s\n", strerror(errno));
+        return -1;
+    }
+    return ntohs(needPortNumber.sin_port);
+}
 
 
 /**
@@ -440,7 +448,8 @@ int MessengerServer::listener()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
+    //getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
+    getaddrinfo(NULL, "0", &hints, &res);
 
     if((s_listen = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
         perror("socket error: ");
@@ -467,9 +476,15 @@ int MessengerServer::listener()
         exit(1);
     }
     else
+    {
         printf("Binding datagram socket...OK.\n");
+    }
 
-    multicastGroup.imr_multiaddr.s_addr = inet_addr("226.1.1.1");
+    ourListenerPort = QString::number(getPortNumber(s_listen));
+    emit setListenerPort(ourListenerPort);
+    qDebug() << "Port number for Multicast: " << getPortNumber(s_discover);
+    qDebug() << "Port number for TCP/IP Listner" << getPortNumber(s_listen);
+    multicastGroup.imr_multiaddr.s_addr = inet_addr("239.1.1.1");
     multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
     setsockopt(s_discover, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
 

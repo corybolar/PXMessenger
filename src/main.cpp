@@ -27,7 +27,11 @@ int main(int argc, char **argv)
     QCoreApplication::setOrganizationDomain("PXMessenger");
     MessIniReader iniReader;
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
-    int uuidnum = iniReader.getUUIDNumber();
+    int uuidnum = 0;
+    if(allowMoreThanOne)
+    {
+        uuidnum = iniReader.getUUIDNumber();
+    }
     QUuid uuid = iniReader.getUUID(uuidnum);
 
     MessengerWindow window(uuid, uuidnum);
