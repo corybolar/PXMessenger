@@ -34,7 +34,6 @@
 #include <sys/fcntl.h>
 
 #include <mess_serv.h>
-#include <messlistwidgetitem.h>
 #include <mess_textedit.h>
 #include <mess_client.h>
 #include <peerlist.h>
