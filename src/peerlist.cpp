@@ -53,7 +53,6 @@ void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QStr
     newPeer.ipAddress = ipaddr;
     newPeer.socketDescriptor = s;
     newPeer.portNumber = portNumber;
-    newPeer.socketisValid = true;
     newPeer.isConnected = true;
     peerDetailsHash.insert(newPeer.identifier, newPeer);
     emit connectToPeer(s, ipaddr, portNumber);
@@ -161,7 +160,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QStri
 {
     for(auto &itr : peerDetailsHash)
     {
-        if(itr.identifier == uuid && itr.isValid == true)
+        if(itr.identifier == uuid && itr.socketisValid == true)
         {
             return;
         }
