@@ -158,7 +158,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QStri
 {
     for(auto &itr : peerDetailsHash)
     {
-        if(itr.identifier == uuid)
+        if(itr.identifier == uuid && itr.socketisValid == true)
         {
             return;
         }
