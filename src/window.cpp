@@ -201,9 +201,16 @@ QString MessengerWindow::getFormattedTime()
 
 void MessengerWindow::timerout()
 {
-    emit retryDiscover();
-    qDebug() << "Retrying Discovery Packet";
-    timer->start(1000);
+    if(messListWidget->count() < 4)
+    {
+        emit retryDiscover();
+        qDebug() << "Retrying Discovery Packet";
+    }
+    else
+    {
+        timer->stop();
+        qDebug() << "Found enough peers";
+    }
 }
 
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool

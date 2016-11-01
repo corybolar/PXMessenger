@@ -1,5 +1,6 @@
 TEMPLATE = app
 TARGET = PXMessenger
+VERSION = 0.3.2
 
 QT = core gui widgets multimedia
 
