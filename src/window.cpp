@@ -60,7 +60,7 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
-    //timer->start(1000);
+    timer->start(1000);
     qDebug() << "Our UUID:" << ourUUIDString;
 }
 void MessengerWindow::createTextEdit()
@@ -91,7 +91,7 @@ void MessengerWindow::createButtons()
     messDebugButton = new QPushButton("Debug", this);
     messDebugButton->setGeometry(460, 510, 80, 30);
     connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
-    //messDebugButton->hide();
+    messDebugButton->hide();
 }
 void MessengerWindow::createListWidget()
 {
@@ -170,6 +170,7 @@ void MessengerWindow::createMessServ()
     QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
     QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QUuid)), peerWorker, SLOT (setPeerHostname(QString, QUuid)));
     QObject::connect(messServer, SIGNAL (setListenerPort(QString)), peerWorker, SLOT (setListenerPort(QString)));
+    QObject::connect(this, SIGNAL (retryDiscover()), messServer, SLOT (retryDiscover()));
     messServer->start();
 }
 void MessengerWindow::createMessTime()
@@ -200,9 +201,9 @@ QString MessengerWindow::getFormattedTime()
 
 void MessengerWindow::timerout()
 {
-    //if(messListWidget->count() >= 4)
-       // qDebug() << messListWidget->item(1)->font().italic();
-    //timer->start(1000);
+    emit retryDiscover();
+    qDebug() << "Retrying Discovery Packet";
+    timer->start(1000);
 }
 
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool

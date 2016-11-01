@@ -133,6 +133,7 @@ signals:
     void connectToPeer(int, QString, QString);
     void sendMsg(int, QString, QString, QString, QUuid, QString);
     void sendUdp(QString);
+    void retryDiscover();
 
 };
 

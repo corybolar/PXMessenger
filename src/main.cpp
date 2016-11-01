@@ -25,6 +25,7 @@ int main(int argc, char **argv)
     QCoreApplication::setApplicationName("PXMessenger");
     QCoreApplication::setOrganizationName("PXMessenger");
     QCoreApplication::setOrganizationDomain("PXMessenger");
+    QCoreApplication::setApplicationVersion("v0.3");
     MessIniReader iniReader;
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
     int uuidnum = 0;

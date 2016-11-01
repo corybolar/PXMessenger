@@ -43,6 +43,11 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
     this->update_fds(result);
     return result;
 }
+void MessengerServer::retryDiscover()
+{
+    emit sendUdp("/discover:" + ourListenerPort);
+}
+
 void MessengerServer::updateMessServFDSSlot(int s)
 {
     this->update_fds(s);
@@ -493,6 +498,7 @@ int MessengerServer::listener()
     freeaddrinfo(res);
     //END OF UDP STUFF
     //send our discover packet to find other computers
+
     emit sendUdp("/discover:" + ourListenerPort);
 
 

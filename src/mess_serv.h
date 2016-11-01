@@ -48,6 +48,7 @@ public:
     void setLocalUUID(QString uuid);
 public slots:
     void updateMessServFDSSlot(int s);
+    void retryDiscover();
 private:
     int udpRecieve(int i);
     int tcpRecieve(int i);
