@@ -60,7 +60,7 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
-    timer->start(250);
+    //timer->start(1000);
     qDebug() << "Our UUID:" << ourUUIDString;
 }
 void MessengerWindow::createTextEdit()
@@ -200,8 +200,9 @@ QString MessengerWindow::getFormattedTime()
 
 void MessengerWindow::timerout()
 {
-    //emit sendUdp("/discover" + QString::fromUtf8(localHostname));
-    timer->stop();
+    //if(messListWidget->count() >= 4)
+       // qDebug() << messListWidget->item(1)->font().italic();
+    //timer->start(1000);
 }
 
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool
@@ -214,15 +215,15 @@ void MessengerWindow::setItalicsOnItem(QUuid uuid, bool italics)
             QFont mfont = messListWidget->item(i)->font();
             mfont.setItalic(italics);
             messListWidget->item(i)->setFont(mfont);
-            break;
+            QString changeInConnection;
+            if(italics)
+                changeInConnection = " disconnected";
+            else
+                changeInConnection = " reconnected";
+            this->printToTextBrowser(this->getFormattedTime() + peerWorker->peerDetailsHash[uuid].hostname + " on " +peerWorker->peerDetailsHash[uuid].ipAddress + changeInConnection, uuid, false);
+            return;
         }
     }
-    QString changeInConnection;
-    if(italics)
-        changeInConnection = " disconnected";
-    else
-        changeInConnection = " reconnected";
-    this->printToTextBrowser(this->getFormattedTime() + peerWorker->peerDetailsHash[uuid].hostname + " on " +peerWorker->peerDetailsHash[uuid].ipAddress + changeInConnection, uuid, false);
 }
 /**
  * @brief 				Stops more than 1000 characters being entered into the QTextEdit object as that is as many as we can send
@@ -352,7 +353,7 @@ void MessengerWindow::updateListWidget(QUuid uuid)
             if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) == 0)
             {
                 if(u == uuid)
-                    return;
+                    break;
                 else
                     continue;
             }
