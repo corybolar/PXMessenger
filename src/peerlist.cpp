@@ -21,7 +21,7 @@ void PeerWorkerClass::hostnameCheck(QString comp)
     QString ipaddr = temp[0];
     QString port = temp[1];
     QString uuid = temp[2];
-    if(peerDetailsHash.contains(uuid))
+    if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
         return;
     else
         attemptConnection(port, ipaddr, uuid);
@@ -39,22 +39,37 @@ void PeerWorkerClass::sendIdentityMsg(int s)
 
 void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
 {
-    for(auto &itr : peerDetailsHash)
+    /*for(auto &itr : peerDetailsHash)
     {
-        if(itr.ipAddress == ipaddr && itr.portNumber == portNumber && (itr.isConnected))
-        {
-            return;
-        }
+    if(itr.ipAddress == ipaddr && itr.portNumber == portNumber && itr.isConnected)
+    {
+    return;
     }
-
+    }
+    */
+    if(peerDetailsHash.value(uuid).attemptingToConnect || uuid.isNull())
+    {
+        return;
+    }
     int s = socket(AF_INET, SOCK_STREAM, 0);
-    peerDetails newPeer;
-    newPeer.identifier = uuid;
-    newPeer.ipAddress = ipaddr;
-    newPeer.socketDescriptor = s;
-    newPeer.portNumber = portNumber;
-    newPeer.isConnected = true;
-    peerDetailsHash.insert(newPeer.identifier, newPeer);
+    if(peerDetailsHash.contains(uuid))
+    {
+        peerDetailsHash[uuid].identifier = uuid;
+        peerDetailsHash[uuid].ipAddress = ipaddr;
+        peerDetailsHash[uuid].socketDescriptor = s;
+        peerDetailsHash[uuid].portNumber = portNumber;
+        peerDetailsHash[uuid].attemptingToConnect = true;
+    }
+    else
+    {
+        peerDetails newPeer;
+        newPeer.identifier = uuid;
+        newPeer.ipAddress = ipaddr;
+        newPeer.socketDescriptor = s;
+        newPeer.portNumber = portNumber;
+        newPeer.attemptingToConnect = true;
+        peerDetailsHash.insert(newPeer.identifier, newPeer);
+    }
     emit connectToPeer(s, ipaddr, portNumber);
 }
 
@@ -74,16 +89,12 @@ void PeerWorkerClass::peerQuit(int s)
     {
         if(itr.socketDescriptor == s)
         {
-#ifdef _WIN32
-            closesocket(itr.socketDescriptor);
-#else
-            close(itr.socketDescriptor);
-#endif
-            peerDetailsHash[itr.identifier].socketisValid = 0;
+            peerDetailsHash[itr.identifier].attemptingToConnect = 0;
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].socketDescriptor = -1;
-            int s1 = socket(AF_INET, SOCK_STREAM, 0);
-            emit connectToPeer(s1, itr.ipAddress, itr.portNumber);
+            //int s1 = socket(AF_INET, SOCK_STREAM, 0);
+            //emit connectToPeer(s1, itr.ipAddress, itr.portNumber);
+            emit setItalicsOnItem(itr.identifier, 1);
             return;
         }
     }
@@ -110,16 +121,26 @@ void PeerWorkerClass::sendIps(int i)
 }
 void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
 {
+    QUuid uuid;
+    for(auto &itr : peerDetailsHash)
+    {
+        if(itr.socketDescriptor == socket)
+        {
+            uuid = itr.identifier;
+        }
+    }
+    if(uuid.isNull())
+        return;
     if(!result)
     {
+        peerDetailsHash[uuid].attemptingToConnect = false;
         emit updateMessServFDS(socket);
         emit sendIdentityMsg(socket);
     }
     else
     {
-        for(auto &itr : peerDetailsHash)
-            if(itr.socketDescriptor == socket)
-                peerDetailsHash[itr.identifier].isConnected = false;
+        peerDetailsHash[uuid].attemptingToConnect = false;
+        peerDetailsHash[uuid].isConnected = false;
     }
 }
 void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print)
@@ -158,32 +179,44 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  */
 void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid)
 {
-    for(auto &itr : peerDetailsHash)
+    if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
     {
-        if(itr.identifier == uuid && itr.socketisValid == true)
-        {
-            return;
-        }
+        return;
     }
-    peerDetails newPeer;
-    if(peerDetailsHash.contains(uuid))
+    else if( !( peerDetailsHash.value(uuid).isConnected ) )
     {
-        newPeer.textBox = peerDetailsHash[uuid].textBox;
-        peerDetailsHash.take(uuid);
+        qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "reconnected!";
+
+        peerDetailsHash[uuid].socketDescriptor = s;
+        peerDetailsHash[uuid].isConnected = true;
+        peerDetailsHash[uuid].attemptingToConnect = true;
+        peerDetailsHash[uuid].isValid = true;
+        peerDetailsHash[uuid].ipAddress = ipaddr;
+        peerDetailsHash[uuid].identifier = uuid;
+        peerDetailsHash[uuid].hostname = hname;
+        peerDetailsHash[uuid].portNumber = port;
+
+        emit setItalicsOnItem(uuid, 0);
+        emit updateListWidget(uuid);
+        return;
     }
+    else
+    {
+        qDebug() << "hostname: " << hname << " @ ip:" << ipaddr;
 
+        peerDetails newPeer;
 
-    newPeer.socketDescriptor = s;
-    newPeer.isConnected = true;
-    newPeer.socketisValid = true;
-    newPeer.isValid = true;
-    newPeer.ipAddress = ipaddr;
-    newPeer.identifier = uuid;
-    newPeer.hostname = hname;
-    newPeer.portNumber = port;
+        newPeer.socketDescriptor = s;
+        newPeer.isConnected = true;
+        newPeer.attemptingToConnect = true;
+        newPeer.isValid = true;
+        newPeer.ipAddress = ipaddr;
+        newPeer.identifier = uuid;
+        newPeer.hostname = hname;
+        newPeer.portNumber = port;
 
-    qDebug() << "hostname: " << newPeer.hostname << " @ ip:" << newPeer.ipAddress;
+        peerDetailsHash.insert(uuid, newPeer);
 
-    peerDetailsHash.insert(uuid, newPeer);
-    emit updateListWidget(newPeer.identifier);
+        emit updateListWidget(uuid);
+    }
 }

@@ -26,7 +26,7 @@
 struct peerDetails{
     bool isValid = false;
     bool isConnected = false;
-    bool socketisValid = false;
+    bool attemptingToConnect = false;
     bool messagePending = false;
     int socketDescriptor = 0;
     QString portNumber = "-1";

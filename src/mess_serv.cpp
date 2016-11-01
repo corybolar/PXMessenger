@@ -136,6 +136,7 @@ int MessengerServer::tcpRecieve(int i)
         }
         //Either way, alert the main thread this socket has closed.  It will update the peer_class
         //and will make the list item italics to signal a disconnected peer
+        FD_CLR(i, &master);
         emit peerQuit(i);
 #ifdef __unix__
         close(i);
@@ -144,7 +145,6 @@ int MessengerServer::tcpRecieve(int i)
         closesocket(i);
 #endif
         //Remove the socket from the list to check in select
-        FD_CLR(i, &master);
         return 1;
     }
     //Normal message coming here

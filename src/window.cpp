@@ -349,6 +349,13 @@ void MessengerWindow::updateListWidget(QUuid uuid)
             QString str = messListWidget->item(i)->text();
             if((str.startsWith(" * ")))
                 str = str.mid(3, str.length()-6);
+            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) == 0)
+            {
+                if(u == uuid)
+                    return;
+                else
+                    continue;
+            }
             if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) > 0)
             {
                 messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
