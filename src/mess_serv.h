@@ -27,9 +27,6 @@
 #include <ws2tcpip.h>
 #endif
 
-//The first port is for the TCP listener, the second is for the UDP listener
-//Different data types because we are still using getaddrinfo to load
-//the tcp socket structures vs manually loading the UDP structures.
 #define PORT_DISCOVER 13649
 #define BACKLOG 20
 
@@ -62,9 +59,12 @@ private:
 
     int singleMessageIterator(int i, char *buf, char *ipstr);
     int getPortNumber(int socket);
+    int msgPacket(int i, char *partialMsg, char *ipstr);
+    int setupUDPSocket(int s_listen);
+    int setupTCPSocket();
 signals:
     void messageRecieved(const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
-    void newConnectionRecieved(int, const QString);							//
+    void newConnectionRecieved(int);							//
     void recievedUUIDForConnection(QString, QString, QString, int, QUuid);
     void peerQuit(int);												//Alert of a peer disconnect
     void updNameRecieved(QString hname, QString ipaddr, QString uuid);					//return info of discovered peers hostname and ip address

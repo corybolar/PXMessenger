@@ -49,7 +49,7 @@ public slots:
     void hostnameCheck(QString comp);
     void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
     void updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid);
-    void newTcpConnection(int s, QString ipaddr);
+    void newTcpConnection(int s);
     void peerQuit(int s);
     void setPeerHostname(QString hname, QUuid uuid);
     void sendIps(int i);

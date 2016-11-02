@@ -8,13 +8,11 @@ PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid
 void PeerWorkerClass::setLocalHostName(QString name)
 {
     localHostname = name;
-
 }
 void PeerWorkerClass::setListenerPort(QString port)
 {
     ourListenerPort = port;
 }
-
 void PeerWorkerClass::hostnameCheck(QString comp)
 {
     QStringList temp = comp.split(':');
@@ -26,7 +24,7 @@ void PeerWorkerClass::hostnameCheck(QString comp)
     else
         attemptConnection(port, ipaddr, uuid);
 }
-void PeerWorkerClass::newTcpConnection(int s, QString ipaddr)
+void PeerWorkerClass::newTcpConnection(int s)
 {
     this->sendIdentityMsg(s);
 }
@@ -35,18 +33,8 @@ void PeerWorkerClass::sendIdentityMsg(int s)
     emit sendMsg(s, "", localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
     emit sendMsg(s, "", "", "/request", localUUID, "");
 }
-
-
 void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
 {
-    /*for(auto &itr : peerDetailsHash)
-    {
-    if(itr.ipAddress == ipaddr && itr.portNumber == portNumber && itr.isConnected)
-    {
-    return;
-    }
-    }
-    */
     if(peerDetailsHash.value(uuid).attemptingToConnect || uuid.isNull())
     {
         return;
@@ -72,10 +60,8 @@ void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QStr
     }
     emit connectToPeer(s, ipaddr, portNumber);
 }
-
 void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
 {
-
     if(peerDetailsHash.contains(uuid))
     {
         peerDetailsHash[uuid].hostname = hname;
@@ -99,7 +85,6 @@ void PeerWorkerClass::peerQuit(int s)
         }
     }
 }
-
 void PeerWorkerClass::sendIps(int i)
 {
     QString type = "/ip:";

@@ -12,7 +12,6 @@ void MessengerServer::setLocalUUID(QString uuid)
 {
     localUUID = uuid;
 }
-
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
  */
@@ -29,16 +28,11 @@ void MessengerServer::run()
 int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
 {
     int result;
-    char ipstr[INET6_ADDRSTRLEN];
-    char service[20];
 
     socklen_t addr_size = sizeof(sockaddr);
     result = (accept(s, (struct sockaddr *)&their_addr, &addr_size));
 
-    getnameinfo(((struct sockaddr*)&their_addr), addr_size, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
-
-    //QUuid uuid = QUuid::createUuid();
-    emit newConnectionRecieved(result, QString::fromUtf8(ipstr, strlen(ipstr)));
+    emit newConnectionRecieved(result);
 
     this->update_fds(result);
     return result;
@@ -47,7 +41,6 @@ void MessengerServer::retryDiscover()
 {
     emit sendUdp("/discover:" + ourListenerPort);
 }
-
 void MessengerServer::updateMessServFDSSlot(int s)
 {
     this->update_fds(s);
@@ -158,14 +151,14 @@ int MessengerServer::tcpRecieve(int i)
         //These are variable for determining the ip address of the sender
         struct sockaddr_storage addr;
         socklen_t socklen = sizeof(addr);
-        char ipstr2[INET6_ADDRSTRLEN];
+        char ipstr[INET6_ADDRSTRLEN];
         char service[20];
 
         //Get ip address of sender
         getpeername(i, (struct sockaddr*)&addr, &socklen);
-        getnameinfo((struct sockaddr*)&addr, socklen, ipstr2, sizeof(ipstr2), service, sizeof(service), NI_NUMERICHOST);
+        getnameinfo((struct sockaddr*)&addr, socklen, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
 
-        this->singleMessageIterator(i, buf, ipstr2);
+        this->singleMessageIterator(i, buf, ipstr);
     }
     return 1;
 }
@@ -212,15 +205,6 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
 
         //The following signal is going to the main thread and will call the slot prints(QString, QString)
         emit messageRecieved(QString::fromUtf8(partialMsg+4, bufLen-4), quuid, false);
-
-        //Check to see if theres anything else in the buffer and if we need to reiterate through these if statements
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
     }
     //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
     else if( !( strncmp(partialMsg, "/ip", 3) ) )
@@ -247,32 +231,13 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
             else
                 count++;
         }
-        //Check to see if we need to reiterate because there is another message on the buffer
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
-
-
     }
     else if(!(strncmp(partialMsg, "/uuid", 5)))
     {
-        //emit recievedUUIDForConnection(QString::fromUtf8(recievedUUID), ipstr2);
         qDebug() << "uuid recieved: " + quuid.toString();
         QString hostandport = QString::fromUtf8(partialMsg+5, bufLen-5);
         QStringList hpsplit = hostandport.split(":");
         emit recievedUUIDForConnection(hpsplit[0], QString::fromUtf8(ipstr), hpsplit[1], i, quuid);
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
-
     }
     //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
     //These packets should come formatted like "/request\0"
@@ -282,14 +247,6 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         //The following signal is going to the m_client object and thread and will call the slot sendIps(int)
         //The int here is the socketdescriptor we want to send our ip set too.
         emit sendIps(i);
-        //Check to see if we need to reiterate because there is another message on the buffer
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
     }
     //These packets are messages sent to the global chat room
     //These packets should come formatted like "/globalhostname: msg\0"
@@ -299,14 +256,6 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         char emitStr[bufLen-6] = {};
         strncpy(emitStr, (partialMsg+7), bufLen-7);
         emit messageRecieved(QString::fromUtf8(emitStr), quuid, true);
-        //Check to see if we need to reiterate because there is another message on the buffer
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
     }
     //This packet is an updated hostname for the computer that sent it
     //These packets should come formatted like "/hostnameHostname1\0"
@@ -317,13 +266,6 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         char emitStr[bufLen-8] = {};
         strncpy(emitStr, (partialMsg+9), bufLen-9);
         emit setPeerHostname(QString::fromUtf8(emitStr), quuid);
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
     }
     //This packet is asking us to communicate an updated hostname to the sender
     //These packets should come formatted like "/namerequest\0"
@@ -331,15 +273,20 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     {
         qDebug() << "/namerequest recieved from " << QString::fromUtf8(ipstr) << "\nsending hostname";
         emit sendName(i, quuid.toString(), localUUID);
-        if(partialMsg[bufLen] != '\0')
-        {
-            partialMsg += bufLen;
-            this->singleMessageIterator(i, partialMsg, ipstr);
-        }
-        else
-            return 0;
     }
-    return -1;
+    else
+    {
+        qDebug() << "Bad message type in the packet, discarding the rest";
+        return -1;
+    }
+
+    //Check if theres more in the buffer
+    if(partialMsg[bufLen] != '\0')
+    {
+        partialMsg += bufLen;
+        this->singleMessageIterator(i, partialMsg, ipstr);
+    }
+    return 0;
 }
 /**
  * @brief 				UDP packet recieved. Remember, these are connectionless
@@ -348,18 +295,15 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
  */
 int MessengerServer::udpRecieve(int i)
 {
-    QString portNumber;
-    QString ipAddress;
     socklen_t si_other_len;
     sockaddr_in si_other;
-    char service_disc[20];
-    int status_disc;
-    char buf[100] = {};
+    char service[20];
+    char buf[1000] = {};
     char ipstr[INET6_ADDRSTRLEN];
 
     si_other_len = sizeof(sockaddr);
     recvfrom(i, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
-    getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service_disc, sizeof(service_disc), NI_NUMERICHOST);
+    getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
     if (strncmp(buf, "/discover", 9) == 0)
     {
         struct sockaddr_in addr;
@@ -382,26 +326,20 @@ int MessengerServer::udpRecieve(int i)
         {
             sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
         }
-        //emit potentialReconnect(QString::fromUtf8(ipstr));
-        char tname[strlen(buf)-8] = {};
-        unsigned bufLen = strlen(buf);
-        for(unsigned i = 9; i < (bufLen+1);i++)
-        {
-            tname[i-9] = buf[i];
-        }
-        //emit mess_peers(QString::fromUtf8(tname), QString::fromUtf8(ipstr));
 #ifdef _WIN32
         closesocket(socket1);
 #else
         close(socket1);
 #endif
-
     }
     //This will get sent from anyone recieving a /discover packet
     //when this is recieved it add the sender to the list of peers and connects to him
-    else if ((status_disc = strncmp(buf, "/name:", 6)) == 0)
+    else if ((strncmp(buf, "/name:", 6)) == 0)
     {
+        QString portNumber;
+        QString ipAddress;
         char fullid[50];
+
         strcpy(fullid, &buf[6]);
 
         QString fullidStr = QString::fromUtf8(fullid);
@@ -430,8 +368,78 @@ int MessengerServer::getPortNumber(int socket)
     }
     return ntohs(needPortNumber.sin_port);
 }
+int MessengerServer::setupUDPSocket(int s_listen)
+{
+    sockaddr_in si_me;
+    ip_mreq multicastGroup;
 
+    int socketUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+    memset(&si_me, 0, sizeof(si_me));
+    si_me.sin_family = AF_INET;
+    si_me.sin_port = htons(PORT_DISCOVER);
+    si_me.sin_addr.s_addr = INADDR_ANY;
+
+    setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof (int));
+
+    if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
+    {
+        perror("Binding datagram socket error");
+        close(socketUDP);
+        exit(1);
+    }
+
+    ourListenerPort = QString::number(getPortNumber(s_listen));
+    emit setListenerPort(ourListenerPort);
+
+    qDebug() << "Port number for Multicast: " << getPortNumber(socketUDP);
+
+    multicastGroup.imr_multiaddr.s_addr = inet_addr("239.1.1.1");
+    multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
+    setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
+
+    //send our discover packet to find other computers
+    emit sendUdp("/discover:" + ourListenerPort);
+
+    return socketUDP;
+}
+int MessengerServer::setupTCPSocket()
+{
+    struct addrinfo hints, *res;
+    int socketTCP;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    //getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
+    getaddrinfo(NULL, "0", &hints, &res);
+
+    if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
+    {
+        perror("socket error: ");
+    }
+    if(setsockopt(socketTCP, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int)) < 0)
+    {
+        perror("setsockopt error: ");
+    }
+    if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
+    {
+        perror("bind error: ");
+    }
+    if(listen(socketTCP, BACKLOG) < 0)
+    {
+        perror("listen error: ");
+    }
+
+    qDebug() << "Port number for TCP/IP Listner" << getPortNumber(socketTCP);
+
+    freeaddrinfo(res);
+
+    return socketTCP;
+
+}
 /**
  * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
  *						the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked
@@ -444,69 +452,20 @@ int MessengerServer::listener()
     //Potential rewrite to change getaddrinfo to a manual setup of the socket structures.
     //Changing to manual setup may improve load times on windows systems.  Locks us into
     //ipv4 however.
-    struct addrinfo hints, *res;
     int s_discover, s_listen;
-    sockaddr_in si_me;
-    ip_mreq multicastGroup;
 
     //TCP STUFF
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    //getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
-    getaddrinfo(NULL, "0", &hints, &res);
-
-    if((s_listen = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
-        perror("socket error: ");
-    setsockopt(s_listen, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int));
-    if(bind(s_listen, res->ai_addr, res->ai_addrlen) < 0)
-        perror("bind error: ");
-    if(listen(s_listen, BACKLOG) < 0)
-        perror("listen error: ");
-    //END OF TCP STUFF
+    s_listen = setupTCPSocket();
 
     //UDP STUFF
-    s_discover = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    //setsockopt(s_discover, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int));
-    memset(&si_me, 0, sizeof(si_me));
-    si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(PORT_DISCOVER);
-    si_me.sin_addr.s_addr = INADDR_ANY;
-    //setsockopt(s_discover, SOL_SOCKET, , "true", sizeof (int));
-    setsockopt(s_discover, SOL_SOCKET, SO_REUSEADDR, "true", sizeof (int));
-    if(bind(s_discover, (sockaddr *)&si_me, sizeof(sockaddr)))
-    {
-        perror("Binding datagram socket error");
-        close(s_discover);
-        exit(1);
-    }
-    else
-    {
-        printf("Binding datagram socket...OK.\n");
-    }
-
-    ourListenerPort = QString::number(getPortNumber(s_listen));
-    emit setListenerPort(ourListenerPort);
-    qDebug() << "Port number for Multicast: " << getPortNumber(s_discover);
-    qDebug() << "Port number for TCP/IP Listner" << getPortNumber(s_listen);
-    multicastGroup.imr_multiaddr.s_addr = inet_addr("239.1.1.1");
-    multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
-    setsockopt(s_discover, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
-
-    freeaddrinfo(res);
-    //END OF UDP STUFF
-    //send our discover packet to find other computers
-
-    emit sendUdp("/discover:" + ourListenerPort);
-
+    s_discover = setupUDPSocket(s_listen);
 
     FD_ZERO(&master);
     FD_ZERO(&read_fds);
-    //FD_ZERO(&write_fds);
+
     FD_SET(s_listen, &master);
     FD_SET(s_discover, &master);
+
     this->set_fdmax(s_listen);
     this->set_fdmax(s_discover);
 
@@ -514,9 +473,6 @@ int MessengerServer::listener()
     tv.tv_sec = 0;
     tv.tv_usec = 250000;
 
-    //char buf1[1000];
-    //if(read(s_discover, buf1, sizeof(buf1)) > 0)
-     //   printf("the message is \"%s\"n", buf1);
     //END of setup for sockets, being infinite while loop to listen.
     //Select is used with a time limit to enable the main thread to close
     //this thread with a signal.
@@ -527,13 +483,12 @@ int MessengerServer::listener()
         //This while loop will interrupt on signal from the main thread, or having a socket
         //that has data waiting to be read from.  Select returns -1 on error, 0 on no data
         //waiting on any socket.
-        while( ( (status  ==  0) | (status == -1) ) && ( !this->isInterruptionRequested() ) )
+        while( ( (status  ==  0) | (status == -1) ) && ( !( this->isInterruptionRequested() ) ) )
         {
             if(status == -1){
                 perror("select:");
             }
             read_fds = master;
-            write_fds = master;
             status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
             tv.tv_sec = 0;
             tv.tv_usec = 250000; //quarter of a second, select modifies this value so it must be reset before every loop

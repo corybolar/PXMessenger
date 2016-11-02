@@ -10,14 +10,12 @@ void MessengerClient::setLocalHostname(char *hostname)
 }
 void MessengerClient::setlocalUUID(QString uuid)
 {
-   localUUID = uuid;
+    localUUID = uuid;
 }
-
 void MessengerClient::udpSendSlot(QString msg)
 {
     this->udpSend(msg.toStdString().c_str());
 }
-
 void MessengerClient::udpSend(const char* msg)
 {
     int len;
@@ -31,13 +29,8 @@ void MessengerClient::udpSend(const char* msg)
     broadaddr.sin_addr.s_addr = inet_addr("239.1.1.1");
     broadaddr.sin_port = htons(port2);
 
-    //localInterface.s_addr = inet_addr("192.168.1.200");
-
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
         perror("socket:");
-   // if (setsockopt(socketfd2, SOL_SOCKET, SO_BROADCAST, "true", sizeof (int)))
-    //if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_IF, INADDR_ANY, 0))
-     //   perror("setsockopt failed:");
 
     len = strlen(msg);
 
@@ -46,12 +39,11 @@ void MessengerClient::udpSend(const char* msg)
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
 #ifdef _WIN32
-        closesocket(socketfd2);
+    closesocket(socketfd2);
 #else
-        close(socketfd2);
+    close(socketfd2);
 #endif
 }
-
 void MessengerClient::connectToPeerSlot(int s, QString ipaddr, QString service)
 {
     this->c_connect(s, ipaddr.toStdString().c_str(), service.toStdString().c_str());
@@ -147,12 +139,12 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     }
     if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
     {
-       strcat(full_mess, host);
-       strcat(humanReadableMessage, host);
-       full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength] = ':';
-       full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength + 1] = ' ';
-       humanReadableMessage[strlen(host)] = ':';
-       humanReadableMessage[strlen(host) + 1] = ' ';
+        strcat(full_mess, host);
+        strcat(humanReadableMessage, host);
+        full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength] = ':';
+        full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength + 1] = ' ';
+        humanReadableMessage[strlen(host)] = ':';
+        humanReadableMessage[strlen(host) + 1] = ' ';
     }
     strcat(full_mess, msg);
     strcat(humanReadableMessage, msg);

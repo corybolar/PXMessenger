@@ -139,7 +139,7 @@ void MessengerWindow::connectGuiSignalsAndSlots()
 {
     QObject::connect(messSendButton, SIGNAL (clicked()), this, SLOT (sendButtonClicked()));
     QObject::connect(messQuitButton, SIGNAL (clicked()), this, SLOT (quitButtonClicked()));
-    QObject::connect(messListWidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*, QListWidgetItem*)));
+    QObject::connect(messListWidget, SIGNAL (currentItemChanged(QListWidgetItem*, QListWidgetItem*)), this, SLOT (currentItemChanged(QListWidgetItem*)));
     QObject::connect(messTextEdit, SIGNAL (returnPressed()), this, SLOT (sendButtonClicked()));
     QObject::connect(messSystemTrayExitAction, SIGNAL (triggered()), this, SLOT (quitButtonClicked()));
     QObject::connect(messSystemTray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
@@ -163,7 +163,7 @@ void MessengerWindow::createMessServ()
     QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, QString, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, QString, int, QUuid)));
     QObject::connect(messServer, SIGNAL (messageRecieved(const QString, QUuid, bool)), this, SLOT (printToTextBrowserServerSlot(const QString, QUuid, bool)) );
     QObject::connect(messServer, SIGNAL (finished()), messServer, SLOT (deleteLater()));
-    QObject::connect(messServer, SIGNAL (newConnectionRecieved(int, QString)), peerWorker, SLOT (newTcpConnection(int, QString)));
+    QObject::connect(messServer, SIGNAL (newConnectionRecieved(int)), peerWorker, SLOT (newTcpConnection(int)));
     QObject::connect(messServer, SIGNAL (peerQuit(int)), peerWorker, SLOT (peerQuit(int)));
     QObject::connect(messServer, SIGNAL (updNameRecieved(QString, QString, QString)), peerWorker, SLOT (attemptConnection(QString, QString, QString)));
     QObject::connect(messServer, SIGNAL (sendIps(int)), peerWorker, SLOT (sendIps(int)));
@@ -181,14 +181,7 @@ void MessengerWindow::createMessTime()
 
 void MessengerWindow::debugButtonClicked()
 {
-    for(auto &itr : peerWorker->peerDetailsHash)
-    {
-        if(itr.hostname == "archlaptop" || itr.hostname == "Computer")
-        {
-            ::close(itr.socketDescriptor);
-            FD_CLR(itr.socketDescriptor, &(messServer->master));
-        }
-    }
+
 }
 QString MessengerWindow::getFormattedTime()
 {
@@ -198,7 +191,6 @@ QString MessengerWindow::getFormattedTime()
     strftime(time_str, 12, "(%H:%M:%S) ", currentTime);
     return time_str;
 }
-
 void MessengerWindow::timerout()
 {
     if(messListWidget->count() < 4)
@@ -212,11 +204,10 @@ void MessengerWindow::timerout()
         qDebug() << "Found enough peers";
     }
 }
-
 //Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool
 void MessengerWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
-    for(int i = 0; i < messListWidget->count(); i++)
+    for(int i = 0; i < messListWidget->count() - 2; i++)
     {
         if(messListWidget->item(i)->data(Qt::UserRole) == uuid)
         {
@@ -310,7 +301,7 @@ void MessengerWindow::removeMessagePendingStatus(QListWidgetItem* item)
  * @param item1			New selected item
  * @param item2			Old selected item.  We do not care about item2 however these are the paramaters of the SIGNAL QListWidget emits
  */
-void MessengerWindow::currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2)
+void MessengerWindow::currentItemChanged(QListWidgetItem *item1)
 {
     int index1 = messListWidget->row(item1);
     QUuid uuid1 = item1->data(Qt::UserRole).toString();
@@ -338,7 +329,6 @@ void MessengerWindow::quitButtonClicked()
 {
     this->close();
 }
-
 void MessengerWindow::updateListWidget(QUuid uuid)
 {
     messListWidget->setUpdatesEnabled(false);
@@ -390,34 +380,6 @@ void MessengerWindow::updateListWidget(QUuid uuid)
             {
                 qDebug() << "hostnames equal: MessengerWindow::updateListWidget";
             }
-            /*
-            else if(peerWorker->peerDetailsHash.value(uuid).hostname == str && uuid != u )
-            {
-                if(peerWorker->peerDetailsHash[uuid].messagePending)
-                {
-                    messListWidget->item(i)->setText(" * " + peerWorker->peerDetailsHash[uuid].hostname + " * ");
-                    messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                }
-                else
-                {
-                    messListWidget->item(i)->setText(peerWorker->peerDetailsHash[uuid].hostname);
-                    messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                }
-                break;
-            }
-            else if(uuid == u)
-            {
-                if(peerWorker->peerDetailsHash[uuid].messagePending)
-                {
-                    messListWidget->item(i)->setText(" * " + peerWorker->peerDetailsHash[uuid].hostname + " * ");
-                }
-                else
-                {
-                    messListWidget->item(i)->setText(peerWorker->peerDetailsHash[uuid].hostname);
-                }
-                break;
-            }
-            */
         }
     }
     messListWidget->setUpdatesEnabled(true);
@@ -449,10 +411,7 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
     delete messClient;
     delete messSystemTrayIcon;
     messSystemTray->hide();
-    //messSystemTray->deleteLater();
-    //delete now;
     delete peerWorker;
-    //messSystemTray->hide();
     event->accept();
 }
 /**
@@ -479,32 +438,39 @@ void MessengerWindow::sendButtonClicked()
         this->printToTextBrowser("Choose a computer to message from the selection pane on the right", "", false);
         return;
     }
+
     QString str = messTextEdit->toPlainText();
-
-    int index = messListWidget->currentRow();
-    QUuid uuidOfSelectedItem = messListWidget->item(index)->data(Qt::UserRole).toString();
-    if( ( uuidOfSelectedItem == globalChatUuid) && !( str.isEmpty() ) )
-    {
-        globalSend(str);
-        messTextEdit->setText("");
-        return;
-    }
-
     if(!(str.isEmpty()))
     {
-        if(!(peerWorker->peerDetailsHash[uuidOfSelectedItem].isConnected))
+        int index = messListWidget->currentRow();
+        QUuid uuidOfSelectedItem = messListWidget->item(index)->data(Qt::UserRole).toString();
+        if(uuidOfSelectedItem.isNull())
+            return;
+
+        peerDetails destination = peerWorker->peerDetailsHash.value(uuidOfSelectedItem);
+
+        if( ( uuidOfSelectedItem == globalChatUuid) )
+        {
+            globalSend(str);
+            messTextEdit->setText("");
+            return;
+        }
+        if(!(destination.isConnected))
         {
             int s = socket(AF_INET, SOCK_STREAM, 0);
-            emit connectToPeer(s, peerWorker->peerDetailsHash[uuidOfSelectedItem].ipAddress, peerWorker->peerDetailsHash[uuidOfSelectedItem].portNumber);
+            peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor = s;
+            emit connectToPeer(s, destination.ipAddress, destination.portNumber);
         }
-        emit sendMsg(peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor, str, localHostname, "/msg", ourUUIDString, uuidOfSelectedItem.toString());
+        emit sendMsg(destination.socketDescriptor, str, localHostname, "/msg", ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");
     }
+
     return;
 }
 void MessengerWindow::changeListColor(int row, int style)
 {
     QBrush back = (messListWidget->item(row)->background());
+
     if(style == 1)
     {
         messListWidget->item(row)->setBackground(Qt::red);
@@ -525,7 +491,7 @@ void MessengerWindow::focusWindow()
         QSound::play(":/resources/resources/message.wav");
         return;
     }
-    if(this->windowState() == Qt::WindowActive)
+    else if(this->windowState() == Qt::WindowActive)
     {
         QSound::play(":/resources/resources/message.wav");
         return;
@@ -558,6 +524,7 @@ void MessengerWindow::focusWindow()
 void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
 {
     QString strnew;
+
     if(message)
     {
         strnew = this->getFormattedTime() + str;
@@ -567,11 +534,6 @@ void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
         strnew = str;
     }
 
-    if(uuid.isNull())
-    {
-        //messTextBrowser->append(strnew);
-        return;
-    }
     if(!(peerWorker->peerDetailsHash.contains(uuid)) && ( uuid != globalChatUuid ))
     {
         qDebug() << "Message from invalid uuid, rejection";
@@ -594,24 +556,27 @@ void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
             messTextBrowser->append(strnew);
             if(message)
                 this->focusWindow();
-            qApp->alert(this, 0);
         }
     }
     else if(message)
     {
+        int globalChatIndex = messListWidget->count() - 1;
+
         if(uuid == globalChatUuid)
         {
-            this->changeListColor(messListWidget->count() - 1, 1);
+            this->changeListColor(globalChatIndex, 1);
             if(!globalChatAlerted)
             {
-                messListWidget->item(messListWidget->count() - 1)->setText(" * " + messListWidget->item(messListWidget->count() - 1)->text() + " * ");
+                messListWidget->item(globalChatIndex)->setText(" * " + messListWidget->item(globalChatIndex)->text() + " * ");
                 globalChatAlerted = true;
             }
         }
-        else if( !( peerWorker->peerDetailsHash[uuid].messagePending ) && ( messListWidget->currentRow() != messListWidget->count()-1 ) )
+        else if( !( peerWorker->peerDetailsHash.value(uuid).messagePending ) && ( messListWidget->currentRow() != globalChatIndex ) )
         {
-            this->changeListColor(peerWorker->peerDetailsHash[uuid].listWidgetIndex, 1);
-            messListWidget->item(peerWorker->peerDetailsHash[uuid].listWidgetIndex)->setText(" * " + messListWidget->item(peerWorker->peerDetailsHash[uuid].listWidgetIndex)->text() + " * ");
+            int index = peerWorker->peerDetailsHash.value(uuid).listWidgetIndex;
+
+            this->changeListColor(index, 1);
+            messListWidget->item(index)->setText(" * " + messListWidget->item(index)->text() + " * ");
             peerWorker->peerDetailsHash[uuid].messagePending = true;
         }
         this->focusWindow();

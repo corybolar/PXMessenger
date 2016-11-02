@@ -24,8 +24,6 @@
 #include <ws2tcpip.h>
 #endif
 
-#define PORT "13653"
-
 class MessengerClient : public QObject
 {
     Q_OBJECT

@@ -21,6 +21,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QPalette>
+#include <QMainWindow>
 
 #include <sys/types.h>
 #include <ctime>
@@ -55,15 +56,12 @@
 #include <lmcons.h>
 #endif
 
-//#define LPORTBASE "13653"
-
-class MessengerWindow : public QWidget
+class MessengerWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
     MessengerWindow(QUuid uuid, int uuidNum);
-
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
     void changeEvent(QEvent *event);
@@ -71,7 +69,7 @@ private slots:
     void sendButtonClicked();													//Send button event
     void quitButtonClicked();														//quit button, used to test the various destructors and close event
     void debugButtonClicked();
-    void currentItemChanged(QListWidgetItem *item1, QListWidgetItem *item2);//change text in textbrowser to show correct text history and active send recipient
+    void currentItemChanged(QListWidgetItem *item1);//change text in textbrowser to show correct text history and active send recipient
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     void printToTextBrowserServerSlot(const QString str, QUuid uuid, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
