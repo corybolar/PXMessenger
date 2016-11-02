@@ -562,9 +562,10 @@ void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
             messTextBrowser->append(strnew);
             if(message)
                 this->focusWindow();
+            return;
         }
     }
-    else if(message)
+    if(message)
     {
         int globalChatIndex = messListWidget->count() - 1;
 
