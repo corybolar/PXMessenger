@@ -13,7 +13,7 @@ public:
     MessIniReader();
     bool checkAllowMoreThanOne();
     int getUUIDNumber();
-    QUuid getUUID(int num);
+    QUuid getUUID(int num, bool takeIt);
     int resetUUID(int num, QUuid uuid);
 };
 

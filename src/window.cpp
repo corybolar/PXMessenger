@@ -376,6 +376,7 @@ void MessengerWindow::updateListWidget(QUuid uuid)
                 {
                     messListWidget->insertItem(i+1, peerWorker->peerDetailsHash.value(uuid).hostname);
                     messListWidget->item(i+1)->setData(Qt::UserRole, uuid);
+                    peerWorker->peerDetailsHash[uuid].listWidgetIndex = i+1;
                 }
                 else
                     continue;

@@ -10,10 +10,10 @@ bool MessIniReader::checkAllowMoreThanOne()
 
     if(inisettings.contains("config/AllowMoreThanOneInstance"))
     {
-        return inisettings.value("config/AllowMoreThanOneInstance", true).toBool();
+        return inisettings.value("config/AllowMoreThanOneInstance", false).toBool();
     }
-    inisettings.setValue("config/AllowMoreThanOneInstance", true);
-    return true;
+    inisettings.setValue("config/AllowMoreThanOneInstance", false);
+    return false;
 }
 int MessIniReader::getUUIDNumber()
 {
@@ -30,11 +30,18 @@ int MessIniReader::getUUIDNumber()
     }
     return i;
 }
-QUuid MessIniReader::getUUID(int num)
+QUuid MessIniReader::getUUID(int num, bool takeIt)
 {
     QSettings inisettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL);
+    if(inisettings.value("uuid/" + QString::number(num), "") == "")
+    {
+        inisettings.setValue("uuid/" + QString::number(num), QUuid::createUuid().toString());
+    }
     QUuid uuid = inisettings.value("uuid/" + QString::number(num), "").toUuid();
-    inisettings.setValue("uuid/" + QString::number(num), "INUSE");
+    if(takeIt)
+    {
+        inisettings.setValue("uuid/" + QString::number(num), "INUSE");
+    }
     return uuid;
 }
 int MessIniReader::resetUUID(int num, QUuid uuid)
