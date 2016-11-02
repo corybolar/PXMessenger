@@ -3,35 +3,12 @@
 MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 {
     ourUUIDString = uuid.toString();
+    qDebug() << "Our UUID:" << ourUUIDString;
+
     setFixedSize(900,600);
 
-    char computerHostname[128];
-    gethostname(computerHostname, sizeof computerHostname);
+    setupHostname(uuidNum);
 
-#ifdef __unix__
-    struct passwd *user;
-    user = getpwuid(getuid());
-    strcat(localHostname, user->pw_name);
-    strcat(localHostname, "@");
-    strcat(localHostname, computerHostname);
-#elif _WIN32
-    char user[UNLEN+1];
-    TCHAR t_user[UNLEN+1];
-    DWORD user_size = UNLEN+1;
-    if(GetUserName(t_user, &user_size))
-    {
-        wcstombs(user, t_user, UNLEN+1);
-        strcat(localHostname, user);
-        strcat(localHostname, "@");
-    }
-    strcat(localHostname, computerHostname);
-#endif
-    if(uuidNum > 0)
-    {
-        char temp[3];
-        sprintf(temp, "%d", uuidNum);
-        strcat(localHostname, temp);
-    }
     peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
 
     createTextEdit();
@@ -56,12 +33,9 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     connectPeerClassSignalsAndSlots();
 
-    //emit sendUdp("/discover" + QString::fromUtf8(localHostname));
-
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
-    timer->start(1000);
-    qDebug() << "Our UUID:" << ourUUIDString;
+    timer->start(5000);
 }
 void MessengerWindow::createTextEdit()
 {
@@ -177,6 +151,36 @@ void MessengerWindow::createMessTime()
 {
     messTime = time(0);
     currentTime = localtime( &messTime );
+}
+void MessengerWindow::setupHostname(int uuidNum)
+{
+    char computerHostname[128];
+    gethostname(computerHostname, sizeof computerHostname);
+
+#ifdef __unix__
+    struct passwd *user;
+    user = getpwuid(getuid());
+    strcat(localHostname, user->pw_name);
+    strcat(localHostname, "@");
+    strcat(localHostname, computerHostname);
+#elif _WIN32
+    char user[UNLEN+1];
+    TCHAR t_user[UNLEN+1];
+    DWORD user_size = UNLEN+1;
+    if(GetUserName(t_user, &user_size))
+    {
+        wcstombs(user, t_user, UNLEN+1);
+        strcat(localHostname, user);
+        strcat(localHostname, "@");
+    }
+    strcat(localHostname, computerHostname);
+#endif
+    if(uuidNum > 0)
+    {
+        char temp[3];
+        sprintf(temp, "%d", uuidNum);
+        strcat(localHostname, temp);
+    }
 }
 
 void MessengerWindow::debugButtonClicked()
@@ -378,7 +382,7 @@ void MessengerWindow::updateListWidget(QUuid uuid)
             }
             else
             {
-                qDebug() << "hostnames equal: MessengerWindow::updateListWidget";
+                qDebug() << "Error Displaying a Peer in MessengerWindow::updateListWidget";
             }
         }
     }
@@ -408,10 +412,12 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
     }
     messClientThread->quit();
     messClientThread->wait();
+    timer->stop();
+    delete timer;
     delete messClient;
     delete messSystemTrayIcon;
-    messSystemTray->hide();
     delete peerWorker;
+    messSystemTray->hide();
     event->accept();
 }
 /**
