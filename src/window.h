@@ -22,6 +22,9 @@
 #include <QApplication>
 #include <QPalette>
 #include <QMainWindow>
+#include <QGridLayout>
+#include <QMenuBar>
+#include <QStatusBar>
 
 #include <sys/types.h>
 #include <ctime>
@@ -79,6 +82,14 @@ private slots:
     void updateListWidget(QUuid uuid);														//sort peerlist struct alphabetically by hostname
     void setItalicsOnItem(QUuid uuid, bool italics);
 private:
+    QGridLayout *layout;
+    QWidget *centralwidget;
+    QSpacerItem *horizontalSpacer;
+    QSpacerItem *horizontalSpacer_2;
+    QSpacerItem *horizontalSpacer_3;
+    QSpacerItem *horizontalSpacer_4;
+    QMenuBar *menubar;
+    QStatusBar *statusbar;
     QPushButton *messSendButton;
     QPushButton *messQuitButton;
     QPushButton *messDebugButton;
@@ -128,6 +139,8 @@ private:
     void connectPeerClassSignalsAndSlots();
     QString getFormattedTime();
     void setupHostname(int uuidNum);
+    void setupLayout();
+    void setupTooltips();
 signals:
     void connectToPeer(int, QString, QString);
     void sendMsg(int, QString, QString, QString, QUuid, QString);

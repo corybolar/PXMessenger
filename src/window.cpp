@@ -5,15 +5,17 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     ourUUIDString = uuid.toString();
     qDebug() << "Our UUID:" << ourUUIDString;
 
-    setFixedSize(900,600);
+    //setFixedSize(900,600);
 
     setupHostname(uuidNum);
 
     peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
 
-    createTextEdit();
+    setupLayout();
 
     createTextBrowser();
+
+    createTextEdit();
 
     createLineEdit();
 
@@ -22,6 +24,8 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     createListWidget();
 
     createSystemTray();
+
+    setupTooltips();
 
     createMessServ();
 
@@ -33,46 +37,137 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     connectPeerClassSignalsAndSlots();
 
+    this->setCentralWidget(centralwidget);
+    menubar = new QMenuBar(this);
+    menubar->setObjectName(QStringLiteral("menubar"));
+    menubar->setGeometry(QRect(0, 0, 835, 27));
+    menubar->setDefaultUp(false);
+    this->setMenuBar(menubar);
+    statusbar = new QStatusBar(this);
+    statusbar->setObjectName(QStringLiteral("statusbar"));
+    this->setStatusBar(statusbar);
+    this->show();
+
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timerout()));
     timer->start(5000);
+
+    resize(700, 500);
+}
+void MessengerWindow::setupTooltips()
+{
+#ifndef QT_NO_TOOLTIP
+    messTextBrowser->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Messages</p></body></html>", 0));
+#endif // QT_NO_TOOLTIP
+#ifndef QT_NO_TOOLTIP
+    messLineEdit->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Hostname</p></body></html>", 0));
+#endif // QT_NO_TOOLTIP
+    messLineEdit->setText(QString());
+#ifndef QT_NO_TOOLTIP
+    messSendButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Send a Message</p></body></html>", 0));
+#endif // QT_NO_TOOLTIP
+    messSendButton->setText(QApplication::translate("PXMessenger", "Send", 0));
+#ifndef QT_NO_TOOLTIP
+    messListWidget->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Connected Peers</p></body></html>", 0));
+#endif // QT_NO_TOOLTIP
+#ifndef QT_NO_TOOLTIP
+    messTextEdit->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Enter message to send</p></body></html>", 0));
+#endif // QT_NO_TOOLTIP
+#ifndef QT_NO_TOOLTIP
+    messQuitButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Quit PXMessenger</p></body></html>", 0));
+#endif // QT_NO_TOOLTIP
+    messQuitButton->setText(QApplication::translate("PXMessenger", "Quit", 0));
+}
+
+void MessengerWindow::setupLayout()
+{
+    if (this->objectName().isEmpty())
+        this->setObjectName(QStringLiteral("PXMessenger"));
+    this->resize(835, 567);
+
+    centralwidget = new QWidget(this);
+    centralwidget->setObjectName(QStringLiteral("centralwidget"));
+    layout = new QGridLayout(centralwidget);
+    layout->setObjectName(QStringLiteral("layout"));
+
+    horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addItem(horizontalSpacer, 3, 0, 1, 1);
+    horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addItem(horizontalSpacer_3, 5, 2, 1, 1);
+    horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addItem(horizontalSpacer_2, 3, 2, 1, 1);
+    horizontalSpacer_4 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addItem(horizontalSpacer_4, 5, 0, 1, 1);
 }
 void MessengerWindow::createTextEdit()
 {
-    messTextEdit = new MessengerTextEdit(this);
-    messTextEdit->setGeometry(10, 380, 620, 120);
+    messTextEdit = new MessengerTextEdit(centralwidget);
+    messTextEdit->setObjectName(QStringLiteral("messTextEdit"));
+    QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    sizePolicy1.setHorizontalStretch(0);
+    sizePolicy1.setVerticalStretch(0);
+    sizePolicy1.setHeightForWidth(messTextEdit->sizePolicy().hasHeightForWidth());
+    messTextEdit->setSizePolicy(sizePolicy1);
+    messTextEdit->setMaximumSize(QSize(16777215, 150));
+
+    layout->addWidget(messTextEdit, 2, 0, 1, 3);
 }
 void MessengerWindow::createTextBrowser()
 {
-    messTextBrowser= new QTextBrowser(this);
-    messTextBrowser->setGeometry(10, 10, 620, 350);
-    messTextBrowser->setText("Use the selection pane on the right to message a FRIEND!");
+    messTextBrowser = new QTextBrowser(centralwidget);
+    messTextBrowser->setObjectName(QStringLiteral("messTextBrowser"));
+    QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    sizePolicy.setHorizontalStretch(1);
+    sizePolicy.setVerticalStretch(2);
+    sizePolicy.setHeightForWidth(messTextBrowser->sizePolicy().hasHeightForWidth());
+    messTextBrowser->setSizePolicy(sizePolicy);
+    messTextBrowser->setMinimumSize(QSize(300, 200));
+
+    layout->addWidget(messTextBrowser, 0, 0, 2, 3);
 }
 void MessengerWindow::createLineEdit()
 {
-    messLineEdit = new QLineEdit(this);
-    messLineEdit->setGeometry(640, 10, 200, 30);
-    messLineEdit->setText((QString::fromUtf8(localHostname)));
+    messLineEdit = new QLineEdit(centralwidget);
+    messLineEdit->setObjectName(QStringLiteral("messLineEdit"));
+    messLineEdit->setMinimumSize(QSize(200, 0));
+    messLineEdit->setMaximumSize(QSize(300, 16777215));
+    messLineEdit->setText(localHostname);
+    messLineEdit->setReadOnly(true);
+
+    layout->addWidget(messLineEdit, 0, 3, 1, 1);
 }
 void MessengerWindow::createButtons()
 {
-    messSendButton = new QPushButton("Send", this);
-    messSendButton->setGeometry(260,510,80,30);
+    messSendButton = new QPushButton(centralwidget);
+    messSendButton->setObjectName(QStringLiteral("messSendButton"));
+    messSendButton->setMaximumSize(QSize(250, 16777215));
+    messSendButton->setLayoutDirection(Qt::LeftToRight);
+    messSendButton->setText("Send");
 
-    messQuitButton = new QPushButton("Quit", this);
-    messQuitButton->setGeometry(260, 550, 80, 30);
+    layout->addWidget(messSendButton, 3, 1, 1, 1);
 
-    messDebugButton = new QPushButton("Debug", this);
-    messDebugButton->setGeometry(460, 510, 80, 30);
-    connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
-    messDebugButton->hide();
+    messQuitButton = new QPushButton(centralwidget);
+    messQuitButton->setObjectName(QStringLiteral("messQuitButton"));
+    messQuitButton->setMaximumSize(QSize(250, 16777215));
+    messQuitButton->setText("Quit");
+
+    layout->addWidget(messQuitButton, 5, 1, 1, 1);
+    //messDebugButton = new QPushButton("Debug", this);
+    //messDebugButton->setGeometry(460, 510, 80, 30);
+    //connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
+    //messDebugButton->hide();
 }
 void MessengerWindow::createListWidget()
 {
     globalChatUuid = QUuid::createUuid();
 
-    messListWidget = new QListWidget(this);
-    messListWidget->setGeometry(640, 60, 200, 300);
+    messListWidget = new QListWidget(centralwidget);
+    messListWidget->setObjectName(QStringLiteral("messListWidget"));
+    messListWidget->setMinimumSize(QSize(200, 0));
+    messListWidget->setMaximumSize(QSize(200, 16777215));
+
+    layout->addWidget(messListWidget, 1, 3, 2, 1);
+    //messListWidget->setGeometry(640, 60, 200, 300);
     messListWidget->insertItem(0, "--------------------");
     messListWidget->insertItem(1, "Global Chat");
     messListWidget->item(1)->setData(Qt::UserRole, globalChatUuid);
@@ -85,7 +180,7 @@ void MessengerWindow::createSystemTray()
     messSystemTray = new QSystemTrayIcon(this);
 
     messSystemTrayMenu = new QMenu(this);
-    messSystemTrayExitAction = new QAction(this);
+    messSystemTrayExitAction = new QAction(messSystemTrayMenu);
     messSystemTrayExitAction = messSystemTrayMenu->addAction("Exit");
 
     messSystemTray->setContextMenu(messSystemTrayMenu);
@@ -119,6 +214,8 @@ void MessengerWindow::connectGuiSignalsAndSlots()
     QObject::connect(messSystemTray, SIGNAL (activated(QSystemTrayIcon::ActivationReason)), this, SLOT (showWindow(QSystemTrayIcon::ActivationReason)));
     QObject::connect(messSystemTray, SIGNAL(destroyed()), messSystemTrayMenu, SLOT(deleteLater()));
     QObject::connect(messTextEdit, SIGNAL (textChanged()), this, SLOT (textEditChanged()));
+    QObject::connect(messSystemTrayMenu, SIGNAL(aboutToHide()), messSystemTrayMenu, SLOT(deleteLater()));;
+
 }
 void MessengerWindow::connectPeerClassSignalsAndSlots()
 {
@@ -336,8 +433,8 @@ void MessengerWindow::quitButtonClicked()
 void MessengerWindow::updateListWidget(QUuid uuid)
 {
     messListWidget->setUpdatesEnabled(false);
-    int count = messListWidget->count() - 1;
-    if(count == 1)
+    int count = messListWidget->count() - 2;
+    if(count == 0)
     {
         messListWidget->insertItem(0, peerWorker->peerDetailsHash.value(uuid).hostname);
         messListWidget->item(0)->setData(Qt::UserRole, uuid);
@@ -346,20 +443,20 @@ void MessengerWindow::updateListWidget(QUuid uuid)
     }
     else
     {
-        for(int i = 0; i < count; i++)
+        for(int i = 0; i <= count; i++)
         {
             QUuid u = messListWidget->item(i)->data(Qt::UserRole).toString();
             QString str = messListWidget->item(i)->text();
             if((str.startsWith(" * ")))
                 str = str.mid(3, str.length()-6);
-            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) == 0)
+            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) == 0)
             {
                 if(u == uuid)
                     break;
                 else
                     continue;
             }
-            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) > 0)
+            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) < 0)
             {
                 messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
                 messListWidget->item(i)->setData(Qt::UserRole, uuid);
@@ -370,12 +467,12 @@ void MessengerWindow::updateListWidget(QUuid uuid)
                 }
                 break;
             }
-            else if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str) < 0)
+            else if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) > 0)
             {
                 if(i == count)
                 {
-                    messListWidget->insertItem(i+1, peerWorker->peerDetailsHash.value(uuid).hostname);
-                    messListWidget->item(i+1)->setData(Qt::UserRole, uuid);
+                    messListWidget->insertItem(i, peerWorker->peerDetailsHash.value(uuid).hostname);
+                    messListWidget->item(i)->setData(Qt::UserRole, uuid);
                     peerWorker->peerDetailsHash[uuid].listWidgetIndex = i+1;
                 }
                 else
@@ -476,8 +573,7 @@ void MessengerWindow::sendButtonClicked()
 }
 void MessengerWindow::changeListColor(int row, int style)
 {
-    QBrush back = (messListWidget->item(row)->background());
-
+    QBrush back = messListWidget->item(row)->background();
     if(style == 1)
     {
         messListWidget->item(row)->setBackground(Qt::red);
@@ -581,8 +677,20 @@ void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
         }
         else if( !( peerWorker->peerDetailsHash.value(uuid).messagePending ) && ( messListWidget->currentRow() != globalChatIndex ) )
         {
-            int index = peerWorker->peerDetailsHash.value(uuid).listWidgetIndex;
-
+            bool foundIt = false;
+            int index = 0;
+            int i = 0;
+            for(; i < messListWidget->count(); i++)
+            {
+                if(messListWidget->item(i)->data(Qt::UserRole) == uuid)
+                {
+                    index = i;
+                    foundIt = true;
+                    break;
+                }
+            }
+            if(!foundIt)
+                return;
             this->changeListColor(index, 1);
             messListWidget->item(index)->setText(" * " + messListWidget->item(index)->text() + " * ");
             peerWorker->peerDetailsHash[uuid].messagePending = true;

@@ -25,6 +25,7 @@ int main(int argc, char **argv)
         return 1;
     }
 #endif
+
     QCoreApplication::setApplicationName("PXMessenger");
     QCoreApplication::setOrganizationName("PXMessenger");
     QCoreApplication::setOrganizationDomain("PXMessenger");
@@ -35,7 +36,7 @@ int main(int argc, char **argv)
 #ifdef __unix__
     struct passwd *user;
     user = getpwuid(getuid());
-    strcat(localHostname, user->pw_name);
+    strcpy(localHostname, user->pw_name);
 #elif _WIN32
     char user[UNLEN+1];
     TCHAR t_user[UNLEN+1];
@@ -43,7 +44,7 @@ int main(int argc, char **argv)
     if(GetUserName(t_user, &user_size))
     {
         wcstombs(user, t_user, UNLEN+1);
-        strcat(localHostname, user);
+	strcpy(localHostname, user);
     }
 #endif
 
@@ -71,10 +72,9 @@ int main(int argc, char **argv)
     QUuid uuid = iniReader.getUUID(uuidnum, allowMoreThanOne);
 
     MessengerWindow window(uuid, uuidnum);
-    window.show();
+    //window.show();
 
     int result = app.exec();
-    //delete window;
 
     iniReader.resetUUID(uuidnum, uuid);
 

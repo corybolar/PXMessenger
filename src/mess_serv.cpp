@@ -117,9 +117,12 @@ int MessengerServer::newConnection(int i)
 int MessengerServer::tcpRecieve(int i)
 {
     int nbytes;
-    char buf[1050] = {};
+    char* buf = new char[10000];
+    memset(buf, 0, 10000);
+    //buf = {};
+    //char buf[1050] = {};
 
-    if((nbytes = recv(i,buf,sizeof(buf), 0)) <= 0)
+    if((nbytes = recv(i,buf, 10000, 0)) <= 0)
     {
         //The tcp socket is telling us it has been closed
         //If nbytes == 0, normal close
@@ -143,6 +146,7 @@ int MessengerServer::tcpRecieve(int i)
         closesocket(i);
 #endif
         //Remove the socket from the list to check in select
+	delete [] buf;
         return 1;
     }
     //Normal message coming here
@@ -160,6 +164,7 @@ int MessengerServer::tcpRecieve(int i)
 
         this->singleMessageIterator(i, buf, ipstr);
     }
+    delete [] buf;
     return 1;
 }
 int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
@@ -314,11 +319,11 @@ int MessengerServer::udpRecieve(int i)
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = si_other.sin_addr.s_addr;
         addr.sin_port = htons(PORT_DISCOVER);
-        char name[50] = {};
-        char fname[60] = {};
+        char name[ourListenerPort.length() + localUUID.length() + 1] = {};
+        char fname[sizeof(name) + 6] = {};
         strcpy(name, ourListenerPort.toStdString().c_str());
         strcat(name, localUUID.toStdString().c_str());
-        strcpy(fname, "/name:\0");
+        strcpy(fname, "/name:");
         strcat(fname, name);
         int len = strlen(fname);
 
