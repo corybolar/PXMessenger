@@ -62,7 +62,6 @@ void MessengerWindow::setupTooltips()
 #ifndef QT_NO_TOOLTIP
     messLineEdit->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Hostname</p></body></html>", 0));
 #endif // QT_NO_TOOLTIP
-    messLineEdit->setText(QString());
 #ifndef QT_NO_TOOLTIP
     messSendButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Send a Message</p></body></html>", 0));
 #endif // QT_NO_TOOLTIP
@@ -131,8 +130,8 @@ void MessengerWindow::createLineEdit()
     messLineEdit->setObjectName(QStringLiteral("messLineEdit"));
     messLineEdit->setMinimumSize(QSize(200, 0));
     messLineEdit->setMaximumSize(QSize(300, 16777215));
-    messLineEdit->setText(localHostname);
-    messLineEdit->setReadOnly(true);
+    messLineEdit->setText(QString::fromUtf8(localHostname));
+    //messLineEdit->setReadOnly(true);
 
     layout->addWidget(messLineEdit, 0, 3, 1, 1);
 }
