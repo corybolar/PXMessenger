@@ -25,6 +25,7 @@
 #include <QGridLayout>
 #include <QMenuBar>
 #include <QStatusBar>
+#include <QMessageBox>
 
 #include <sys/types.h>
 #include <ctime>
@@ -81,6 +82,9 @@ private slots:
 
     void updateListWidget(QUuid uuid);														//sort peerlist struct alphabetically by hostname
     void setItalicsOnItem(QUuid uuid, bool italics);
+    void aboutActionSlot();
+    void settingsActionsSlot();
+    void setListenerPort(QString port);
 private:
     QGridLayout *layout;
     QWidget *centralwidget;
@@ -93,7 +97,6 @@ private:
     QPushButton *messSendButton;
     QPushButton *messQuitButton;
     QPushButton *messDebugButton;
-    QIcon *messSystemTrayIcon;
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
     QSystemTrayIcon *messSystemTray;
@@ -115,6 +118,7 @@ private:
 
     int numberOfValidPeers = 0;														//Length of peers array
     char localHostname[256] = {};
+    QString ourListenerPort;
     QString globalChat = "";
     QUuid globalChatUuid;
     bool globalChatAlerted = false;
@@ -141,6 +145,7 @@ private:
     void setupHostname(int uuidNum);
     void setupLayout();
     void setupTooltips();
+    void setupMenuBar();
 signals:
     void connectToPeer(int, QString, QString);
     void sendMsg(int, QString, QString, QString, QUuid, QString);

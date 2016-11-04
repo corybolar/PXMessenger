@@ -12,6 +12,7 @@ void PeerWorkerClass::setLocalHostName(QString name)
 void PeerWorkerClass::setListenerPort(QString port)
 {
     ourListenerPort = port;
+
 }
 void PeerWorkerClass::hostnameCheck(QString comp)
 {

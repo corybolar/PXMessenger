@@ -5,8 +5,6 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     ourUUIDString = uuid.toString();
     qDebug() << "Our UUID:" << ourUUIDString;
 
-    //setFixedSize(900,600);
-
     setupHostname(uuidNum);
 
     peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
@@ -25,6 +23,8 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     createSystemTray();
 
+    setupMenuBar();
+
     setupTooltips();
 
     createMessServ();
@@ -38,11 +38,7 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
     connectPeerClassSignalsAndSlots();
 
     this->setCentralWidget(centralwidget);
-    menubar = new QMenuBar(this);
-    menubar->setObjectName(QStringLiteral("menubar"));
-    menubar->setGeometry(QRect(0, 0, 835, 27));
-    menubar->setDefaultUp(false);
-    this->setMenuBar(menubar);
+
     statusbar = new QStatusBar(this);
     statusbar->setObjectName(QStringLiteral("statusbar"));
     this->setStatusBar(statusbar);
@@ -54,6 +50,33 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     resize(700, 500);
 }
+void MessengerWindow::setupMenuBar()
+{
+    menubar = new QMenuBar(this);
+    menubar->setObjectName(QStringLiteral("menubar"));
+    menubar->setGeometry(QRect(0, 0, 835, 27));
+    menubar->setDefaultUp(false);
+    this->setMenuBar(menubar);
+    QMenu *fileMenu;
+    QAction *quitAction = new QAction("&Quit", this);
+
+    fileMenu = menuBar()->addMenu("&File");
+    fileMenu->addAction(quitAction);
+    QObject::connect(quitAction, SIGNAL (triggered()), this, SLOT (quitButtonClicked()));
+
+    QMenu *optionsMenu;
+    QAction *settingsAction = new QAction("&Settings", this);
+    optionsMenu = menuBar()->addMenu("&Options");
+    optionsMenu->addAction(settingsAction);
+    QObject::connect(settingsAction, SIGNAL (triggered()), this, SLOT (settingsActionsSlot()));
+
+    QMenu *helpMenu;
+    QAction *aboutAction = new QAction("&About", this);
+    helpMenu = menuBar()->addMenu("&Help");
+    helpMenu->addAction(aboutAction);
+    QObject::connect(aboutAction, SIGNAL (triggered()), this, SLOT (aboutActionSlot()));
+}
+
 void MessengerWindow::setupTooltips()
 {
 #ifndef QT_NO_TOOLTIP
@@ -174,16 +197,18 @@ void MessengerWindow::createListWidget()
 }
 void MessengerWindow::createSystemTray()
 {
-    messSystemTrayIcon = new QIcon(":/resources/resources/systray.png");
+    //messSystemTrayIcon = new QIcon(":/resources/resources/systray.png", this);
+    QIcon trayIcon(":/resources/resources/systray.png");
 
-    messSystemTray = new QSystemTrayIcon(this);
 
     messSystemTrayMenu = new QMenu(this);
-    messSystemTrayExitAction = new QAction(messSystemTrayMenu);
-    messSystemTrayExitAction = messSystemTrayMenu->addAction("Exit");
+    messSystemTrayExitAction = new QAction(tr("&Exit"), this);
+    //messSystemTrayExitAction = messSystemTrayMenu->addAction("Exit");
+    messSystemTrayMenu->addAction(messSystemTrayExitAction);
 
+    messSystemTray = new QSystemTrayIcon(this);
+    messSystemTray->setIcon(trayIcon);
     messSystemTray->setContextMenu(messSystemTrayMenu);
-    messSystemTray->setIcon(*messSystemTrayIcon);
     messSystemTray->show();
 }
 void MessengerWindow::createMessClient()
@@ -240,9 +265,34 @@ void MessengerWindow::createMessServ()
     QObject::connect(messServer, SIGNAL (hostnameCheck(QString)), peerWorker, SLOT (hostnameCheck(QString)));
     QObject::connect(messServer, SIGNAL (setPeerHostname(QString, QUuid)), peerWorker, SLOT (setPeerHostname(QString, QUuid)));
     QObject::connect(messServer, SIGNAL (setListenerPort(QString)), peerWorker, SLOT (setListenerPort(QString)));
-    QObject::connect(this, SIGNAL (retryDiscover()), messServer, SLOT (retryDiscover()));
+    QObject::connect(messServer, SIGNAL (setListenerPort(QString)), peerWorker, SLOT (setListenerPort(QString)));
     messServer->start();
 }
+void MessengerWindow::aboutActionSlot()
+{
+    QMessageBox::about(this, "About", "<br><center>PXMessenger v"
+                                      + qApp->applicationVersion() +
+                                      "</center>"
+                                      "<br>"
+                                      "<center>Author: Cory Bolar</center>"
+                                      "<br>"
+                                      "<center>"
+                                      "<a href=\"https://github.com/cbpeckles/PXMessenger\">"
+                                      "https://github.com/cbpeckles/PXMessenger</a>"
+                                      "</center>"
+                                      "<br>");
+}
+void MessengerWindow::setListenerPort(QString port)
+{
+    ourListenerPort = port;
+}
+
+void MessengerWindow::settingsActionsSlot()
+{
+
+
+}
+
 void MessengerWindow::createMessTime()
 {
     messTime = time(0);
@@ -295,7 +345,7 @@ void MessengerWindow::timerout()
 {
     if(messListWidget->count() < 4)
     {
-        emit retryDiscover();
+        emit sendUdp("/discover:" + ourListenerPort);
         qDebug() << "Retrying Discovery Packet";
     }
     else
@@ -473,6 +523,7 @@ void MessengerWindow::updateListWidget(QUuid uuid)
                     messListWidget->insertItem(i, peerWorker->peerDetailsHash.value(uuid).hostname);
                     messListWidget->item(i)->setData(Qt::UserRole, uuid);
                     peerWorker->peerDetailsHash[uuid].listWidgetIndex = i+1;
+                    break;
                 }
                 else
                     continue;
@@ -512,8 +563,8 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
     timer->stop();
     delete timer;
     delete messClient;
-    delete messSystemTrayIcon;
     delete peerWorker;
+    messSystemTray->setContextMenu(NULL);
     messSystemTray->hide();
     event->accept();
 }

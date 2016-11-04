@@ -35,11 +35,8 @@ int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
     emit newConnectionRecieved(result);
 
     this->update_fds(result);
+
     return result;
-}
-void MessengerServer::retryDiscover()
-{
-    emit sendUdp("/discover:" + ourListenerPort);
 }
 void MessengerServer::updateMessServFDSSlot(int s)
 {

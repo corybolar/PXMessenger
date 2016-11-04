@@ -2,6 +2,7 @@
 #define MESS_SERV_H
 
 #include <QThread>
+#include <QWidget>
 #include <ctime>
 #include <peerlist.h>
 #include <sys/types.h>
@@ -11,7 +12,9 @@
 #include <unistd.h>
 #include <QtCore>
 #include <iostream>
-#include <QWidget>
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -45,7 +48,6 @@ public:
     void setLocalUUID(QString uuid);
 public slots:
     void updateMessServFDSSlot(int s);
-    void retryDiscover();
 private:
     int udpRecieve(int i);
     int tcpRecieve(int i);
