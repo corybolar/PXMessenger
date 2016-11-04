@@ -2,8 +2,13 @@
 
 MessengerServer::MessengerServer(QWidget *parent) : QThread(parent)
 {
-
+    tcpBuffer = new char[TCP_BUFFER_LENGTH];
 }
+MessengerServer::~MessengerServer()
+{
+    delete [] tcpBuffer;
+}
+
 void MessengerServer::setLocalHostname(QString hostname)
 {
     localHostname = hostname;
@@ -114,12 +119,12 @@ int MessengerServer::newConnection(int i)
 int MessengerServer::tcpRecieve(int i)
 {
     int nbytes;
-    char* buf = new char[10000];
-    memset(buf, 0, 10000);
+    //char* tcpBuffer = new char[10000];
+    memset(tcpBuffer, 0, TCP_BUFFER_LENGTH*sizeof(*tcpBuffer));
     //buf = {};
     //char buf[1050] = {};
 
-    if((nbytes = recv(i,buf, 10000, 0)) <= 0)
+    if((nbytes = recv(i,tcpBuffer, TCP_BUFFER_LENGTH, 0)) <= 0)
     {
         //The tcp socket is telling us it has been closed
         //If nbytes == 0, normal close
@@ -143,7 +148,7 @@ int MessengerServer::tcpRecieve(int i)
         closesocket(i);
 #endif
         //Remove the socket from the list to check in select
-	delete [] buf;
+    //delete [] tcpBuffer;
         return 1;
     }
     //Normal message coming here
@@ -159,9 +164,9 @@ int MessengerServer::tcpRecieve(int i)
         getpeername(i, (struct sockaddr*)&addr, &socklen);
         getnameinfo((struct sockaddr*)&addr, socklen, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
 
-        this->singleMessageIterator(i, buf, ipstr);
+        this->singleMessageIterator(i, tcpBuffer, ipstr);
     }
-    delete [] buf;
+    //delete [] tcpBuffer;
     return 1;
 }
 int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
@@ -179,11 +184,8 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
     //when more than one are recieved from the same socket at the same time
     //If we encounter a valid character after this length, we come back here
     //and iterate through the if statements again.
-    bufLenStr[0] = partialMsg[0];
-    bufLenStr[1] = partialMsg[1];
-    bufLenStr[2] = partialMsg[2];
-    bufLenStr[3] = '\0';
-    //.char *bufLenStrTemp = bufLenStr;
+    strncpy(bufLenStr, partialMsg, 3);
+
     int bufLen = atoi(bufLenStr);
     bufLen -= 38;
     if(bufLen <= 0)

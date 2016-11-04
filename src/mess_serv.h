@@ -32,6 +32,7 @@
 
 #define PORT_DISCOVER 13649
 #define BACKLOG 20
+#define TCP_BUFFER_LENGTH 10000
 
 class MessengerServer : public QThread
 {
@@ -46,6 +47,7 @@ public:
     fd_set master, read_fds, write_fds;
     void setLocalHostname(QString hostname);
     void setLocalUUID(QString uuid);
+    ~MessengerServer();
 public slots:
     void updateMessServFDSSlot(int s);
 private:
@@ -54,6 +56,7 @@ private:
     int newConnection(int i);
     int accept_new(int socketfd, sockaddr_storage *their_addr);		//Accept a new connection from a new peer.  Assigns a socket to the connection
     //Maybe change these to locals and pass them around instead?
+    char *tcpBuffer;
     int fdmax = 0;
     QString localHostname;
     QString localUUID;
