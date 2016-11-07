@@ -33,7 +33,6 @@ void MessengerServer::run()
 void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
 {
     int result;
-    qDebug() << event;
 
     MessengerServer *realServer = (MessengerServer*)arg;
 
@@ -68,11 +67,11 @@ void MessengerServer::tcpRead(struct bufferevent *bev, void *ctx)
 {
     MessengerServer *realServer = (MessengerServer *)ctx;
     struct evbuffer *input;
-    char *line = new char[1000];
-    memset(line, 0, 1000*sizeof(*line));
+    char *line = new char[TCP_BUFFER_LENGTH];
+    memset(line, 0, TCP_BUFFER_LENGTH*sizeof(*line));
     evutil_socket_t i;
     input = bufferevent_get_input(bev);
-    evbuffer_remove(input, line, 1000);
+    evbuffer_remove(input, line, TCP_BUFFER_LENGTH);
     //qDebug() << line;
     i = bufferevent_getfd(bev);
 
@@ -322,7 +321,7 @@ int MessengerServer::setupUDPSocket(int s_listen)
     si_me.sin_port = htons(PORT_DISCOVER);
     si_me.sin_addr.s_addr = INADDR_ANY;
 
-    setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof (int));
+    setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int));
     evutil_make_socket_nonblocking(socketUDP);
 
     if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
@@ -458,9 +457,10 @@ int MessengerServer::listener()
 
         event_base_dispatch(base);
     }
+    event_base_free(base);
 
-    //event_free(eventAccept);
-    //event_free(eventDiscover);
+    event_free(eventAccept);
+    event_free(eventDiscover);
 
     //END of setup for sockets, being infinite while loop to listen.
     //Select is used with a time limit to enable the main thread to close
