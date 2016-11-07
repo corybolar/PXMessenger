@@ -59,8 +59,6 @@ void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
         bufferevent_enable(bev, EV_READ);
         realServer->newConnectionRecieved(result);
     }
-
-
     //emit newConnectionRecieved(result);
 }
 void MessengerServer::tcpRead(struct bufferevent *bev, void *ctx)
@@ -462,49 +460,5 @@ int MessengerServer::listener()
     event_free(eventAccept);
     event_free(eventDiscover);
 
-    //END of setup for sockets, being infinite while loop to listen.
-    //Select is used with a time limit to enable the main thread to close
-    //this thread with a signal.
-    /*
-    while( !this->isInterruptionRequested() )
-    {
-    read_fds = master;
-    int status = 0;
-    //This while loop will interrupt on signal from the main thread, or having a socket
-    //that has data waiting to be read from.  Select returns -1 on error, 0 on no data
-    //waiting on any socket.
-    while( ( (status  ==  0) | (status == -1) ) && ( !( this->isInterruptionRequested() ) ) )
-    {
-        if(status == -1){
-        perror("select:");
-        }
-        read_fds = master;
-        status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
-        tv.tv_sec = 0;
-        tv.tv_usec = 250000; //quarter of a second, select modifies this value so it must be reset before every loop
-    }
-    for(int i = 0; i <= fdmax; i++)
-    {
-        if(FD_ISSET(i, &read_fds))
-        {
-        //New tcp connection signaled from s_listen
-        if(i == s_listen)
-        {
-            this->newConnection(i);
-        }
-        //UDP packet sent to the udp socket
-        else if(i == s_discover)
-        {
-            this->udpRecieve(i);
-        }
-        //TCP packet sent to CONNECTED socket
-        else
-        {
-            this->tcpRecieve(i);
-        }
-        }
-    }
-    }
-    */
     return 0;
 }
