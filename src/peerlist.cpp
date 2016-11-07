@@ -1,9 +1,10 @@
 #include <peerlist.h>
 
-PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid) : QObject(parent)
+PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid, MessengerServer *server) : QObject(parent)
 {
     localHostname = hostname;
     localUUID = uuid;
+    realServer = server;
 }
 void PeerWorkerClass::setLocalHostName(QString name)
 {
@@ -120,7 +121,14 @@ void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
     if(!result)
     {
         peerDetailsHash[uuid].attemptingToConnect = false;
-        emit updateMessServFDS(socket);
+        //emit updateMessServFDS(socket);
+        struct bufferevent *bev;
+        evutil_make_socket_nonblocking(socket);
+        bev = bufferevent_socket_new(realServer->base, socket, BEV_OPT_CLOSE_ON_FREE);
+        bufferevent_setcb(bev, realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
+        bufferevent_setwatermark(bev, EV_READ, 0, 1000);
+        bufferevent_enable(bev, EV_READ);
+        //realServer->newConnectionRecieved(socket);
         emit sendIdentityMsg(socket);
     }
     else

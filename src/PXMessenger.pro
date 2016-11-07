@@ -7,6 +7,8 @@ QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
 
+LIBS += -levent
+
 win32 {
 LIBS += -lws2_32 \
 }

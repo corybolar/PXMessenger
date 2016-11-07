@@ -4,8 +4,9 @@
 #include <QThread>
 #include <QWidget>
 #include <ctime>
-#include <peerlist.h>
+//#include <peerlist.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -15,6 +16,8 @@
 #include <event2/event.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
+#include <event2/util.h>
+#include <assert.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -23,6 +26,7 @@
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <ctime>
+#include <fcntl.h>
 #endif
 
 #ifdef _WIN32
@@ -41,32 +45,28 @@ class MessengerServer : public QThread
 public:
     MessengerServer(QWidget *parent);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
-    int set_fdmax(int m);											//update the fdmax variable to indicate the highest socket number.  Needed for select()
-    void update_fds(int s);											//add new sockets to the master fd_set
     void run();														//thread starter
-    fd_set master, read_fds, write_fds;
     void setLocalHostname(QString hostname);
     void setLocalUUID(QString uuid);
     ~MessengerServer();
+    struct event_base *base;
+    static void tcpError(bufferevent *buf, short error, void *ctx);
+    static void tcpRead(bufferevent *bev, void *ctx);
 public slots:
-    void updateMessServFDSSlot(int s);
 private:
-    int udpRecieve(int i);
-    int tcpRecieve(int i);
-    int newConnection(int i);
-    int accept_new(int socketfd, sockaddr_storage *their_addr);		//Accept a new connection from a new peer.  Assigns a socket to the connection
+    static void udpRecieve(int i, short y, void *args);
+    static void accept_new(int socketfd, short event, void *arg);		//Accept a new connection from a new peer.  Assigns a socket to the connection
     //Maybe change these to locals and pass them around instead?
     char *tcpBuffer;
-    int fdmax = 0;
     QString localHostname;
     QString localUUID;
     QString ourListenerPort;
 
     int singleMessageIterator(int i, char *buf, char *ipstr);
     int getPortNumber(int socket);
-    int msgPacket(int i, char *partialMsg, char *ipstr);
     int setupUDPSocket(int s_listen);
     int setupTCPSocket();
+    int setSocketToNonBlocking(int socket);
 signals:
     void messageRecieved(const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
     void newConnectionRecieved(int);							//

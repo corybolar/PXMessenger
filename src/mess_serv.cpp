@@ -30,144 +30,81 @@ void MessengerServer::run()
  * @param their_addr
  * @return 				Return socket descriptor for new connection, -1 on error on linux, INVALID_SOCKET on Windows
  */
-int MessengerServer::accept_new(int s, sockaddr_storage *their_addr)
+void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
 {
     int result;
+    qDebug() << event;
 
-    socklen_t addr_size = sizeof(sockaddr);
-    result = (accept(s, (struct sockaddr *)&their_addr, &addr_size));
+    MessengerServer *realServer = (MessengerServer*)arg;
 
-    emit newConnectionRecieved(result);
+    struct event_base *base = realServer->base;
+    struct sockaddr_storage ss;
+    socklen_t addr_size = sizeof(ss);
 
-    this->update_fds(result);
-
-    return result;
-}
-void MessengerServer::updateMessServFDSSlot(int s)
-{
-    this->update_fds(s);
-}
-/**
- * @brief 				Add an FD to the set if its not already in there and check if its the new max
- * @param s				Socket descriptor number to add to set
- */
-void MessengerServer::update_fds(int s)
-{
-    if( !( FD_ISSET(s, &master) ) )
+    result = (accept(s, (struct sockaddr *)&ss, &addr_size));
+    if(result < 0)
     {
-        FD_SET(s, &master);
-        this->set_fdmax(s);
+        perror("accept");
     }
-}
-/**
- * @brief 				Determine if a new socket descriptor is the highest in the set, adjust the fd_max variable accordingly.
- * @param s				Socket descriptor to potentially make the new max.  fd_max is needed for select in the listener function
- * @return 				0 if it is the new max, -1 if it is not;
- */
-int MessengerServer::set_fdmax(int s)
-{
-    if(s > fdmax)
+    else if(result > FD_SETSIZE)
     {
-        fdmax = s;
-        return 0;
+        close(result);
     }
-    return -1;
-}
-/**
- * @brief 				Called when the TCP listener recieves a new connection
- * @param i				Socket descriptor of new connection
- * @return 				0 on success, 1 on error
- */
-int MessengerServer::newConnection(int i)
-{
-#ifdef _WIN32
-    unsigned new_fd;
-#else
-    int new_fd;
-#endif
-    struct sockaddr_storage their_addr;
-
-    new_fd = accept_new(i, &their_addr);
-
-#ifdef __unix__
-    if(new_fd == -1)
-    {
-        perror("accept:");
-        return 1;
-    }
-#endif
-#ifdef _WIN32
-    if(new_fd == INVALID_SOCKET)
-    {
-        perror("accept:");
-        return 1;
-    }
-#endif
     else
     {
-        this->update_fds(new_fd);
-        std::cout << "new connection" << std::endl;
-        return 0;
+        struct bufferevent *bev;
+        evutil_make_socket_nonblocking(result);
+        bev = bufferevent_socket_new(base, result, BEV_OPT_CLOSE_ON_FREE);
+        bufferevent_setcb(bev, tcpRead, NULL, tcpError, (void*)realServer);
+        bufferevent_setwatermark(bev, EV_READ, 0, TCP_BUFFER_LENGTH);
+        bufferevent_enable(bev, EV_READ);
+        realServer->newConnectionRecieved(result);
     }
-    return 1;
+
+
+    //emit newConnectionRecieved(result);
 }
-/**
- * @brief 				Message recieved from a previously connected TCP socket
- * @param i				Socket descriptor to recieve data from
- * @return 				0 on success, 1 on error
- */
-int MessengerServer::tcpRecieve(int i)
+void MessengerServer::tcpRead(struct bufferevent *bev, void *ctx)
 {
-    int nbytes;
-    //char* tcpBuffer = new char[10000];
-    memset(tcpBuffer, 0, TCP_BUFFER_LENGTH*sizeof(*tcpBuffer));
-    //buf = {};
-    //char buf[1050] = {};
+    MessengerServer *realServer = (MessengerServer *)ctx;
+    struct evbuffer *input;
+    char *line = new char[1000];
+    memset(line, 0, 1000*sizeof(*line));
+    evutil_socket_t i;
+    input = bufferevent_get_input(bev);
+    evbuffer_remove(input, line, 1000);
+    //qDebug() << line;
+    i = bufferevent_getfd(bev);
 
-    if((nbytes = recv(i,tcpBuffer, TCP_BUFFER_LENGTH, 0)) <= 0)
+    struct sockaddr_storage addr;
+    socklen_t socklen = sizeof(addr);
+    char ipstr[INET6_ADDRSTRLEN];
+    char service[20];
+
+    //Get ip address of sender
+    getpeername(i, (struct sockaddr*)&addr, &socklen);
+    getnameinfo((struct sockaddr*)&addr, socklen, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
+    realServer->singleMessageIterator(i, line, ipstr);
+    delete [] line;
+}
+void MessengerServer::tcpError(struct bufferevent *buf, short error, void *ctx)
+{
+    MessengerServer *realServer = (MessengerServer *)ctx;
+    evutil_socket_t i = bufferevent_getfd(buf);
+    if (error & BEV_EVENT_EOF)
     {
-        //The tcp socket is telling us it has been closed
-        //If nbytes == 0, normal close
-        if(nbytes == 0)
-        {
-            std::cout << "connection closed" << std::endl;
-        }
-        //Error
-        else
-        {
-            perror("recv");
-        }
-        //Either way, alert the main thread this socket has closed.  It will update the peer_class
-        //and will make the list item italics to signal a disconnected peer
-        FD_CLR(i, &master);
-        emit peerQuit(i);
-#ifdef __unix__
-        close(i);
-#endif
-#ifdef _WIN32
-        closesocket(i);
-#endif
-        //Remove the socket from the list to check in select
-    //delete [] tcpBuffer;
-        return 1;
+        realServer->peerQuit(i);
     }
-    //Normal message coming here
-    else
+    else if (error & BEV_EVENT_ERROR)
     {
-        //These are variable for determining the ip address of the sender
-        struct sockaddr_storage addr;
-        socklen_t socklen = sizeof(addr);
-        char ipstr[INET6_ADDRSTRLEN];
-        char service[20];
 
-        //Get ip address of sender
-        getpeername(i, (struct sockaddr*)&addr, &socklen);
-        getnameinfo((struct sockaddr*)&addr, socklen, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
-
-        this->singleMessageIterator(i, tcpBuffer, ipstr);
+        /* check errno to see what error occurred */
+        /* ... */
+    } else if (error & BEV_EVENT_TIMEOUT) {
+        /* must be a timeout event handle, handle it */
+        /* ... */
     }
-    //delete [] tcpBuffer;
-    return 1;
+    bufferevent_free(buf);
 }
 int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
 {
@@ -241,7 +178,7 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
         qDebug() << "uuid recieved: " + quuid.toString();
         QString hostandport = QString::fromUtf8(partialMsg+5, bufLen-5);
         QStringList hpsplit = hostandport.split(":");
-        emit recievedUUIDForConnection(hpsplit[0], QString::fromUtf8(ipstr), hpsplit[1], i, quuid);
+        emit recievedUUIDForConnection(hpsplit[0], QString::fromUtf8(ipstr, strlen(ipstr)), hpsplit[1], i, quuid);
     }
     //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
     //These packets should come formatted like "/request\0"
@@ -297,8 +234,9 @@ int MessengerServer::singleMessageIterator(int i, char *buf, char *ipstr)
  * @param i				Socket descriptor to recieve UDP packet from
  * @return 				0 on success, 1 on error
  */
-int MessengerServer::udpRecieve(int i)
+void MessengerServer::udpRecieve(int i, short int y, void *args)
 {
+    MessengerServer *realServer = (MessengerServer*)args;
     socklen_t si_other_len;
     sockaddr_in si_other;
     char service[20];
@@ -318,10 +256,10 @@ int MessengerServer::udpRecieve(int i)
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = si_other.sin_addr.s_addr;
         addr.sin_port = htons(PORT_DISCOVER);
-        char name[ourListenerPort.length() + localUUID.length() + 1] = {};
+        char name[realServer->ourListenerPort.length() + realServer->localUUID.length() + 1] = {};
         char fname[sizeof(name) + 6] = {};
-        strcpy(name, ourListenerPort.toStdString().c_str());
-        strcat(name, localUUID.toStdString().c_str());
+        strcpy(name, realServer->ourListenerPort.toStdString().c_str());
+        strcat(name, realServer->localUUID.toStdString().c_str());
         strcpy(fname, "/name:");
         strcat(fname, name);
         int len = strlen(fname);
@@ -351,14 +289,14 @@ int MessengerServer::udpRecieve(int i)
         QString uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
         ipAddress = QString::fromUtf8(ipstr);
 
-        emit updNameRecieved(portNumber, ipAddress, uuid);
+        realServer->updNameRecieved(portNumber, ipAddress, uuid);
     }
     else
     {
-        return 1;
+        return;
     }
 
-    return 0;
+    return;
 }
 int MessengerServer::getPortNumber(int socket)
 {
@@ -385,6 +323,7 @@ int MessengerServer::setupUDPSocket(int s_listen)
     si_me.sin_addr.s_addr = INADDR_ANY;
 
     setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof (int));
+    evutil_make_socket_nonblocking(socketUDP);
 
     if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
     {
@@ -398,10 +337,15 @@ int MessengerServer::setupUDPSocket(int s_listen)
 
     qDebug() << "Port number for Multicast: " << getPortNumber(socketUDP);
 
-    multicastGroup.imr_multiaddr.s_addr = inet_addr("239.1.1.1");
+    multicastGroup.imr_multiaddr.s_addr = inet_addr("239.192.13.13");
     multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
     setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
 
+    /*if(setSocketToNonBlocking(socketUDP) < 0)
+    {
+        perror("could not set socket to NONBLOCK");
+    }
+    */
     //send our discover packet to find other computers
     emit sendUdp("/discover:" + ourListenerPort);
 
@@ -428,6 +372,9 @@ int MessengerServer::setupTCPSocket()
     {
         perror("setsockopt error: ");
     }
+    
+    evutil_make_socket_nonblocking(socketTCP);
+    
     if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
     {
         perror("bind error: ");
@@ -436,13 +383,33 @@ int MessengerServer::setupTCPSocket()
     {
         perror("listen error: ");
     }
-
+    /*if(setSocketToNonBlocking(socketTCP) < 0)
+    {
+        perror("could not set socket to NONBLOCK");
+    }
+    */
     qDebug() << "Port number for TCP/IP Listner" << getPortNumber(socketTCP);
 
     freeaddrinfo(res);
 
     return socketTCP;
 
+}
+int MessengerServer::setSocketToNonBlocking(int socket)
+{
+#ifdef _WIN32
+    unsigned long ul = 1;
+    ioctlsocket(socket, FIONBIO, &ul);
+#else
+    int flags;
+    flags = fcntl(socket, F_GETFL);
+    if(flags < 0)
+        return flags;
+    flags |= O_NONBLOCK;
+    if(fcntl(socket, F_SETFL, flags) < 0)
+        return -1;
+    return 0;
+#endif
 }
 /**
  * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
@@ -457,67 +424,87 @@ int MessengerServer::listener()
     //Changing to manual setup may improve load times on windows systems.  Locks us into
     //ipv4 however.
     int s_discover, s_listen;
+    struct event *eventAccept;
+    struct event *eventDiscover;
 
+
+    base = event_base_new();
+    if(!base)
+        return -1;
+    
     //TCP STUFF
     s_listen = setupTCPSocket();
 
     //UDP STUFF
     s_discover = setupUDPSocket(s_listen);
 
-    FD_ZERO(&master);
-    FD_ZERO(&read_fds);
+    eventDiscover = event_new(base, s_discover, EV_READ|EV_PERSIST, udpRecieve, (void*)this);
 
-    FD_SET(s_listen, &master);
-    FD_SET(s_discover, &master);
+    event_add(eventDiscover, NULL);
 
-    this->set_fdmax(s_listen);
-    this->set_fdmax(s_discover);
+    eventAccept = event_new(base, s_listen, EV_READ|EV_PERSIST, accept_new, (void*)this);
+    
+    event_add(eventAccept, NULL);
 
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 250000;
+    //emit updNameRecieved(ourListenerPort, "192.168.1.200", localUUID);
+
+    struct timeval halfSec;
+    halfSec.tv_sec = 0;
+    halfSec.tv_usec = 500000;
+    
+    while(!this->isInterruptionRequested())
+    {
+        event_base_loopexit(base, &halfSec);
+
+        event_base_dispatch(base);
+    }
+
+    //event_free(eventAccept);
+    //event_free(eventDiscover);
 
     //END of setup for sockets, being infinite while loop to listen.
     //Select is used with a time limit to enable the main thread to close
     //this thread with a signal.
+    /*
     while( !this->isInterruptionRequested() )
     {
-        read_fds = master;
-        int status = 0;
-        //This while loop will interrupt on signal from the main thread, or having a socket
-        //that has data waiting to be read from.  Select returns -1 on error, 0 on no data
-        //waiting on any socket.
-        while( ( (status  ==  0) | (status == -1) ) && ( !( this->isInterruptionRequested() ) ) )
-        {
-            if(status == -1){
-                perror("select:");
-            }
-            read_fds = master;
-            status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
-            tv.tv_sec = 0;
-            tv.tv_usec = 250000; //quarter of a second, select modifies this value so it must be reset before every loop
+    read_fds = master;
+    int status = 0;
+    //This while loop will interrupt on signal from the main thread, or having a socket
+    //that has data waiting to be read from.  Select returns -1 on error, 0 on no data
+    //waiting on any socket.
+    while( ( (status  ==  0) | (status == -1) ) && ( !( this->isInterruptionRequested() ) ) )
+    {
+        if(status == -1){
+        perror("select:");
         }
-        for(int i = 0; i <= fdmax; i++)
+        read_fds = master;
+        status = select(fdmax+1, &read_fds, NULL, NULL, &tv);
+        tv.tv_sec = 0;
+        tv.tv_usec = 250000; //quarter of a second, select modifies this value so it must be reset before every loop
+    }
+    for(int i = 0; i <= fdmax; i++)
+    {
+        if(FD_ISSET(i, &read_fds))
         {
-            if(FD_ISSET(i, &read_fds))
-            {
-                //New tcp connection signaled from s_listen
-                if(i == s_listen)
-                {
-                    this->newConnection(i);
-                }
-                //UDP packet sent to the udp socket
-                else if(i == s_discover)
-                {
-                    this->udpRecieve(i);
-                }
-                //TCP packet sent to CONNECTED socket
-                else
-                {
-                    this->tcpRecieve(i);
-                }
-            }
+        //New tcp connection signaled from s_listen
+        if(i == s_listen)
+        {
+            this->newConnection(i);
+        }
+        //UDP packet sent to the udp socket
+        else if(i == s_discover)
+        {
+            this->udpRecieve(i);
+        }
+        //TCP packet sent to CONNECTED socket
+        else
+        {
+            this->tcpRecieve(i);
+        }
         }
     }
-    return -1;
+    }
+    */
+    return 0;
 }

@@ -37,6 +37,7 @@
 #include <iostream>
 #include <sstream>
 #include <sys/fcntl.h>
+#include <event2/event.h>
 
 #include <mess_serv.h>
 #include <mess_textedit.h>

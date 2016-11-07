@@ -5,9 +5,10 @@
 #include <QDebug>
 #include <QMutex>
 #include <QUuid>
+#include <QThread>
 
 #include <sys/unistd.h>
-#include <unordered_map>
+#include <mess_serv.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -41,7 +42,7 @@ class PeerWorkerClass : public QObject
 {
     Q_OBJECT
 public:
-    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid);
+    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid, MessengerServer *server);
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
 public slots:
@@ -60,6 +61,7 @@ private:
     QString localHostname;
     QString ourListenerPort;
     QString localUUID;
+    MessengerServer *realServer;
     void sendIdentityMsg(int s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);

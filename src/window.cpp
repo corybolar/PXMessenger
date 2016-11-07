@@ -7,7 +7,9 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum)
 
     setupHostname(uuidNum);
 
-    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString);
+    messServer = new MessengerServer(this);
+
+    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString, messServer);
 
     setupLayout();
 
@@ -174,9 +176,9 @@ void MessengerWindow::createButtons()
     messQuitButton->setText("Quit");
 
     layout->addWidget(messQuitButton, 5, 1, 1, 1);
-    //messDebugButton = new QPushButton("Debug", this);
-    //messDebugButton->setGeometry(460, 510, 80, 30);
-    //connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
+    messDebugButton = new QPushButton("Debug", this);
+    messDebugButton->setGeometry(460, 510, 80, 30);
+    connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
     //messDebugButton->hide();
 }
 void MessengerWindow::createListWidget()
@@ -245,14 +247,12 @@ void MessengerWindow::connectPeerClassSignalsAndSlots()
 {
     QObject::connect(peerWorker, SIGNAL (sendMsg(int, QString, QString, QString, QUuid, QString)), messClient, SLOT(sendMsgSlot(int, QString, QString, QString, QUuid, QString)));
     QObject::connect(peerWorker, SIGNAL (connectToPeer(int, QString, QString)), messClient, SLOT(connectToPeerSlot(int, QString, QString)));
-    QObject::connect(peerWorker, SIGNAL (updateMessServFDS(int)), messServer, SLOT (updateMessServFDSSlot(int)));
     QObject::connect(peerWorker, SIGNAL (printToTextBrowser(QString, QUuid, bool)), this, SLOT (printToTextBrowser(QString, QUuid, bool)));
     QObject::connect(peerWorker, SIGNAL (setItalicsOnItem(QUuid, bool)), this, SLOT (setItalicsOnItem(QUuid, bool)));
     QObject::connect(peerWorker, SIGNAL (updateListWidget(QUuid)), this, SLOT (updateListWidget(QUuid)));
 }
 void MessengerWindow::createMessServ()
 {
-    messServer = new MessengerServer(this);
     messServer->setLocalHostname(QString::fromUtf8(localHostname));
     messServer->setLocalUUID(ourUUIDString);
     QObject::connect(messServer, SIGNAL (recievedUUIDForConnection(QString, QString, QString, int, QUuid)), peerWorker, SLOT(updatePeerDetailsHash(QString, QString, QString, int, QUuid)));
@@ -543,21 +543,18 @@ void MessengerWindow::updateListWidget(QUuid uuid)
  */
 void MessengerWindow::closeEvent(QCloseEvent *event)
 {
+    for(auto &itr : peerWorker->peerDetailsHash)
+    {
+        ::close(itr.socketDescriptor);
+
+    }
     if(messServer != 0 && messServer->isRunning())
     {
         messServer->requestInterruption();
         messServer->quit();
         messServer->wait();
     }
-    for(auto &itr : peerWorker->peerDetailsHash)
-    {
-#ifdef __unix__
-        ::close(itr.socketDescriptor);
-#endif
-#ifdef _WIN32
-        ::closesocket(itr.socketDescriptor);
-#endif
-    }
+
     messClientThread->quit();
     messClientThread->wait();
     timer->stop();
