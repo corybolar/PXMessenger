@@ -8,6 +8,7 @@
 #include <QThread>
 
 #include <sys/unistd.h>
+#include <event2/bufferevent.h>
 #include <mess_serv.h>
 
 #ifdef __unix__
@@ -29,13 +30,14 @@ struct peerDetails{
     bool isConnected = false;
     bool attemptingToConnect = false;
     bool messagePending = false;
-    int socketDescriptor = 0;
+    evutil_socket_t socketDescriptor = 0;
     QString portNumber = "-1";
     int listWidgetIndex = -1;
     QString ipAddress = "";
     QString hostname = "";
     QString textBox = "";
     QUuid identifier;
+    bufferevent *bev = NULL;
 };
 
 class PeerWorkerClass : public QObject
@@ -49,12 +51,12 @@ public slots:
     void setListenerPort(QString port);
     void hostnameCheck(QString comp);
     void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
-    void updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid);
-    void newTcpConnection(int s);
-    void peerQuit(int s);
+    void updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
+    void newTcpConnection(evutil_socket_t s, void *bev);
+    void peerQuit(evutil_socket_t s);
     void setPeerHostname(QString hname, QUuid uuid);
-    void sendIps(int i);
-    void resultOfConnectionAttempt(int socket, bool result);
+    void sendIps(evutil_socket_t i);
+    void resultOfConnectionAttempt(evutil_socket_t socket, bool result);
     void resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print);
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
@@ -62,13 +64,13 @@ private:
     QString ourListenerPort;
     QString localUUID;
     MessengerServer *realServer;
-    void sendIdentityMsg(int s);
+    void sendIdentityMsg(evutil_socket_t s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid);
-    void sendMsg(int, QString, QString, QString, QUuid, QString);
-    void connectToPeer(int, QString, QString);
-    void updateMessServFDS(int);
+    void sendMsg(evutil_socket_t, QString, QString, QString, QUuid, QString);
+    void connectToPeer(evutil_socket_t, QString, QString);
+    void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
 };
 

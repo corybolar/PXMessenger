@@ -26,11 +26,12 @@ void PeerWorkerClass::hostnameCheck(QString comp)
     else
         attemptConnection(port, ipaddr, uuid);
 }
-void PeerWorkerClass::newTcpConnection(int s)
+void PeerWorkerClass::newTcpConnection(evutil_socket_t s, void *bev)
 {
+    //bufferevent_free(bev);
     this->sendIdentityMsg(s);
 }
-void PeerWorkerClass::sendIdentityMsg(int s)
+void PeerWorkerClass::sendIdentityMsg(evutil_socket_t s)
 {
     emit sendMsg(s, "", localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
     emit sendMsg(s, "", "", "/request", localUUID, "");
@@ -41,7 +42,7 @@ void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QStr
     {
         return;
     }
-    int s = socket(AF_INET, SOCK_STREAM, 0);
+    evutil_socket_t s = socket(AF_INET, SOCK_STREAM, 0);
     if(peerDetailsHash.contains(uuid))
     {
         peerDetailsHash[uuid].identifier = uuid;
@@ -71,7 +72,7 @@ void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
     }
     return;
 }
-void PeerWorkerClass::peerQuit(int s)
+void PeerWorkerClass::peerQuit(evutil_socket_t s)
 {
     for(auto &itr : peerDetailsHash)
     {
@@ -80,6 +81,7 @@ void PeerWorkerClass::peerQuit(int s)
             peerDetailsHash[itr.identifier].attemptingToConnect = 0;
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].socketDescriptor = -1;
+            peerDetailsHash[itr.identifier].bev = NULL;
             //int s1 = socket(AF_INET, SOCK_STREAM, 0);
             //emit connectToPeer(s1, itr.ipAddress, itr.portNumber);
             emit setItalicsOnItem(itr.identifier, 1);
@@ -87,7 +89,7 @@ void PeerWorkerClass::peerQuit(int s)
         }
     }
 }
-void PeerWorkerClass::sendIps(int i)
+void PeerWorkerClass::sendIps(evutil_socket_t i)
 {
     QString type = "/ip:";
     QString msg = "";
@@ -106,7 +108,7 @@ void PeerWorkerClass::sendIps(int i)
     }
     emit sendMsg(i, msg, localHostname, type, localUUID, "");
 }
-void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
+void PeerWorkerClass::resultOfConnectionAttempt(evutil_socket_t socket, bool result)
 {
     QUuid uuid;
     for(auto &itr : peerDetailsHash)
@@ -128,6 +130,9 @@ void PeerWorkerClass::resultOfConnectionAttempt(int socket, bool result)
         bufferevent_setcb(bev, realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, 0, 1000);
         bufferevent_enable(bev, EV_READ);
+        if(peerDetailsHash[uuid].bev != NULL)
+            bufferevent_free(peerDetailsHash[uuid].bev);
+        peerDetailsHash[uuid].bev = bev;
         //realServer->newConnectionRecieved(socket);
         emit sendIdentityMsg(socket);
     }
@@ -171,13 +176,22 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QString port, int s, QUuid uuid)
+void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr)
 {
     if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
     {
         return;
     }
-    else if( !( peerDetailsHash.value(uuid).isConnected ) )
+    bufferevent *bev = (bufferevent*)bevptr;
+    struct sockaddr_storage addr;
+    socklen_t socklen = sizeof(addr);
+    char ipaddr[INET6_ADDRSTRLEN] = {};
+    char service[20];
+
+    //Get ip address of sender
+    getpeername(s, (struct sockaddr*)&addr, &socklen);
+    getnameinfo((struct sockaddr*)&addr, socklen, ipaddr, sizeof(ipaddr), service, sizeof(service), NI_NUMERICHOST);
+    if( !( peerDetailsHash.value(uuid).isConnected ) )
     {
         qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "reconnected!";
 
@@ -189,6 +203,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QStri
         peerDetailsHash[uuid].identifier = uuid;
         peerDetailsHash[uuid].hostname = hname;
         peerDetailsHash[uuid].portNumber = port;
+        peerDetailsHash[uuid].bev = bev;
 
         emit setItalicsOnItem(uuid, 0);
         emit updateListWidget(uuid);
@@ -208,6 +223,7 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString ipaddr, QStri
         newPeer.identifier = uuid;
         newPeer.hostname = hname;
         newPeer.portNumber = port;
+        newPeer.bev = bev;
 
         peerDetailsHash.insert(uuid, newPeer);
 

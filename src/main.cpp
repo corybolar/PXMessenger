@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <window.h>
+#include <event2/bufferevent.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -71,7 +72,12 @@ int main(int argc, char **argv)
     }
     QUuid uuid = iniReader.getUUID(uuidnum, allowMoreThanOne);
 
-    MessengerWindow window(uuid, uuidnum);
+    QString qHostname = iniReader.getHostname(QString::fromUtf8(localHostname));
+    int tcpPort = iniReader.getPort("TCP");
+    int udpPort = iniReader.getPort("UDP");
+    QSize windowSize = iniReader.getWindowSize(QSize(700, 500));
+
+    MessengerWindow window(uuid, uuidnum, qHostname, tcpPort, udpPort, windowSize);
     //window.show();
 
     int result = app.exec();

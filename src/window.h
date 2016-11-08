@@ -38,11 +38,14 @@
 #include <sstream>
 #include <sys/fcntl.h>
 #include <event2/event.h>
+#include <event2/bufferevent.h>
 
 #include <mess_serv.h>
 #include <mess_textedit.h>
 #include <mess_client.h>
+#include <messinireader.h>
 #include <peerlist.h>
+#include <settingsDialog.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -66,7 +69,7 @@ class MessengerWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MessengerWindow(QUuid uuid, int uuidNum);
+    MessengerWindow(QUuid uuid, int uuidNum, QString username, int tcpPort, int udpPort, QSize windowSize);
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
     void changeEvent(QEvent *event);
@@ -79,13 +82,14 @@ private slots:
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     void printToTextBrowserServerSlot(const QString str, QUuid uuid, bool global);					//calls print, currently identifys recipient based on socket descriptor, needs revision
     void printToTextBrowser(QString str, QUuid uuid, bool message);					//Updates the main text box and stores text history in peerlist struct
-    void timerout();
+    void timerOutSingleShot();
 
     void updateListWidget(QUuid uuid);														//sort peerlist struct alphabetically by hostname
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
     void settingsActionsSlot();
     void setListenerPort(QString port);
+    void timerOutRepetitive();
 private:
     QGridLayout *layout;
     QWidget *centralwidget;
@@ -143,7 +147,7 @@ private:
     void createMessTime();
     void connectPeerClassSignalsAndSlots();
     QString getFormattedTime();
-    void setupHostname(int uuidNum);
+    void setupHostname(int uuidNum, QString username);
     void setupLayout();
     void setupTooltips();
     void setupMenuBar();

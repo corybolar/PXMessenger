@@ -40,7 +40,8 @@ HEADERS += \
     mess_serv.h \
     peerlist.h \
     mess_textedit.h \
-    messinireader.h
+    messinireader.h \
+    settingsDialog.h
 
 DISTFILES +=
 

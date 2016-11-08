@@ -22,7 +22,7 @@ void MessengerClient::udpSend(const char* msg)
     int port2 = 13649;
     struct sockaddr_in broadaddr;
     //struct in_addr localInterface;
-    int socketfd2;
+    evutil_socket_t socketfd2;
 
     memset(&broadaddr, 0, sizeof(broadaddr));
     broadaddr.sin_family = AF_INET;
@@ -38,13 +38,9 @@ void MessengerClient::udpSend(const char* msg)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
     }
-#ifdef _WIN32
-    closesocket(socketfd2);
-#else
-    close(socketfd2);
-#endif
+    evutil_closesocket(socketfd2);
 }
-void MessengerClient::connectToPeerSlot(int s, QString ipaddr, QString service)
+void MessengerClient::connectToPeerSlot(evutil_socket_t s, QString ipaddr, QString service)
 {
     this->c_connect(s, ipaddr.toStdString().c_str(), service.toStdString().c_str());
 }
@@ -54,7 +50,7 @@ void MessengerClient::connectToPeerSlot(int s, QString ipaddr, QString service)
  * @param ipaddr	ip address to connect socket to
  * @return			-1 on failure to connect, socket descriptor on success
  */
-int MessengerClient::c_connect(int socketfd, const char *ipaddr, const char *service)
+int MessengerClient::c_connect(evutil_socket_t socketfd, const char *ipaddr, const char *service)
 {
     int status;
     struct addrinfo hints, *res;
@@ -73,11 +69,9 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr, const char *ser
         std::cout << strerror(errno) << std::endl;
         freeaddrinfo(res);
         emit resultOfConnectionAttempt(socketfd, status);
-#ifdef _WIN32
-        closesocket(socketfd);
-#else
-        close(socketfd);
-#endif
+
+        evutil_closesocket(socketfd);
+
         return 1;
     }
     qDebug() << "Successfully connected to" << ipaddr << "on port" << service << "on socket" << socketfd;
@@ -96,7 +90,7 @@ int MessengerClient::c_connect(int socketfd, const char *ipaddr, const char *ser
  *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
  *   				-5 if socket is not connected
  */
-int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, const char *type, const char *uuid, const char *theiruuid)
+int MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const char *host, const char *type, const char *uuid, const char *theiruuid)
 {
     int packetLen, bytes_sent, sendcount = 0;
     char msgLen[3];
@@ -181,7 +175,7 @@ int MessengerClient::send_msg(int socketfd, const char *msg, const char *host, c
     }
     return -5;
 }
-void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type, QUuid uuid, QString theiruuid)
+void MessengerClient::sendMsgSlot(evutil_socket_t s, QString msg, QString host, QString type, QUuid uuid, QString theiruuid)
 {
     this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str(), theiruuid.toStdString().c_str());
 }
@@ -193,7 +187,7 @@ void MessengerClient::sendMsgSlot(int s, QString msg, QString host, QString type
  * @param count		Only attempt to resend 5 times so as not to hang the program if something goes wrong
  * @return 			-1 on error, total bytes sent otherwise
  */
-int MessengerClient::partialSend(int socketfd, const char *msg, int len, int count)
+int MessengerClient::partialSend(evutil_socket_t socketfd, const char *msg, int len, int count)
 {
     int status2 = 0;
 #ifdef _WIN32
@@ -205,6 +199,7 @@ int MessengerClient::partialSend(int socketfd, const char *msg, int len, int cou
     if( (status <= 0) )
     {
         perror("send:");
+        qDebug() << "send error was on socket " << socketfd;
         return -1;
     }
 
@@ -225,7 +220,7 @@ int MessengerClient::partialSend(int socketfd, const char *msg, int len, int cou
  * @brief 			Slot function for signal called from mess_serv class.  Sends hostname to socket
  * @param s			Socket to send our hostname to
  */
-void MessengerClient::sendNameSlot(int s, QString uuid,QString theiruuid)
+void MessengerClient::sendNameSlot(evutil_socket_t s, QString uuid,QString theiruuid)
 {
     this->send_msg(s, localHostname, "", "/hostname", uuid.toStdString().c_str(), theiruuid.toStdString().c_str());
     return;

@@ -17,6 +17,7 @@
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/util.h>
+#include <event2/thread.h>
 #include <assert.h>
 
 #ifdef __unix__
@@ -43,7 +44,7 @@ class MessengerServer : public QThread
     Q_OBJECT
 
 public:
-    MessengerServer(QWidget *parent);
+    MessengerServer(QWidget *parent, int tcpPort, int udpPort);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
     void run();														//thread starter
     void setLocalHostname(QString hostname);
@@ -54,32 +55,33 @@ public:
     static void tcpRead(bufferevent *bev, void *ctx);
 public slots:
 private:
-    static void udpRecieve(int i, short y, void *args);
-    static void accept_new(int socketfd, short event, void *arg);		//Accept a new connection from a new peer.  Assigns a socket to the connection
+    static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
+    static void accept_new(evutil_socket_t socketfd, short event, void *arg);		//Accept a new connection from a new peer.  Assigns a socket to the connection
     //Maybe change these to locals and pass them around instead?
     char *tcpBuffer;
     QString localHostname;
     QString localUUID;
-    QString ourListenerPort;
+    QString tcpListenerPort;
+    QString udpListenerPort;
 
-    int singleMessageIterator(int i, char *buf, char *ipstr);
-    int getPortNumber(int socket);
-    int setupUDPSocket(int s_listen);
-    int setupTCPSocket();
-    int setSocketToNonBlocking(int socket);
+    int singleMessageIterator(evutil_socket_t i, char *buf, bufferevent *bev);
+    int getPortNumber(evutil_socket_t socket);
+    evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
+    evutil_socket_t setupTCPSocket();
+    int setSocketToNonBlocking(evutil_socket_t socket);
 signals:
     void messageRecieved(const QString, QUuid, bool);					//return a message from a peer with their socket descriptor. REVISE
-    void newConnectionRecieved(int);							//
-    void recievedUUIDForConnection(QString, QString, QString, int, QUuid);
-    void peerQuit(int);												//Alert of a peer disconnect
+    void newConnectionRecieved(evutil_socket_t, void*);							//
+    void recievedUUIDForConnection(QString, QString, evutil_socket_t, QUuid, void*);
+    void peerQuit(evutil_socket_t);												//Alert of a peer disconnect
     void updNameRecieved(QString hname, QString ipaddr, QString uuid);					//return info of discovered peers hostname and ip address
     void potentialReconnect(QString);								//return hostname of a potential reconnected peer
     void exitRecieved(QString);
-    void sendIps(int);
-    void sendName(int, QString, QString);
+    void sendIps(evutil_socket_t);
+    void sendName(evutil_socket_t, QString, QString);
     void hostnameCheck(QString);
     void setPeerHostname(QString, QUuid);
-    void sendMsg(int, QString, QString, QString, QUuid, QString);
+    void sendMsg(evutil_socket_t, QString, QString, QString, QUuid, QString);
     void sendUdp(QString);
     void setListenerPort(QString);
 };
