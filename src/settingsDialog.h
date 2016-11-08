@@ -24,13 +24,67 @@
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QMessageBox>
 #include <messinireader.h>
+#ifdef __unix__
+#include <pwd.h>
+#elif _WIN32
+#include <lmcons.h>
+#endif
 
 QT_BEGIN_NAMESPACE
 
-class settingsDialog : public QDialog
+class SettingsDialog : public QDialog
 {
+private slots:
+    void clickedme(QAbstractButton *button)
+    {
+        if(button == buttonBox->button(QDialogButtonBox::RestoreDefaults))
+        {
+            char localHostname[256] = {};
+#ifdef __unix__
+            struct passwd *user;
+            user = getpwuid(getuid());
+            strcpy(localHostname, user->pw_name);
+#elif _WIN32
+            char user[UNLEN+1];
+            TCHAR t_user[UNLEN+1];
+            DWORD user_size = UNLEN+1;
+            if(GetUserName(t_user, &user_size))
+            {
+                wcstombs(user, t_user, UNLEN+1);
+                strcpy(localHostname, user);
+            }
+#endif
+            spinBox->setValue(0);
+            spinBox_2->setValue(13649);
+            lineEdit->setText(QString::fromUtf8(localHostname));
+            checkBox->setChecked(false);
+        }
+        if(button == buttonBox->button(QDialogButtonBox::Help))
+        {
+            QMessageBox::information(this, "Help", "Changes to these settings should not be needed under normal conditions.\n\n"
+                                                   "Care should be taken in adjusting them as they can prevent PXMessenger from functioning properly.\n\n"
+                                                   "Allowing more than on instance lets the program be run multiple times under the same user.\n(Default:false)\n\n"
+                                                   "Hostname will only change the first half of your hostname, the computer name will remain.\n(Default:Your Username)\n\n"
+                                                   "The listener port should be changed only if needed to bypass firewall restrictions. 0 is Auto.\n(Default:Auto)\n\n"
+                                                   "The discover port must be the same for all computers that wish to communicate together. 0 is 13649.\n(Default:13649)\n\n"
+                                                   "More information can be found at https://github.com/cbpeckles/PXMessenger.");
+        }
+    }
+
+    void accept()
+    {
+        QSettings inisettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL);
+        inisettings.setValue("config/AllowMoreThanOneInstance", this->checkBox->isChecked());
+        inisettings.setValue("hostname/hostname", this->lineEdit->text());
+        int tcpPort = this->spinBox->value();
+        inisettings.setValue("port/TCP", tcpPort);
+        int udpPort = this->spinBox_2->value();
+        inisettings.setValue("port/UDP", udpPort);
+        QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
+        QDialog::accept();
+    }
 public:
-    explicit settingsDialog(QWidget* parent) : QDialog(parent) {}
+    explicit SettingsDialog(QWidget* parent) : QDialog(parent) {}
 
     bool AllowMoreThanOneInstance;
     QString hostname;
@@ -125,6 +179,8 @@ public:
         retranslateUi();
         QObject::connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
         QObject::connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+        QObject::connect(buttonBox, &QDialogButtonBox::clicked, this, &SettingsDialog::clickedme);
+        //QObject::connect(buttonBox->button(QDialogButtonBox::RestoreDefaults), SIGNAL(clicked()), this, SLOT(defaults()));
 
         QMetaObject::connectSlotsByName(this);
     } // setupUi
@@ -153,23 +209,11 @@ public:
     }
 
 
-private slots:
-    void accept()
-    {
-        QSettings inisettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL);
-        inisettings.setValue("config/AllowMoreThanOneInstance", this->checkBox->isChecked());
-        inisettings.setValue("hostname/hostname", this->lineEdit->text());
-        int tcpPort = this->spinBox->value();
-        inisettings.setValue("port/TCP", tcpPort);
-        int udpPort = this->spinBox_2->value();
-        inisettings.setValue("port/UDP", udpPort);
-        QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
-        QDialog::accept();
-    }
+
 };
 
 namespace Ui {
-    class Settings: public settingsDialog {};
+class Settings: public SettingsDialog {};
 } // namespace Ui
 
 QT_END_NAMESPACE

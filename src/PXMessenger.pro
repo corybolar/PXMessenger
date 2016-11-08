@@ -15,6 +15,7 @@ LIBS += -lws2_32 \
 
 win32 {
 CONFIG += c++11 \
+        console \
         debug \
         release 
 }

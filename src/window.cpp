@@ -204,7 +204,7 @@ void MessengerWindow::createListWidget()
 void MessengerWindow::createSystemTray()
 {
     //messSystemTrayIcon = new QIcon(":/resources/resources/systray.png", this);
-    QIcon trayIcon(":/resources/resources/systray.png");
+    QIcon trayIcon(":/resources/resources/70529.png");
 
 
     messSystemTrayMenu = new QMenu(this);
@@ -294,7 +294,7 @@ void MessengerWindow::setListenerPort(QString port)
 
 void MessengerWindow::settingsActionsSlot()
 {
-    settingsDialog *setD = new settingsDialog(this);
+    SettingsDialog *setD = new SettingsDialog(this);
     setD->setupUi();
     setD->readIni();
     setD->show();
@@ -570,12 +570,14 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
 
     messClientThread->quit();
     messClientThread->wait();
+
     delete messClient;
     delete peerWorker;
+
     messSystemTray->setContextMenu(NULL);
     messSystemTray->hide();
+
     MessIniReader iniReader;
-    qDebug() << this->size();
     iniReader.setWindowSize(this->size());
 
     //libevent_global_shutdown();

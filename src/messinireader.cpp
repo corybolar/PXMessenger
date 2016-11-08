@@ -59,7 +59,10 @@ int MessIniReader::getPort(QString protocol)
     int portNumber = inisettings->value("port/" + protocol, 0).toInt();
     if( portNumber == 0)
     {
-        inisettings->setValue("port/" + protocol, 0);
+        if(protocol == "UDP")
+            inisettings->setValue("port/" + protocol, 13649);
+        else
+            inisettings->setValue("port/" + protocol, 0);
         return 0;
     }
     else
