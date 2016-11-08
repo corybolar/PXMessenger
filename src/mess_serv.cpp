@@ -388,6 +388,7 @@ int MessengerServer::setSocketToNonBlocking(evutil_socket_t socket)
 #ifdef _WIN32
     unsigned long ul = 1;
     ioctlsocket(socket, FIONBIO, &ul);
+    return 0;
 #else
     int flags;
     flags = fcntl(socket, F_GETFL);
@@ -417,6 +418,9 @@ int MessengerServer::listener()
 
 
     base = event_base_new();
+
+
+    qDebug() << "Using" << QString::fromUtf8(event_base_get_method(base)) << "as the libevent backend";
     if(!base)
         return -1;
     

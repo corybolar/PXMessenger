@@ -94,7 +94,7 @@ void MessIniReader::setWindowSize(QSize windowSize)
 }
 QSize MessIniReader::getWindowSize(QSize defaultSize)
 {
-    QSize windowSize = inisettings->value("WindowSize/QSize", QSize(700, 500)).toSize();
+    QSize windowSize = inisettings->value("WindowSize/QSize", defaultSize).toSize();
     if(windowSize.isValid())
         return windowSize;
     else

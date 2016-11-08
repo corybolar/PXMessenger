@@ -578,6 +578,8 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
     qDebug() << this->size();
     iniReader.setWindowSize(this->size());
 
+    //libevent_global_shutdown();
+
     event->accept();
 }
 /**

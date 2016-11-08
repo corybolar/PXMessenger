@@ -163,7 +163,7 @@ private slots:
         inisettings.setValue("port/TCP", tcpPort);
         int udpPort = this->spinBox_2->value();
         inisettings.setValue("port/UDP", udpPort);
-        QMessageBox::information(this, "", "Changes to these settings will not take effect until PXMessenger has been restarted");
+        QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
         QDialog::accept();
     }
 };
