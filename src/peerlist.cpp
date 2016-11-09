@@ -10,10 +10,9 @@ void PeerWorkerClass::setLocalHostName(QString name)
 {
     localHostname = name;
 }
-void PeerWorkerClass::setListenerPort(QString port)
+void PeerWorkerClass::setListenerPort(unsigned short port)
 {
-    ourListenerPort = port;
-
+    ourListenerPort = QString::number(port);
 }
 void PeerWorkerClass::hostnameCheck(QString comp)
 {
@@ -33,8 +32,8 @@ void PeerWorkerClass::newTcpConnection(evutil_socket_t s, void *bev)
 }
 void PeerWorkerClass::sendIdentityMsg(evutil_socket_t s)
 {
-    emit sendMsg(s, "", localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
-    emit sendMsg(s, "", "", "/request", localUUID, "");
+    emit sendMsg(s, localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
+    emit sendMsg(s, "", "/request", localUUID, "");
 }
 void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
 {
@@ -106,7 +105,7 @@ void PeerWorkerClass::sendIps(evutil_socket_t i)
             msg.append("]");
         }
     }
-    emit sendMsg(i, msg, localHostname, type, localUUID, "");
+    emit sendMsg(i, msg, type, localUUID, "");
 }
 void PeerWorkerClass::resultOfConnectionAttempt(evutil_socket_t socket, bool result)
 {
@@ -185,12 +184,12 @@ void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString port, evutil_
     bufferevent *bev = (bufferevent*)bevptr;
     struct sockaddr_storage addr;
     socklen_t socklen = sizeof(addr);
-    char ipaddr[INET6_ADDRSTRLEN] = {};
-    char service[20];
+    char *ipaddr;
 
     //Get ip address of sender
     getpeername(s, (struct sockaddr*)&addr, &socklen);
-    getnameinfo((struct sockaddr*)&addr, socklen, ipaddr, sizeof(ipaddr), service, sizeof(service), NI_NUMERICHOST);
+    ipaddr = inet_ntoa(((struct sockaddr_in*)&addr)->sin_addr);
+    //getnameinfo((struct sockaddr*)&addr, socklen, ipaddr, sizeof(ipaddr), service, sizeof(service), NI_NUMERICHOST);
     if( !( peerDetailsHash.value(uuid).isConnected ) )
     {
         qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "reconnected!";

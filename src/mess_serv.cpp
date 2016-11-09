@@ -1,14 +1,12 @@
 #include <mess_serv.h>
 
-MessengerServer::MessengerServer(QWidget *parent, int tcpPort, int udpPort) : QThread(parent)
+MessengerServer::MessengerServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort) : QThread(parent)
 {
-    tcpBuffer = new char[TCP_BUFFER_LENGTH];
-    tcpListenerPort = QString::number(tcpPort);
-    udpListenerPort = QString::number(udpPort);
+    tcpListenerPort = tcpPort;
+    udpListenerPort = udpPort;
 }
 MessengerServer::~MessengerServer()
 {
-    delete [] tcpBuffer;
 }
 
 void MessengerServer::setLocalHostname(QString hostname)
@@ -67,13 +65,12 @@ void MessengerServer::tcpRead(struct bufferevent *bev, void *ctx)
 {
     MessengerServer *realServer = (MessengerServer *)ctx;
     struct evbuffer *input;
+    evutil_socket_t i = bufferevent_getfd(bev);
+
     char *line = new char[TCP_BUFFER_LENGTH];
-    memset(line, 0, TCP_BUFFER_LENGTH*sizeof(*line));
-    evutil_socket_t i;
+    memset(line, 0, TCP_BUFFER_LENGTH);
     input = bufferevent_get_input(bev);
     evbuffer_remove(input, line, TCP_BUFFER_LENGTH);
-    //qDebug() << line;
-    i = bufferevent_getfd(bev);
 
     realServer->singleMessageIterator(i, line, bev);
     delete [] line;
@@ -88,7 +85,7 @@ void MessengerServer::tcpError(struct bufferevent *buf, short error, void *ctx)
     }
     else if (error & BEV_EVENT_ERROR)
     {
-
+        realServer->peerQuit(i);
     }
     else if (error & BEV_EVENT_TIMEOUT)
     {
@@ -98,28 +95,26 @@ void MessengerServer::tcpError(struct bufferevent *buf, short error, void *ctx)
 }
 int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, bufferevent *bev)
 {
-
-
     //partialMsg points to the start of the original buffer.
     //If there is more than one message on it, it will be increased to where the
     //next message begins
     char *partialMsg = buf;
 
     //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
-    char bufLenStr[4] = {};
+    char bufLenStr[5] = {};
 
     //The first three characters of each message should be the length of the message.
     //We parse this to an integer so as not to confuse messages with one another
     //when more than one are recieved from the same socket at the same time
     //If we encounter a valid character after this length, we come back here
     //and iterate through the if statements again.
-    strncpy(bufLenStr, partialMsg, 3);
+    strncpy(bufLenStr, partialMsg, 4);
 
     int bufLen = atoi(bufLenStr);
     bufLen -= 38;
     if(bufLen <= 0)
         return 1;
-    partialMsg = partialMsg+3;
+    partialMsg = partialMsg+4;
     //skip over the UUID, not checking this yet, initial stages
     //FIX THIS AFTER MORE FUNCTIONALITY
     QUuid quuid = QString::fromUtf8(partialMsg, 38);
@@ -229,53 +224,41 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, buffere
 void MessengerServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args)
 {
     MessengerServer *realServer = (MessengerServer*)args;
-    socklen_t si_other_len;
     sockaddr_in si_other;
-    char service[20];
-    char buf[1000] = {};
-    char ipstr[INET6_ADDRSTRLEN];
+    socklen_t si_other_len = sizeof(sockaddr);
+    char buf[100] = {};
 
-    si_other_len = sizeof(sockaddr);
     recvfrom(socketfd, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
-    getnameinfo(((struct sockaddr*)&si_other), si_other_len, ipstr, sizeof(ipstr), service, sizeof(service), NI_NUMERICHOST);
+
     if (strncmp(buf, "/discover", 9) == 0)
     {
-        struct sockaddr_in addr;
-        evutil_socket_t socket1;
-        if ( (socket1 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
+        evutil_socket_t replySocket;
+        if ( (replySocket = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
             perror("socket:");
-        memset(&addr, 0, sizeof(addr));
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = si_other.sin_addr.s_addr;
-        addr.sin_port = htons(PORT_DISCOVER);
-        char name[realServer->tcpListenerPort.length() + realServer->localUUID.length() + 1] = {};
-        char fname[sizeof(name) + 6] = {};
-        strcpy(name, realServer->tcpListenerPort.toStdString().c_str());
+        si_other.sin_port = htons(realServer->udpListenerPort);
+
+        char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.length() + 7] = {};
+
+        strcpy(name, "/name:");
+        snprintf(&name[6], sizeof(name), "%d", realServer->tcpListenerPort);
         strcat(name, realServer->localUUID.toStdString().c_str());
-        strcpy(fname, "/name:");
-        strcat(fname, name);
-        int len = strlen(fname);
+
+        int len = strlen(name);
 
         for(int k = 0; k < 2; k++)
         {
-            sendto(socket1, fname, len+1, 0, (struct sockaddr *)&addr, sizeof(addr));
+            sendto(replySocket, name, len+1, 0, (struct sockaddr *)&si_other, si_other_len);
         }
-        evutil_closesocket(socket1);
+        evutil_closesocket(replySocket);
     }
     //This will get sent from anyone recieving a /discover packet
     //when this is recieved it add the sender to the list of peers and connects to him
     else if ((strncmp(buf, "/name:", 6)) == 0)
     {
-        QString portNumber;
-        QString ipAddress;
-        char fullid[50];
-
-        strcpy(fullid, &buf[6]);
-
-        QString fullidStr = QString::fromUtf8(fullid);
-        portNumber = fullidStr.left(fullidStr.indexOf("{"));
+        QString fullidStr = QString::fromUtf8(&buf[6]);
+        QString portNumber = fullidStr.left(fullidStr.indexOf("{"));
         QString uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
-        ipAddress = QString::fromUtf8(ipstr);
+        QString ipAddress = QString::fromUtf8(inet_ntoa(si_other.sin_addr));
 
         realServer->updNameRecieved(portNumber, ipAddress, uuid);
     }
@@ -302,12 +285,13 @@ evutil_socket_t MessengerServer::setupUDPSocket(evutil_socket_t s_listen)
 {
     sockaddr_in si_me;
     ip_mreq multicastGroup;
+    int udpSocketNumber;
 
     evutil_socket_t socketUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(udpListenerPort.toInt());
+    si_me.sin_port = htons(udpListenerPort);
     si_me.sin_addr.s_addr = INADDR_ANY;
 
     setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int));
@@ -320,22 +304,20 @@ evutil_socket_t MessengerServer::setupUDPSocket(evutil_socket_t s_listen)
         exit(1);
     }
 
-    tcpListenerPort = QString::number(getPortNumber(s_listen));
+    tcpListenerPort = getPortNumber(s_listen);
+
     emit setListenerPort(tcpListenerPort);
 
-    qDebug() << "Port number for Multicast: " << getPortNumber(socketUDP);
+    udpSocketNumber = getPortNumber(socketUDP);
 
-    multicastGroup.imr_multiaddr.s_addr = inet_addr("239.192.13.13");
+    qDebug() << "Port number for Multicast: " << udpSocketNumber;
+
+    multicastGroup.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
     multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
     setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
 
-    /*if(setSocketToNonBlocking(socketUDP) < 0)
-    {
-        perror("could not set socket to NONBLOCK");
-    }
-    */
     //send our discover packet to find other computers
-    emit sendUdp("/discover:" + tcpListenerPort);
+    emit sendUdp("/discover:" + QString::number(tcpListenerPort), udpSocketNumber);
 
     return socketUDP;
 }
@@ -350,7 +332,7 @@ evutil_socket_t MessengerServer::setupTCPSocket()
     hints.ai_flags = AI_PASSIVE;
 
     //getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
-    getaddrinfo(NULL, tcpListenerPort.toStdString().c_str(), &hints, &res);
+    getaddrinfo(NULL, QString::number(tcpListenerPort).toStdString().c_str(), &hints, &res);
 
     if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
     {
@@ -371,11 +353,6 @@ evutil_socket_t MessengerServer::setupTCPSocket()
     {
         perror("listen error: ");
     }
-    /*if(setSocketToNonBlocking(socketTCP) < 0)
-    {
-        perror("could not set socket to NONBLOCK");
-    }
-    */
     qDebug() << "Port number for TCP/IP Listner" << getPortNumber(socketTCP);
 
     freeaddrinfo(res);

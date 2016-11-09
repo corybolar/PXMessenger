@@ -54,9 +54,9 @@ void MessIniReader::setPort(QString protocol, int portNumber)
 {
     inisettings->setValue("port/" + protocol, portNumber);
 }
-int MessIniReader::getPort(QString protocol)
+unsigned short MessIniReader::getPort(QString protocol)
 {
-    int portNumber = inisettings->value("port/" + protocol, 0).toInt();
+    int portNumber = inisettings->value("port/" + protocol, 0).toUInt();
     if( portNumber == 0)
     {
         if(protocol == "UDP")
@@ -73,7 +73,7 @@ int MessIniReader::getPort(QString protocol)
 }
 void MessIniReader::setHostname(QString hostname)
 {
-    inisettings->setValue("hostname/hostname", hostname);
+    inisettings->setValue("hostname/hostname", hostname.left(255));
 
 }
 QString MessIniReader::getHostname(QString defaultHostname)
@@ -86,7 +86,7 @@ QString MessIniReader::getHostname(QString defaultHostname)
     }
     else
     {
-        return hostname;
+        return hostname.left(255);
     }
 
 }
@@ -107,4 +107,20 @@ QSize MessIniReader::getWindowSize(QSize defaultSize)
         return windowSize;
     }
 
+}
+void MessIniReader::setMute(bool mute)
+{
+    inisettings->setValue("config/Mute", mute);
+}
+bool MessIniReader::getMute()
+{
+    return inisettings->value("config/Mute", false).toBool();
+}
+void MessIniReader::setFocus(bool focus)
+{
+    inisettings->setValue("config/PreventFocus", focus);
+}
+bool MessIniReader::getFocus()
+{
+    return inisettings->value("config/PreventFocus", false).toBool();
 }

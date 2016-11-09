@@ -35,16 +35,16 @@
 #include <ws2tcpip.h>
 #endif
 
-#define PORT_DISCOVER 13649
 #define BACKLOG 20
 #define TCP_BUFFER_LENGTH 10000
+#define MULTICAST_ADDRESS "239.192.13.13"
 
 class MessengerServer : public QThread
 {
     Q_OBJECT
 
 public:
-    MessengerServer(QWidget *parent, int tcpPort, int udpPort);
+    MessengerServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort);
     int listener();													//Listen for new connections and recieve from connected ones.  Select is used here.
     void run();														//thread starter
     void setLocalHostname(QString hostname);
@@ -57,12 +57,10 @@ public slots:
 private:
     static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
     static void accept_new(evutil_socket_t socketfd, short event, void *arg);		//Accept a new connection from a new peer.  Assigns a socket to the connection
-    //Maybe change these to locals and pass them around instead?
-    char *tcpBuffer;
     QString localHostname;
     QString localUUID;
-    QString tcpListenerPort;
-    QString udpListenerPort;
+    unsigned short tcpListenerPort;
+    unsigned short udpListenerPort;
 
     int singleMessageIterator(evutil_socket_t i, char *buf, bufferevent *bev);
     int getPortNumber(evutil_socket_t socket);
@@ -81,9 +79,9 @@ signals:
     void sendName(evutil_socket_t, QString, QString);
     void hostnameCheck(QString);
     void setPeerHostname(QString, QUuid);
-    void sendMsg(evutil_socket_t, QString, QString, QString, QUuid, QString);
-    void sendUdp(QString);
-    void setListenerPort(QString);
+    void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
+    void sendUdp(QString, unsigned short);
+    void setListenerPort(unsigned short);
 };
 
 #endif // MESS_SERV_H

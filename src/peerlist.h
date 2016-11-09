@@ -48,7 +48,7 @@ public:
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
 public slots:
-    void setListenerPort(QString port);
+    void setListenerPort(unsigned short port);
     void hostnameCheck(QString comp);
     void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
     void updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
@@ -68,7 +68,7 @@ private:
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid);
-    void sendMsg(evutil_socket_t, QString, QString, QString, QUuid, QString);
+    void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
     void connectToPeer(evutil_socket_t, QString, QString);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);

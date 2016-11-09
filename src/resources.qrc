@@ -1,7 +1,6 @@
 <RCC>
     <qresource prefix="/resources">
         <file>resources/message.wav</file>
-        <file>resources/systray.png</file>
         <file>resources/70529.png</file>
     </qresource>
 </RCC>

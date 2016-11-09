@@ -30,8 +30,9 @@ int main(int argc, char **argv)
     QCoreApplication::setApplicationName("PXMessenger");
     QCoreApplication::setOrganizationName("PXMessenger");
     QCoreApplication::setOrganizationDomain("PXMessenger");
-    QCoreApplication::setApplicationVersion("0.5");
+    QCoreApplication::setApplicationVersion("0.6");
     MessIniReader iniReader;
+    initialSettings presets;
     char localHostname[250];
 
 #ifdef __unix__
@@ -54,10 +55,9 @@ int main(int argc, char **argv)
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
 
-    int uuidnum = 0;
     if(allowMoreThanOne)
     {
-        uuidnum = iniReader.getUUIDNumber();
+        presets.uuidNum = iniReader.getUUIDNumber();
     }
     else
     {
@@ -70,19 +70,20 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    QUuid uuid = iniReader.getUUID(uuidnum, allowMoreThanOne);
+    presets.uuid = iniReader.getUUID(presets.uuidNum, allowMoreThanOne);
+    presets.username = iniReader.getHostname(QString::fromUtf8(localHostname));
+    presets.tcpPort = iniReader.getPort("TCP");
+    presets.udpPort = iniReader.getPort("UDP");
+    presets.windowSize = iniReader.getWindowSize(QSize(700, 500));
+    presets.mute = iniReader.getMute();
+    presets.preventFocus = iniReader.getFocus();
 
-    QString qHostname = iniReader.getHostname(QString::fromUtf8(localHostname));
-    int tcpPort = iniReader.getPort("TCP");
-    int udpPort = iniReader.getPort("UDP");
-    QSize windowSize = iniReader.getWindowSize(QSize(700, 500));
-
-    MessengerWindow window(uuid, uuidnum, qHostname, tcpPort, udpPort, windowSize);
+    MessengerWindow window(presets);
     //window.show();
 
     int result = app.exec();
 
-    iniReader.resetUUID(uuidnum, uuid);
+    iniReader.resetUUID(presets.uuidNum, presets.uuid);
 
     return result;
 }

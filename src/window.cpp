@@ -1,18 +1,21 @@
 #include <window.h>
 
-MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum, QString username, int tcpPort, int udpPort, QSize windowSize)
+//MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum, QString username, int tcpPort, int udpPort, QSize windowSize)
+MessengerWindow::MessengerWindow(initialSettings presets)
 {
-    ourUUIDString = uuid.toString();
+    ourUUIDString = presets.uuid.toString();
     qDebug() << "Our UUID:" << ourUUIDString;
 
-    setupHostname(uuidNum, username);
+    setupHostname(presets.uuidNum, presets.username);
 
-    if(tcpPort != 0)
-        tcpPort += uuidNum;
-    if(udpPort == 0)
-        udpPort = 13649;
+    if(presets.tcpPort != 0)
+        presets.tcpPort += presets.uuidNum;
+    if(presets.udpPort == 0)
+        presets.udpPort = 13649;
+    ourUDPListenerPort = presets.udpPort;
 
-    messServer = new MessengerServer(this, tcpPort, udpPort);
+
+    messServer = new MessengerServer(this, presets.tcpPort, presets.udpPort);
 
     peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString, messServer);
 
@@ -30,6 +33,8 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum, QString username, int 
 
     createSystemTray();
 
+    createCheckBoxes();
+
     setupMenuBar();
 
     setupTooltips();
@@ -46,16 +51,38 @@ MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum, QString username, int 
 
     this->setCentralWidget(centralwidget);
 
+    focusCheckBox->setChecked(presets.preventFocus);
+    muteCheckBox->setChecked(presets.mute);
+
     statusbar = new QStatusBar(this);
     statusbar->setObjectName(QStringLiteral("statusbar"));
     this->setStatusBar(statusbar);
     this->show();
-    this->resize(windowSize);
-    if(this->timer != NULL)
-        qDebug() << "hi";
+    this->resize(presets.windowSize);
 
     QTimer::singleShot(5000, this, SLOT(timerOutSingleShot()));
 }
+MessengerWindow::~MessengerWindow()
+{
+    for(auto &itr : peerWorker->peerDetailsHash)
+    {
+        if(itr.bev != NULL)
+            bufferevent_free(itr.bev);
+    }
+    if(messServer != 0 && messServer->isRunning())
+    {
+        messServer->requestInterruption();
+        messServer->quit();
+        messServer->wait();
+    }
+    messClientThread->quit();
+    messClientThread->wait();
+
+    delete messClient;
+    delete peerWorker;
+    delete [] localHostname;
+}
+
 void MessengerWindow::setupMenuBar()
 {
     menubar = new QMenuBar(this);
@@ -82,7 +109,6 @@ void MessengerWindow::setupMenuBar()
     helpMenu->addAction(aboutAction);
     QObject::connect(aboutAction, SIGNAL (triggered()), this, SLOT (aboutActionSlot()));
 }
-
 void MessengerWindow::setupTooltips()
 {
 #ifndef QT_NO_TOOLTIP
@@ -106,7 +132,6 @@ void MessengerWindow::setupTooltips()
 #endif // QT_NO_TOOLTIP
     messQuitButton->setText(QApplication::translate("PXMessenger", "Quit", 0));
 }
-
 void MessengerWindow::setupLayout()
 {
     if (this->objectName().isEmpty())
@@ -183,7 +208,7 @@ void MessengerWindow::createButtons()
     messDebugButton = new QPushButton("Debug", this);
     messDebugButton->setGeometry(460, 510, 80, 30);
     connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
-    //messDebugButton->hide();
+    messDebugButton->hide();
 }
 void MessengerWindow::createListWidget()
 {
@@ -217,12 +242,26 @@ void MessengerWindow::createSystemTray()
     messSystemTray->setContextMenu(messSystemTrayMenu);
     messSystemTray->show();
 }
+void MessengerWindow::createCheckBoxes()
+{
+    muteCheckBox = new QCheckBox(centralwidget);
+    muteCheckBox->setObjectName(QStringLiteral("muteCheckBox"));
+    muteCheckBox->setLayoutDirection(Qt::RightToLeft);
+    muteCheckBox->setText("Mute");
+    layout->addWidget(muteCheckBox, 3, 3, 1, 1);
+
+    focusCheckBox = new QCheckBox(centralwidget);
+    focusCheckBox->setObjectName(QStringLiteral("focusCheckBox"));
+    focusCheckBox->setLayoutDirection(Qt::RightToLeft);
+    focusCheckBox->setText("Prevent focus stealing");
+
+    layout->addWidget(focusCheckBox, 5, 3, 1, 1);
+}
 void MessengerWindow::createMessClient()
 {
     messClientThread = new QThread(this);
     messClient = new MessengerClient();
     messClient->moveToThread(messClientThread);
-    messClient->setLocalHostname((localHostname));
     messClient->setlocalUUID(ourUUIDString);
     QObject::connect(messClientThread, &QThread::finished, messClientThread, &QObject::deleteLater);
     QObject::connect(messClient, &MessengerClient::resultOfConnectionAttempt, peerWorker, &PeerWorkerClass::resultOfConnectionAttempt);
@@ -231,7 +270,6 @@ void MessengerWindow::createMessClient()
     QObject::connect(this, &MessengerWindow::connectToPeer, messClient, &MessengerClient::connectToPeerSlot);
     QObject::connect(this, &MessengerWindow::sendUdp, messClient, &MessengerClient::udpSendSlot);
     QObject::connect(messServer, &MessengerServer::sendMsg, messClient, &MessengerClient::sendMsgSlot);
-    QObject::connect(messServer, &MessengerServer::sendName, messClient, &MessengerClient::sendNameSlot);
     QObject::connect(messServer, &MessengerServer::sendUdp, messClient, &MessengerClient::udpSendSlot);
     messClientThread->start();
 }
@@ -270,7 +308,7 @@ void MessengerWindow::createMessServ()
     QObject::connect(messServer, &MessengerServer::hostnameCheck, peerWorker, &PeerWorkerClass::hostnameCheck);
     QObject::connect(messServer, &MessengerServer::setPeerHostname, peerWorker, &PeerWorkerClass::setPeerHostname);
     QObject::connect(messServer, &MessengerServer::setListenerPort, peerWorker, &PeerWorkerClass::setListenerPort);
-    QObject::connect(messServer, &MessengerServer::setListenerPort, peerWorker, &PeerWorkerClass::setListenerPort);
+    QObject::connect(messServer, &MessengerServer::setListenerPort, this, &MessengerWindow::setListenerPort);
     messServer->start();
 }
 void MessengerWindow::aboutActionSlot()
@@ -287,11 +325,10 @@ void MessengerWindow::aboutActionSlot()
                                       "</center>"
                                       "<br>");
 }
-void MessengerWindow::setListenerPort(QString port)
+void MessengerWindow::setListenerPort(unsigned short port)
 {
-    ourListenerPort = port;
+    ourTCPListenerPort = port;
 }
-
 void MessengerWindow::settingsActionsSlot()
 {
     SettingsDialog *setD = new SettingsDialog(this);
@@ -299,7 +336,6 @@ void MessengerWindow::settingsActionsSlot()
     setD->readIni();
     setD->show();
 }
-
 void MessengerWindow::createMessTime()
 {
     messTime = time(0);
@@ -307,7 +343,9 @@ void MessengerWindow::createMessTime()
 }
 void MessengerWindow::setupHostname(int uuidNum, QString username)
 {
-    char computerHostname[128];
+    char computerHostname[256];
+    localHostname = new char[256 + username.length()];
+    memset(localHostname, 0, 1*sizeof(localHostname));
     gethostname(computerHostname, sizeof computerHostname);
 
     strcat(localHostname, username.toStdString().c_str());
@@ -320,7 +358,6 @@ void MessengerWindow::setupHostname(int uuidNum, QString username)
     strcat(localHostname, "@");
     strcat(localHostname, computerHostname);
 }
-
 void MessengerWindow::debugButtonClicked()
 {
 
@@ -337,7 +374,7 @@ void MessengerWindow::timerOutRepetitive()
 {
     if(messListWidget->count() < 4)
     {
-        emit sendUdp("/discover:" + ourListenerPort);
+        emit sendUdp("/discover:" + QString::number(ourTCPListenerPort), ourUDPListenerPort);
     }
     else
     {
@@ -345,7 +382,6 @@ void MessengerWindow::timerOutRepetitive()
         timer->stop();
     }
 }
-
 void MessengerWindow::timerOutSingleShot()
 {
     if(messListWidget->count() < 3)
@@ -358,7 +394,7 @@ void MessengerWindow::timerOutSingleShot()
         timer = new QTimer(this);
         timer->setInterval(5000);
         QObject::connect(timer, &QTimer::timeout, this, &MessengerWindow::timerOutRepetitive);
-        emit sendUdp("/discover:" + ourListenerPort);
+        emit sendUdp("/discover:" + QString::number(ourTCPListenerPort), ourUDPListenerPort);
         qDebug() << "Retrying discovery packet, looking for other computers...";
         timer->start();
     }
@@ -367,7 +403,6 @@ void MessengerWindow::timerOutSingleShot()
         qDebug() << "Found enough peers";
     }
 }
-//Condense the 2 following into one, unsure of how to make the disconnect reconnect feature vary depending on bool
 void MessengerWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
     for(int i = 0; i < messListWidget->count() - 2; i++)
@@ -556,32 +591,13 @@ void MessengerWindow::updateListWidget(QUuid uuid)
  */
 void MessengerWindow::closeEvent(QCloseEvent *event)
 {
-    for(auto &itr : peerWorker->peerDetailsHash)
-    {
-        if(itr.bev != NULL)
-            bufferevent_free(itr.bev);
-    }
-    if(messServer != 0 && messServer->isRunning())
-    {
-        messServer->requestInterruption();
-        messServer->quit();
-        messServer->wait();
-    }
-
-    messClientThread->quit();
-    messClientThread->wait();
-
-    delete messClient;
-    delete peerWorker;
-
     messSystemTray->setContextMenu(NULL);
     messSystemTray->hide();
 
     MessIniReader iniReader;
     iniReader.setWindowSize(this->size());
-
-    //libevent_global_shutdown();
-
+    iniReader.setMute(muteCheckBox->isChecked());
+    iniReader.setFocus(focusCheckBox->isChecked());
     event->accept();
 }
 /**
@@ -594,7 +610,7 @@ void MessengerWindow::globalSend(QString msg)
     {
         if(itr.isConnected)
         {
-            emit sendMsg(itr.socketDescriptor, msg, localHostname, "/global", ourUUIDString, "");
+            emit sendMsg(itr.socketDescriptor, QString::fromUtf8(localHostname) + ": " + msg, "/global", ourUUIDString, "");
         }
     }
     messTextEdit->setText("");
@@ -631,7 +647,7 @@ void MessengerWindow::sendButtonClicked()
             peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor = s;
             emit connectToPeer(s, destination.ipAddress, destination.portNumber);
         }
-        emit sendMsg(destination.socketDescriptor, str, localHostname, "/msg", ourUUIDString, uuidOfSelectedItem.toString());
+        emit sendMsg(destination.socketDescriptor, QString::fromUtf8(localHostname) + ": " + str, "/msg", ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");
     }
 
@@ -655,34 +671,20 @@ void MessengerWindow::changeListColor(int row, int style)
  */
 void MessengerWindow::focusWindow()
 {
-    if(this->isActiveWindow())
-    {
+    if(!(muteCheckBox->isChecked()))
         QSound::play(":/resources/resources/message.wav");
-        return;
-    }
-    else if(this->windowState() == Qt::WindowActive)
+
+    if(!(this->isMinimized()))
     {
-        QSound::play(":/resources/resources/message.wav");
-        return;
-    }
-    else if(!(this->isMinimized()))
-    {
-        QSound::play(":/resources/resources/message.wav");
         qApp->alert(this, 0);
     }
-    else if(this->isMinimized())
+    else if(this->isMinimized() && !(focusCheckBox->isChecked()))
     {
-        QSound::play(":/resources/resources/message.wav");
         this->show();
         qApp->alert(this, 0);
         this->raise();
         this->setWindowState(Qt::WindowActive);
     }
-    else
-    {
-        QSound::play(":/resources/resources/message.wav");
-    }
-    return;
 }
 /**
  * @brief 					This will print new messages to the appropriate QString and call the focus function if its necessary

@@ -64,15 +64,30 @@
 #include <lmcons.h>
 #endif
 
+struct initialSettings{
+    int uuidNum = 0;
+    unsigned short tcpPort = 0;
+    unsigned short udpPort = 0;
+    bool mute = false;
+    bool preventFocus = false;
+    QString username;
+    QSize windowSize;
+    QUuid uuid;
+};
+
 class MessengerWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MessengerWindow(QUuid uuid, int uuidNum, QString username, int tcpPort, int udpPort, QSize windowSize);
+    //MessengerWindow(QUuid uuid, int uuidNum, QString username, int tcpPort, int udpPort, QSize windowSize);
+    MessengerWindow(initialSettings presets);
+    ~MessengerWindow();
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;									//Close event handler
     void changeEvent(QEvent *event);
+public slots:
+    void setListenerPort(unsigned short port);
 private slots:
     void sendButtonClicked();													//Send button event
     void quitButtonClicked();														//quit button, used to test the various destructors and close event
@@ -88,7 +103,6 @@ private slots:
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
     void settingsActionsSlot();
-    void setListenerPort(QString port);
     void timerOutRepetitive();
 private:
     QGridLayout *layout;
@@ -109,6 +123,8 @@ private:
     QLineEdit *messLineEdit;
     QPushButton *m_sendDebugButton;
     QListWidget *messListWidget;
+    QCheckBox *muteCheckBox;
+    QCheckBox *focusCheckBox;
     QThread *messClientThread;
     QTimer *timer;
     QString ourUUIDString;
@@ -122,8 +138,9 @@ private:
     struct tm *currentTime;
 
     int numberOfValidPeers = 0;														//Length of peers array
-    char localHostname[256] = {};
-    QString ourListenerPort;
+    char *localHostname;
+    unsigned short ourTCPListenerPort;
+    unsigned short ourUDPListenerPort;
     QString globalChat = "";
     QUuid globalChatUuid;
     bool globalChatAlerted = false;
@@ -151,12 +168,12 @@ private:
     void setupLayout();
     void setupTooltips();
     void setupMenuBar();
+    void createCheckBoxes();
 signals:
-    void connectToPeer(int, QString, QString);
-    void sendMsg(int, QString, QString, QString, QUuid, QString);
-    void sendUdp(QString);
+    void connectToPeer(evutil_socket_t, QString, QString);
+    void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
+    void sendUdp(QString, unsigned short);
     void retryDiscover();
-
 };
 
 #endif // WINDOW_H

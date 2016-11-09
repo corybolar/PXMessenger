@@ -1,6 +1,6 @@
 TEMPLATE = app
 TARGET = PXMessenger
-VERSION = 0.5
+VERSION = 0.6
 QMAKE_TARGET_COMPANY = Bolar Code Solutions
 QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger

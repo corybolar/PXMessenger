@@ -4,30 +4,24 @@ MessengerClient::MessengerClient()
 {
 
 }
-void MessengerClient::setLocalHostname(char *hostname)
-{
-    localHostname = hostname;
-}
 void MessengerClient::setlocalUUID(QString uuid)
 {
     localUUID = uuid;
 }
-void MessengerClient::udpSendSlot(QString msg)
+void MessengerClient::udpSendSlot(QString msg, unsigned short port)
 {
-    this->udpSend(msg.toStdString().c_str());
+    this->udpSend(msg.toStdString().c_str(), port);
 }
-void MessengerClient::udpSend(const char* msg)
+void MessengerClient::udpSend(const char* msg, unsigned short port)
 {
     int len;
-    int port2 = 13649;
     struct sockaddr_in broadaddr;
-    //struct in_addr localInterface;
     evutil_socket_t socketfd2;
 
     memset(&broadaddr, 0, sizeof(broadaddr));
     broadaddr.sin_family = AF_INET;
-    broadaddr.sin_addr.s_addr = inet_addr("239.192.13.13");
-    broadaddr.sin_port = htons(port2);
+    broadaddr.sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
+    broadaddr.sin_port = htons(port);
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
         perror("socket:");
@@ -90,58 +84,30 @@ int MessengerClient::c_connect(evutil_socket_t socketfd, const char *ipaddr, con
  *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
  *   				-5 if socket is not connected
  */
-int MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const char *host, const char *type, const char *uuid, const char *theiruuid)
+void MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const char *type, const char *uuid, const char *theiruuid)
 {
     int packetLen, bytes_sent, sendcount = 0;
-    char msgLen[3];
     bool print = false;
 
     //Combine strings into final message (host): (msg)\0
 
+    packetLen = strlen(uuid) + strlen(type) + strlen(msg);
     if(!strcmp(type, "/msg") )
     {
-        packetLen = strlen(uuid) + strlen(type) + strlen(host) + strlen(msg) + 2;
         print = true;
     }
-    else if(!strcmp(type,"/global"))
-    {
-        packetLen = strlen(uuid) + strlen(type) + strlen(host) + strlen(msg) + 2;
-    }
-    else if(!strcmp(type,"/uuid"))
-    {
-        packetLen = strlen(uuid) + strlen(type) + strlen(host);
-    }
-    else
-    {
-        packetLen = strlen(uuid) + strlen(type) + strlen(msg);
-    }
 
-    sprintf(msgLen, "%03d", packetLen);
-    int packetLenLength = 3;
+    int packetLenLength = 4;
     //account for the numbers we just added to the front of the final message
+
+    char full_mess[packetLen + packetLenLength + 1] = {};
+    sprintf(full_mess, "%04d", packetLen);
+
     packetLen += packetLenLength;
 
-    char full_mess[packetLen] = {};
-    char humanReadableMessage[packetLen-strlen(type)] = {};
-    strncpy(full_mess, msgLen, 3);
     strcat(full_mess, uuid);
-
     strcat(full_mess, type);
-    if(!strcmp(type, "/uuid"))
-    {
-        strcat(full_mess, host);
-    }
-    if(!strcmp(type, "/msg") || !strcmp(type,"/global"))
-    {
-        strcat(full_mess, host);
-        strcat(humanReadableMessage, host);
-        full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength] = ':';
-        full_mess[strlen(host) + strlen(type) + strlen(uuid) + packetLenLength + 1] = ' ';
-        humanReadableMessage[strlen(host)] = ':';
-        humanReadableMessage[strlen(host) + 1] = ' ';
-    }
     strcat(full_mess, msg);
-    strcat(humanReadableMessage, msg);
 
     bytes_sent = this->partialSend(socketfd, full_mess, packetLen, sendcount);
 
@@ -149,35 +115,23 @@ int MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const c
     {
         if(bytes_sent >= packetLen)
         {
-            emit resultOfTCPSend(0, QString::fromUtf8(theiruuid), QString::fromUtf8(humanReadableMessage), print);
-            return bytes_sent;
+            emit resultOfTCPSend(0, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
         }
         else
         {
             std::cout << "Partial Send has failed not all bytes sent" << std::endl;
-            emit resultOfTCPSend(bytes_sent, QString::fromUtf8(theiruuid), QString::fromUtf8(humanReadableMessage), print);
-            return bytes_sent;
+            emit resultOfTCPSend(bytes_sent, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
         }
     }
     else
     {
-        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(humanReadableMessage), print);
-#ifdef _WIN32
-        return -5;
-#else
-        switch (errno)
-        {
-        case EPIPE:
-            return -5;
-        }
-#endif
-
+        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
     }
-    return -5;
+    return;
 }
-void MessengerClient::sendMsgSlot(evutil_socket_t s, QString msg, QString host, QString type, QUuid uuid, QString theiruuid)
+void MessengerClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
 {
-    this->send_msg(s, msg.toStdString().c_str(), host.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str(), theiruuid.toStdString().c_str());
+    this->send_msg(s, msg.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str(), theiruuid.toStdString().c_str());
 }
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
@@ -215,13 +169,4 @@ int MessengerClient::partialSend(evutil_socket_t socketfd, const char *msg, int 
             return -1;
     }
     return status + status2;
-}
-/**
- * @brief 			Slot function for signal called from mess_serv class.  Sends hostname to socket
- * @param s			Socket to send our hostname to
- */
-void MessengerClient::sendNameSlot(evutil_socket_t s, QString uuid,QString theiruuid)
-{
-    this->send_msg(s, localHostname, "", "/hostname", uuid.toStdString().c_str(), theiruuid.toStdString().c_str());
-    return;
 }

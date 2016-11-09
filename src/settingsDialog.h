@@ -136,6 +136,7 @@ public:
 
         lineEdit = new QLineEdit(this);
         lineEdit->setObjectName(QStringLiteral("lineEdit"));
+        lineEdit->setMaxLength(128);
 
         gridLayout->addWidget(lineEdit, 1, 1, 1, 1);
 

@@ -17,12 +17,16 @@ public:
     int getUUIDNumber();
     QUuid getUUID(int num, bool takeIt);
     int resetUUID(int num, QUuid uuid);
-    int getPort(QString protocol);
+    unsigned short getPort(QString protocol);
     QString getHostname(QString defaultHostname);
     void setHostname(QString hostname);
     void setPort(QString protocol, int portNumber);
     void setWindowSize(QSize windowSize);
     QSize getWindowSize(QSize defaultSize);
+    void setMute(bool mute);
+    bool getMute();
+    void setFocus(bool focus);
+    bool getFocus();
 private:
     QSettings *inisettings;
 };

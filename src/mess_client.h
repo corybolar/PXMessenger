@@ -26,24 +26,23 @@
 #include <ws2tcpip.h>
 #endif
 
+#define MULTICAST_ADDRESS "239.192.13.13"
+
 class MessengerClient : public QObject
 {
     Q_OBJECT
 public:
     MessengerClient();
     int c_connect(evutil_socket_t socketfd, const char *ipaddr, const char *service);					//Connect a socket to and ip address
-    int send_msg(evutil_socket_t socketfd, const char *msg, const char *host, const char *type, const char *uuid, const char *theiruuid);	//send a message through an already connected socket to the specified ip address
-    void setLocalHostname(char *hostname);
+    void send_msg(evutil_socket_t socketfd, const char *msg, const char *type, const char *uuid, const char *theiruuid);	//send a message through an already connected socket to the specified ip address
     void setlocalUUID(QString uuid);
 public slots:
-    void sendMsgSlot(evutil_socket_t s, QString msg, QString host, QString type, QUuid uuid, QString theiruuid);
+    void sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid);
     void connectToPeerSlot(evutil_socket_t s, QString ipaddr, QString service);
-    void udpSendSlot(QString msg);
-    void sendNameSlot(evutil_socket_t, QString uuid, QString theiruuid);
+    void udpSendSlot(QString msg, unsigned short port);
 private:
     int partialSend(evutil_socket_t socketfd, const char *msg, int len, int count);			//deal with the kernel not sending all of our message in one go
-    void udpSend(const char *msg);
-    char *localHostname;
+    void udpSend(const char *msg, unsigned short port);
     QString localUUID;
 signals:
     void resultOfConnectionAttempt(evutil_socket_t, bool);
