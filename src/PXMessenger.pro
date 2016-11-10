@@ -7,7 +7,12 @@ QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
 
-LIBS += -levent
+unix: LIBS += -levent
+
+win32: LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
+
+INCLUDEPATH += $$PWD/../../libevent-2.0.22-stable/include
+DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
 
 win32 {
 LIBS += -lws2_32 \
@@ -15,7 +20,6 @@ LIBS += -lws2_32 \
 
 win32 {
 CONFIG += c++11 \
-        console \
         debug \
         release 
 }

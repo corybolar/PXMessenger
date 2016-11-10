@@ -7,7 +7,7 @@ Q_DECLARE_METATYPE(intptr_t)
 MessengerWindow::MessengerWindow(initialSettings presets)
 {
 #ifdef _WIN32
-    qRegisterMetaType<intptr_t>();
+    qRegisterMetaType<intptr_t>("intptr_t");
 #endif
     ourUUIDString = presets.uuid.toString();
     qDebug() << "Our UUID:" << ourUUIDString;
