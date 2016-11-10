@@ -1,8 +1,14 @@
 #include <window.h>
 
-//MessengerWindow::MessengerWindow(QUuid uuid, int uuidNum, QString username, int tcpPort, int udpPort, QSize windowSize)
+#ifdef _WIN32
+Q_DECLARE_OPAQUE_POINTER(intptr_t)
+Q_DECLARE_METATYPE(intptr_t)
+#endif
 MessengerWindow::MessengerWindow(initialSettings presets)
 {
+#ifdef _WIN32
+    qRegisterMetaType<intptr_t>();
+#endif
     ourUUIDString = presets.uuid.toString();
     qDebug() << "Our UUID:" << ourUUIDString;
 

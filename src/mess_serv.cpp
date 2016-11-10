@@ -45,10 +45,6 @@ void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
     {
         perror("accept");
     }
-    else if(result > FD_SETSIZE)
-    {
-        close(result);
-    }
     else
     {
         struct bufferevent *bev;
