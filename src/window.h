@@ -44,6 +44,7 @@
 #include <mess_textedit.h>
 #include <mess_client.h>
 #include <messinireader.h>
+#include <mess_structs.h>
 #include <peerlist.h>
 #include <settingsDialog.h>
 
@@ -63,17 +64,6 @@
 #include <windows.h>
 #include <lmcons.h>
 #endif
-
-struct initialSettings{
-    int uuidNum = 0;
-    unsigned short tcpPort = 0;
-    unsigned short udpPort = 0;
-    bool mute = false;
-    bool preventFocus = false;
-    QString username;
-    QSize windowSize;
-    QUuid uuid;
-};
 
 class MessengerWindow : public QMainWindow
 {

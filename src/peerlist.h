@@ -6,6 +6,7 @@
 #include <QMutex>
 #include <QUuid>
 #include <QThread>
+#include <QTimer>
 
 #include <sys/unistd.h>
 #include <stdio.h>
@@ -51,7 +52,6 @@ public slots:
     void sendIps(evutil_socket_t i);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result);
     void resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print);
-    void beginSync();
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
     QString localHostname;
@@ -72,7 +72,7 @@ signals:
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);
 private slots:
-    void timerOut();
+    void beginSync();
     void doneSync();
     void requestIps(evutil_socket_t s, QUuid uuid);
 };

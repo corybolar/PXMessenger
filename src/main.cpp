@@ -3,7 +3,9 @@
 #include <QDir>
 #include <QMessageBox>
 #include <QString>
+#include <QLockFile>
 #include <messinireader.h>
+#include <mess_structs.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>

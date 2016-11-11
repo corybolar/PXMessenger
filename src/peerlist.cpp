@@ -128,7 +128,6 @@ void PeerWorkerClass::peerQuit(evutil_socket_t s)
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].socketDescriptor = -1;
             peerDetailsHash[itr.identifier].bev = NULL;
-            //int s1 = socket(AF_INET, SOCK_STREAM, 0);
             emit setItalicsOnItem(itr.identifier, 1);
             this->attemptConnection(itr.portNumber, itr.ipAddress, itr.identifier.toString());
             return;
@@ -188,9 +187,6 @@ void PeerWorkerClass::resultOfConnectionAttempt(evutil_socket_t socket, bool res
         peerDetailsHash[uuid].isConnected = false;
     }
 }
-void PeerWorkerClass::timerOut()
-{
-}
 void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print)
 {
     QUuid uuid = uuidString;
@@ -210,7 +206,6 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
 
         }
         emit printToTextBrowser(msg, uuid, print);
-
 
         return;
     }

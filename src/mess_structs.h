@@ -19,4 +19,14 @@ struct peerDetails{
     QUuid identifier;
     bufferevent *bev = nullptr;
 };
+struct initialSettings{
+    int uuidNum = 0;
+    unsigned short tcpPort = 0;
+    unsigned short udpPort = 0;
+    bool mute = false;
+    bool preventFocus = false;
+    QString username;
+    QSize windowSize;
+    QUuid uuid;
+};
 #endif // MESS_STRUCTS_H

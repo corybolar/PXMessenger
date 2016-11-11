@@ -3,6 +3,8 @@
 
 #include <QThread>
 #include <QWidget>
+#include <QUuid>
+#include <QDebug>
 #include <ctime>
 //#include <peerlist.h>
 #include <sys/types.h>
@@ -11,7 +13,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <QtCore>
 #include <iostream>
 #include <event2/event.h>
 #include <event2/buffer.h>
