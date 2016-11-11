@@ -556,6 +556,7 @@ void MessengerWindow::updateListWidget(QUuid uuid)
             {
                 printToTextBrowser(str + " has changed their name to " + peerWorker->peerDetailsHash->value(uuid).hostname, uuid, false);
                 messListWidget->item(i)->setText(peerWorker->peerDetailsHash->value(uuid).hostname);
+                break;
             }
             if(peerWorker->peerDetailsHash->value(uuid).hostname.compare(str, Qt::CaseInsensitive) == 0)
             {
