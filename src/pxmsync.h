@@ -1,19 +1,20 @@
-#ifndef MESSSYNC_H
-#define MESSSYNC_H
-#include <QObject>
+#ifndef PXMSYNC_H
+#define PXMSYNC_H
+
 #include <QDebug>
 #include <QHash>
 #include <QThread>
 #include <QWidget>
+
 #include <event2/util.h>
-#include <mess_structs.h>
 
+#include <pxmdefinitions.h>
 
-class MessSync : public QThread
+class PXMSync : public QThread
 {
     Q_OBJECT
 public:
-    MessSync(QObject *parent);
+    PXMSync(QObject *parent);
     void run();
     void setHash(QHash<QUuid, struct peerDetails> hash);
     volatile bool moveOnPlease;

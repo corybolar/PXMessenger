@@ -1,10 +1,9 @@
-#include <window.h>
+#include <pxmmainwindow.h>
 
 #ifdef _WIN32
-Q_DECLARE_OPAQUE_POINTER(intptr_t)
 Q_DECLARE_METATYPE(intptr_t)
 #endif
-MessengerWindow::MessengerWindow(initialSettings presets)
+PXMWindow::PXMWindow(initialSettings presets)
 {
 #ifdef _WIN32
     qRegisterMetaType<intptr_t>("intptr_t");
@@ -21,9 +20,9 @@ MessengerWindow::MessengerWindow(initialSettings presets)
     ourUDPListenerPort = presets.udpPort;
 
 
-    messServer = new MessengerServer(this, presets.tcpPort, presets.udpPort);
+    messServer = new PXMServer(this, presets.tcpPort, presets.udpPort);
 
-    peerWorker = new PeerWorkerClass(this, localHostname, ourUUIDString, messServer);
+    peerWorker = new PXMPeerWorker(this, localHostname, ourUUIDString, messServer);
 
     setupLayout();
 
@@ -68,7 +67,7 @@ MessengerWindow::MessengerWindow(initialSettings presets)
 
     QTimer::singleShot(5000, this, SLOT(timerOutSingleShot()));
 }
-MessengerWindow::~MessengerWindow()
+PXMWindow::~PXMWindow()
 {
     for(auto &itr : peerWorker->peerDetailsHash)
     {
@@ -89,7 +88,7 @@ MessengerWindow::~MessengerWindow()
     delete [] localHostname;
 }
 
-void MessengerWindow::setupMenuBar()
+void PXMWindow::setupMenuBar()
 {
     menubar = new QMenuBar(this);
     menubar->setObjectName(QStringLiteral("menubar"));
@@ -115,7 +114,7 @@ void MessengerWindow::setupMenuBar()
     helpMenu->addAction(aboutAction);
     QObject::connect(aboutAction, SIGNAL (triggered()), this, SLOT (aboutActionSlot()));
 }
-void MessengerWindow::setupTooltips()
+void PXMWindow::setupTooltips()
 {
 #ifndef QT_NO_TOOLTIP
     messTextBrowser->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Messages</p></body></html>", 0));
@@ -138,7 +137,7 @@ void MessengerWindow::setupTooltips()
 #endif // QT_NO_TOOLTIP
     messQuitButton->setText(QApplication::translate("PXMessenger", "Quit", 0));
 }
-void MessengerWindow::setupLayout()
+void PXMWindow::setupLayout()
 {
     if (this->objectName().isEmpty())
         this->setObjectName(QStringLiteral("PXMessenger"));
@@ -158,9 +157,9 @@ void MessengerWindow::setupLayout()
     horizontalSpacer_4 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
     layout->addItem(horizontalSpacer_4, 5, 0, 1, 1);
 }
-void MessengerWindow::createTextEdit()
+void PXMWindow::createTextEdit()
 {
-    messTextEdit = new MessengerTextEdit(centralwidget);
+    messTextEdit = new PXMTextEdit(centralwidget);
     messTextEdit->setObjectName(QStringLiteral("messTextEdit"));
     QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Preferred);
     sizePolicy1.setHorizontalStretch(0);
@@ -171,7 +170,7 @@ void MessengerWindow::createTextEdit()
 
     layout->addWidget(messTextEdit, 2, 0, 1, 3);
 }
-void MessengerWindow::createTextBrowser()
+void PXMWindow::createTextBrowser()
 {
     messTextBrowser = new QTextBrowser(centralwidget);
     messTextBrowser->setObjectName(QStringLiteral("messTextBrowser"));
@@ -184,7 +183,7 @@ void MessengerWindow::createTextBrowser()
 
     layout->addWidget(messTextBrowser, 0, 0, 2, 3);
 }
-void MessengerWindow::createLineEdit()
+void PXMWindow::createLineEdit()
 {
     messLineEdit = new QLineEdit(centralwidget);
     messLineEdit->setObjectName(QStringLiteral("messLineEdit"));
@@ -195,7 +194,7 @@ void MessengerWindow::createLineEdit()
 
     layout->addWidget(messLineEdit, 0, 3, 1, 1);
 }
-void MessengerWindow::createButtons()
+void PXMWindow::createButtons()
 {
     messSendButton = new QPushButton(centralwidget);
     messSendButton->setObjectName(QStringLiteral("messSendButton"));
@@ -216,7 +215,7 @@ void MessengerWindow::createButtons()
     connect(messDebugButton, SIGNAL(clicked()), this, SLOT (debugButtonClicked()));
     messDebugButton->hide();
 }
-void MessengerWindow::createListWidget()
+void PXMWindow::createListWidget()
 {
     globalChatUuid = QUuid::createUuid();
 
@@ -232,7 +231,7 @@ void MessengerWindow::createListWidget()
     messListWidget->item(1)->setData(Qt::UserRole, globalChatUuid);
     messListWidget->item(0)->setFlags(messListWidget->item(0)->flags() & ~Qt::ItemIsEnabled);
 }
-void MessengerWindow::createSystemTray()
+void PXMWindow::createSystemTray()
 {
     QIcon trayIcon(":/resources/resources/70529.png");
 
@@ -245,7 +244,7 @@ void MessengerWindow::createSystemTray()
     messSystemTray->setContextMenu(messSystemTrayMenu);
     messSystemTray->show();
 }
-void MessengerWindow::createCheckBoxes()
+void PXMWindow::createCheckBoxes()
 {
     muteCheckBox = new QCheckBox(centralwidget);
     muteCheckBox->setObjectName(QStringLiteral("muteCheckBox"));
@@ -260,61 +259,60 @@ void MessengerWindow::createCheckBoxes()
 
     layout->addWidget(focusCheckBox, 5, 3, 1, 1);
 }
-void MessengerWindow::createMessClient()
+void PXMWindow::createMessClient()
 {
     messClientThread = new QThread(this);
-    messClient = new MessengerClient();
+    messClient = new PXMClient();
     messClient->moveToThread(messClientThread);
-    messClient->setlocalUUID(ourUUIDString);
     QObject::connect(messClientThread, &QThread::finished, messClientThread, &QObject::deleteLater);
-    QObject::connect(messClient, &MessengerClient::resultOfConnectionAttempt, peerWorker, &PeerWorkerClass::resultOfConnectionAttempt);
-    QObject::connect(messClient, &MessengerClient::resultOfTCPSend, peerWorker, &PeerWorkerClass::resultOfTCPSend);
-    QObject::connect(this, &MessengerWindow::sendMsg, messClient, &MessengerClient::sendMsgSlot);
-    QObject::connect(this, &MessengerWindow::connectToPeer, messClient, &MessengerClient::connectToPeerSlot);
-    QObject::connect(this, &MessengerWindow::sendUdp, messClient, &MessengerClient::udpSendSlot);
-    QObject::connect(messServer, &MessengerServer::sendMsg, messClient, &MessengerClient::sendMsgSlot);
-    QObject::connect(messServer, &MessengerServer::sendUdp, messClient, &MessengerClient::udpSendSlot);
+    QObject::connect(messClient, &PXMClient::resultOfConnectionAttempt, peerWorker, &PXMPeerWorker::resultOfConnectionAttempt);
+    QObject::connect(messClient, &PXMClient::resultOfTCPSend, peerWorker, &PXMPeerWorker::resultOfTCPSend);
+    QObject::connect(this, &PXMWindow::sendMsg, messClient, &PXMClient::sendMsgSlot);
+    QObject::connect(this, &PXMWindow::connectToPeer, messClient, &PXMClient::connectToPeerSlot);
+    QObject::connect(this, &PXMWindow::sendUdp, messClient, &PXMClient::udpSendSlot);
+    QObject::connect(messServer, &PXMServer::sendMsg, messClient, &PXMClient::sendMsgSlot);
+    QObject::connect(messServer, &PXMServer::sendUdp, messClient, &PXMClient::udpSendSlot);
     messClientThread->start();
 }
-void MessengerWindow::connectGuiSignalsAndSlots()
+void PXMWindow::connectGuiSignalsAndSlots()
 {
-    QObject::connect(messSendButton, &QAbstractButton::clicked, this, &MessengerWindow::sendButtonClicked);
-    QObject::connect(messQuitButton, &QAbstractButton::clicked, this, &MessengerWindow::quitButtonClicked);
-    QObject::connect(messListWidget, &QListWidget::currentItemChanged, this, &MessengerWindow::currentItemChanged);
-    QObject::connect(messTextEdit, &MessengerTextEdit::returnPressed, this, &MessengerWindow::sendButtonClicked);
-    QObject::connect(messSystemTrayExitAction, &QAction::triggered, this, &MessengerWindow::quitButtonClicked);
-    QObject::connect(messSystemTray, &QSystemTrayIcon::activated, this, &MessengerWindow::showWindow);
+    QObject::connect(messSendButton, &QAbstractButton::clicked, this, &PXMWindow::sendButtonClicked);
+    QObject::connect(messQuitButton, &QAbstractButton::clicked, this, &PXMWindow::quitButtonClicked);
+    QObject::connect(messListWidget, &QListWidget::currentItemChanged, this, &PXMWindow::currentItemChanged);
+    QObject::connect(messTextEdit, &PXMTextEdit::returnPressed, this, &PXMWindow::sendButtonClicked);
+    QObject::connect(messSystemTrayExitAction, &QAction::triggered, this, &PXMWindow::quitButtonClicked);
+    QObject::connect(messSystemTray, &QSystemTrayIcon::activated, this, &PXMWindow::showWindow);
     QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
-    QObject::connect(messTextEdit, &QTextEdit::textChanged, this, &MessengerWindow::textEditChanged);
+    QObject::connect(messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);;
 
 }
-void MessengerWindow::connectPeerClassSignalsAndSlots()
+void PXMWindow::connectPeerClassSignalsAndSlots()
 {
-    QObject::connect(peerWorker, &PeerWorkerClass::sendMsg, messClient, &MessengerClient::sendMsgSlot);
-    QObject::connect(peerWorker, &PeerWorkerClass::connectToPeer, messClient, &MessengerClient::connectToPeerSlot);
-    QObject::connect(peerWorker, &PeerWorkerClass::printToTextBrowser, this, &MessengerWindow::printToTextBrowser);
-    QObject::connect(peerWorker, &PeerWorkerClass::setItalicsOnItem, this, &MessengerWindow::setItalicsOnItem);
-    QObject::connect(peerWorker, &PeerWorkerClass::updateListWidget, this, &MessengerWindow::updateListWidget);
+    QObject::connect(peerWorker, &PXMPeerWorker::sendMsg, messClient, &PXMClient::sendMsgSlot);
+    QObject::connect(peerWorker, &PXMPeerWorker::connectToPeer, messClient, &PXMClient::connectToPeerSlot);
+    QObject::connect(peerWorker, &PXMPeerWorker::printToTextBrowser, this, &PXMWindow::printToTextBrowser);
+    QObject::connect(peerWorker, &PXMPeerWorker::setItalicsOnItem, this, &PXMWindow::setItalicsOnItem);
+    QObject::connect(peerWorker, &PXMPeerWorker::updateListWidget, this, &PXMWindow::updateListWidget);
 }
-void MessengerWindow::createMessServ()
+void PXMWindow::createMessServ()
 {
     messServer->setLocalHostname(QString::fromUtf8(localHostname));
     messServer->setLocalUUID(ourUUIDString);
-    QObject::connect(messServer, &MessengerServer::recievedUUIDForConnection, peerWorker, &PeerWorkerClass::updatePeerDetailsHash);
-    QObject::connect(messServer, &MessengerServer::messageRecieved, this, &MessengerWindow::printToTextBrowserServerSlot );
+    QObject::connect(messServer, &PXMServer::recievedUUIDForConnection, peerWorker, &PXMPeerWorker::updatePeerDetailsHash);
+    QObject::connect(messServer, &PXMServer::messageRecieved, this, &PXMWindow::printToTextBrowserServerSlot );
     QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
-    QObject::connect(messServer, &MessengerServer::newConnectionRecieved, peerWorker, &PeerWorkerClass::newTcpConnection);
-    QObject::connect(messServer, &MessengerServer::peerQuit, peerWorker, &PeerWorkerClass::peerQuit);
-    QObject::connect(messServer, &MessengerServer::updNameRecieved, peerWorker, &PeerWorkerClass::attemptConnection);
-    QObject::connect(messServer, &MessengerServer::sendIps, peerWorker, &PeerWorkerClass::sendIps);
-    QObject::connect(messServer, &MessengerServer::hostnameCheck, peerWorker, &PeerWorkerClass::hostnameCheck);
-    QObject::connect(messServer, &MessengerServer::setPeerHostname, peerWorker, &PeerWorkerClass::setPeerHostname);
-    QObject::connect(messServer, &MessengerServer::setListenerPort, peerWorker, &PeerWorkerClass::setListenerPort);
-    QObject::connect(messServer, &MessengerServer::setListenerPort, this, &MessengerWindow::setListenerPort);
+    QObject::connect(messServer, &PXMServer::newConnectionRecieved, peerWorker, &PXMPeerWorker::newTcpConnection);
+    QObject::connect(messServer, &PXMServer::peerQuit, peerWorker, &PXMPeerWorker::peerQuit);
+    QObject::connect(messServer, &PXMServer::updNameRecieved, peerWorker, &PXMPeerWorker::attemptConnection);
+    QObject::connect(messServer, &PXMServer::sendIps, peerWorker, &PXMPeerWorker::sendIps);
+    QObject::connect(messServer, &PXMServer::hostnameCheck, peerWorker, &PXMPeerWorker::hostnameCheck);
+    QObject::connect(messServer, &PXMServer::setPeerHostname, peerWorker, &PXMPeerWorker::setPeerHostname);
+    QObject::connect(messServer, &PXMServer::setListenerPort, peerWorker, &PXMPeerWorker::setListenerPort);
+    QObject::connect(messServer, &PXMServer::setListenerPort, this, &PXMWindow::setListenerPort);
     messServer->start();
 }
-void MessengerWindow::aboutActionSlot()
+void PXMWindow::aboutActionSlot()
 {
     QMessageBox::about(this, "About", "<br><center>PXMessenger v"
                                       + qApp->applicationVersion() +
@@ -328,23 +326,23 @@ void MessengerWindow::aboutActionSlot()
                                       "</center>"
                                       "<br>");
 }
-void MessengerWindow::setListenerPort(unsigned short port)
+void PXMWindow::setListenerPort(unsigned short port)
 {
     ourTCPListenerPort = port;
 }
-void MessengerWindow::settingsActionsSlot()
+void PXMWindow::settingsActionsSlot()
 {
-    SettingsDialog *setD = new SettingsDialog(this);
+    PXMSettingsDialog *setD = new PXMSettingsDialog(this);
     setD->setupUi();
     setD->readIni();
     setD->show();
 }
-void MessengerWindow::createMessTime()
+void PXMWindow::createMessTime()
 {
     messTime = time(0);
     currentTime = localtime( &messTime );
 }
-void MessengerWindow::setupHostname(int uuidNum, QString username)
+void PXMWindow::setupHostname(int uuidNum, QString username)
 {
     char computerHostname[256];
     localHostname = new char[256 + username.length()];
@@ -361,11 +359,11 @@ void MessengerWindow::setupHostname(int uuidNum, QString username)
     strcat(localHostname, "@");
     strcat(localHostname, computerHostname);
 }
-void MessengerWindow::debugButtonClicked()
+void PXMWindow::debugButtonClicked()
 {
 
 }
-QString MessengerWindow::getFormattedTime()
+QString PXMWindow::getFormattedTime()
 {
     char time_str[12];
     messTime = time(0);
@@ -373,7 +371,7 @@ QString MessengerWindow::getFormattedTime()
     strftime(time_str, 12, "(%H:%M:%S) ", currentTime);
     return time_str;
 }
-void MessengerWindow::timerOutRepetitive()
+void PXMWindow::timerOutRepetitive()
 {
     if(messListWidget->count() < 4)
     {
@@ -385,7 +383,7 @@ void MessengerWindow::timerOutRepetitive()
         timer->stop();
     }
 }
-void MessengerWindow::timerOutSingleShot()
+void PXMWindow::timerOutSingleShot()
 {
     if(messListWidget->count() < 3)
     {
@@ -396,7 +394,7 @@ void MessengerWindow::timerOutSingleShot()
     {
         timer = new QTimer(this);
         timer->setInterval(5000);
-        QObject::connect(timer, &QTimer::timeout, this, &MessengerWindow::timerOutRepetitive);
+        QObject::connect(timer, &QTimer::timeout, this, &PXMWindow::timerOutRepetitive);
         emit sendUdp("/discover:" + QString::number(ourTCPListenerPort), ourUDPListenerPort);
         qDebug() << "Retrying discovery packet, looking for other computers...";
         timer->start();
@@ -406,7 +404,7 @@ void MessengerWindow::timerOutSingleShot()
         qDebug() << "Found enough peers";
     }
 }
-void MessengerWindow::setItalicsOnItem(QUuid uuid, bool italics)
+void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
     for(int i = 0; i < messListWidget->count() - 2; i++)
     {
@@ -428,7 +426,7 @@ void MessengerWindow::setItalicsOnItem(QUuid uuid, bool italics)
 /**
  * @brief 				Stops more than 1000 characters being entered into the QTextEdit object as that is as many as we can send
  */
-void MessengerWindow::textEditChanged()
+void PXMWindow::textEditChanged()
 {
     if(messTextEdit->toPlainText().length() > 1000)
     {
@@ -445,7 +443,7 @@ void MessengerWindow::textEditChanged()
  * @brief 				Signal for out system tray object upon being clicked.  Maximizes the window and brings it into focus
  * @param reason		Qt data type, only care about Trigger
  */
-void MessengerWindow::showWindow(QSystemTrayIcon::ActivationReason reason)
+void PXMWindow::showWindow(QSystemTrayIcon::ActivationReason reason)
 {
     if( ( ( reason == QSystemTrayIcon::DoubleClick ) | ( reason == QSystemTrayIcon::Trigger ) ) && ! ( this->isVisible() ) )
     {
@@ -459,7 +457,7 @@ void MessengerWindow::showWindow(QSystemTrayIcon::ActivationReason reason)
  * @brief 				Minimize to tray
  * @param event			QT data type, only care about WindowStateChange.  Pass the rest along
  */
-void MessengerWindow::changeEvent(QEvent *event)
+void PXMWindow::changeEvent(QEvent *event)
 {
     if(event->type() == QEvent::WindowStateChange)
     {
@@ -476,7 +474,7 @@ void MessengerWindow::changeEvent(QEvent *event)
  * 						This changes them back to default color and resets their text
  * @param item			item to be unalerted
  */
-void MessengerWindow::removeMessagePendingStatus(QListWidgetItem* item)
+void PXMWindow::removeMessagePendingStatus(QListWidgetItem* item)
 {
     QString temp;
 
@@ -502,7 +500,7 @@ void MessengerWindow::removeMessagePendingStatus(QListWidgetItem* item)
  * @param item1			New selected item
  * @param item2			Old selected item.  We do not care about item2 however these are the paramaters of the SIGNAL QListWidget emits
  */
-void MessengerWindow::currentItemChanged(QListWidgetItem *item1)
+void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
     int index1 = messListWidget->row(item1);
     QUuid uuid1 = item1->data(Qt::UserRole).toString();
@@ -526,11 +524,11 @@ void MessengerWindow::currentItemChanged(QListWidgetItem *item1)
 /**
  * @brief 				The Quit Debug button was clicked
  */
-void MessengerWindow::quitButtonClicked()
+void PXMWindow::quitButtonClicked()
 {
     this->close();
 }
-void MessengerWindow::updateListWidget(QUuid uuid)
+void PXMWindow::updateListWidget(QUuid uuid)
 {
     messListWidget->setUpdatesEnabled(false);
     int count = messListWidget->count() - 2;
@@ -598,7 +596,7 @@ void MessengerWindow::updateListWidget(QUuid uuid)
  * @brief				Garbage collection, called upon sending a close signal to the process.  (X button, Quit Debug button, SIGTERM in linux)
  * @param event
  */
-void MessengerWindow::closeEvent(QCloseEvent *event)
+void PXMWindow::closeEvent(QCloseEvent *event)
 {
     messSystemTray->setContextMenu(NULL);
     messSystemTray->hide();
@@ -613,7 +611,7 @@ void MessengerWindow::closeEvent(QCloseEvent *event)
  * @brief 				Send a message to every connected peer
  * @param msg			The message to send
  */
-void MessengerWindow::globalSend(QString msg)
+void PXMWindow::globalSend(QString msg)
 {
     for(auto &itr : peerWorker->peerDetailsHash)
     {
@@ -626,7 +624,7 @@ void MessengerWindow::globalSend(QString msg)
     return;
 }
 /* Send message button function.  Calls m_client to both connect and send a message to the provided ip_addr*/
-void MessengerWindow::sendButtonClicked()
+void PXMWindow::sendButtonClicked()
 {
     if(messListWidget->selectedItems().count() == 0)
     {
@@ -662,7 +660,7 @@ void MessengerWindow::sendButtonClicked()
 
     return;
 }
-void MessengerWindow::changeListColor(int row, int style)
+void PXMWindow::changeListColor(int row, int style)
 {
     QBrush back = messListWidget->item(row)->background();
     if(style == 1)
@@ -678,7 +676,7 @@ void MessengerWindow::changeListColor(int row, int style)
 /**
  * @brief 				Called when we want to modify the focus or visibility of our program (ie. we get a message)
  */
-void MessengerWindow::focusWindow()
+void PXMWindow::focusWindow()
 {
     if(!(muteCheckBox->isChecked()))
         QSound::play(":/resources/resources/message.wav");
@@ -701,7 +699,7 @@ void MessengerWindow::focusWindow()
  * @param peerindex			index of the peers_class->peers array for which the message was meant for
  * @param message			Bool for whether this message that is being printed should alert the listwidgetitem, play sound, and focus the application
  */
-void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
+void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
 {
     QString strnew;
 
@@ -783,7 +781,7 @@ void MessengerWindow::printToTextBrowser(QString str, QUuid uuid, bool message)
  * @param ipstr				The ip address of the peer this message has come from
  * @param global			Whether this message should be displayed in the global textbox
  */
-void MessengerWindow::printToTextBrowserServerSlot(const QString str, QUuid uuid, bool global)
+void PXMWindow::printToTextBrowserServerSlot(const QString str, QUuid uuid, bool global)
 {
     if(global)
     {

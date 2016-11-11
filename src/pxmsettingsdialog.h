@@ -1,11 +1,3 @@
-/********************************************************************************
-** Form generated from reading UI file 'Dialog - untitledxQ7926.ui'
-**
-** Created by: Qt User Interface Compiler version 5.7.0
-**
-** WARNING! All changes made in this file will be lost when recompiling UI file!
-********************************************************************************/
-
 #ifndef DIALOG_20__2D__20_UNTITLEDXQ7926_H
 #define DIALOG_20__2D__20_UNTITLEDXQ7926_H
 
@@ -23,7 +15,8 @@
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QMessageBox>
-#include <messinireader.h>
+#include <pxminireader.h>
+
 #ifdef __unix__
 #include <pwd.h>
 #elif _WIN32
@@ -32,7 +25,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class SettingsDialog : public QDialog
+class PXMSettingsDialog : public QDialog
 {
 private slots:
     void clickedme(QAbstractButton *button)
@@ -84,7 +77,7 @@ private slots:
         QDialog::accept();
     }
 public:
-    explicit SettingsDialog(QWidget* parent) : QDialog(parent) {}
+    explicit PXMSettingsDialog(QWidget* parent) : QDialog(parent) {}
 
     bool AllowMoreThanOneInstance;
     QString hostname;
@@ -180,7 +173,7 @@ public:
         retranslateUi();
         QObject::connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
         QObject::connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
-        QObject::connect(buttonBox, &QDialogButtonBox::clicked, this, &SettingsDialog::clickedme);
+        QObject::connect(buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
         //QObject::connect(buttonBox->button(QDialogButtonBox::RestoreDefaults), SIGNAL(clicked()), this, SLOT(defaults()));
 
         QMetaObject::connectSlotsByName(this);
@@ -214,7 +207,7 @@ public:
 };
 
 namespace Ui {
-class Settings: public SettingsDialog {};
+class Settings: public PXMSettingsDialog {};
 } // namespace Ui
 
 QT_END_NAMESPACE

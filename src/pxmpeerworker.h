@@ -1,7 +1,7 @@
-#ifndef PEERLIST_H
-#define PEERLIST_H
+#ifndef PXMPEERWORKER_H
+#define PXMPEERWORKER_H
+
 #include <QString>
-#include <QObject>
 #include <QDebug>
 #include <QMutex>
 #include <QUuid>
@@ -12,10 +12,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
 #include <event2/bufferevent.h>
-#include <mess_serv.h>
-#include <messsync.h>
-#include <mess_structs.h>
+
+#include "pxmserver.h"
+#include "pxmsync.h"
+#include "pxmdefinitions.h"
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -31,37 +33,35 @@
 #include <ws2tcpip.h>
 #endif
 
-#define SYNC_INTERVAL 6000
-
-class PeerWorkerClass : public QObject
+class PXMPeerWorker : public QObject
 {
     Q_OBJECT
 public:
-    explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid, MessengerServer *server);
+    explicit PXMPeerWorker(QObject *parent, QString hostname, QString uuid, PXMServer *server);
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
-    ~PeerWorkerClass();
+    ~PXMPeerWorker();
 public slots:
     void setListenerPort(unsigned short port);
     void hostnameCheck(QString comp, QUuid senderUuid);
     void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
     void updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
-    void newTcpConnection(evutil_socket_t s, void *bev);
+    void newTcpConnection(evutil_socket_t s);
     void peerQuit(evutil_socket_t s);
     void setPeerHostname(QString hname, QUuid uuid);
     void sendIps(evutil_socket_t i);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result);
     void resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print);
 private:
-    Q_DISABLE_COPY(PeerWorkerClass)
+    Q_DISABLE_COPY(PXMPeerWorker)
     QString localHostname;
     QString ourListenerPort;
     QString localUUID;
     QUuid waitingOnIpsFrom = "";
     QTimer *syncTimer;
     bool areWeSyncing = false;
-    MessengerServer *realServer;
-    MessSync *syncer;
+    PXMServer *realServer;
+    PXMSync *syncer;
     void sendIdentityMsg(evutil_socket_t s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
@@ -77,4 +77,4 @@ private slots:
     void requestIps(evutil_socket_t s, QUuid uuid);
 };
 
-#endif // PEERLIST_H
+#endif

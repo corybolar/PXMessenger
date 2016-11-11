@@ -1,12 +1,11 @@
 #ifndef MESSINIREADER_H
 #define MESSINIREADER_H
+
 #include <QString>
 #include <QDebug>
 #include <QUuid>
 #include <QSettings>
 #include <QSize>
-#include <fstream>
-#include <iostream>
 
 class MessIniReader
 {

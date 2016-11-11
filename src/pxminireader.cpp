@@ -1,4 +1,4 @@
-#include "messinireader.h"
+#include "pxminireader.h"
 
 MessIniReader::MessIniReader()
 {

@@ -1,20 +1,20 @@
-#include <peerlist.h>
+#include <pxmpeerworker.h>
 
-PeerWorkerClass::PeerWorkerClass(QObject *parent, QString hostname, QString uuid, MessengerServer *server) : QObject(parent)
+PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QString uuid, PXMServer *server) : QObject(parent)
 {
     localHostname = hostname;
     localUUID = uuid;
     realServer = server;
-    syncer = new MessSync(this);
-    QObject::connect(syncer, &MessSync::requestIps, this, &PeerWorkerClass::requestIps);
+    syncer = new PXMSync(this);
+    QObject::connect(syncer, &PXMSync::requestIps, this, &PXMPeerWorker::requestIps);
     QObject::connect(syncer, SIGNAL(finished()), this, SLOT(doneSync()));
     srand (time(NULL));
     syncTimer = new QTimer(this);
-    syncTimer->setInterval(rand() % 900000 + 300000);
+    syncTimer->setInterval((rand() % 300000) + 900000);
     QObject::connect(syncTimer, SIGNAL(timeout()), this, SLOT(beginSync()));
     syncTimer->start();
 }
-PeerWorkerClass::~PeerWorkerClass()
+PXMPeerWorker::~PXMPeerWorker()
 {
     syncTimer->stop();
     if(syncer->isRunning())
@@ -26,21 +26,21 @@ PeerWorkerClass::~PeerWorkerClass()
     delete syncer;
 }
 
-void PeerWorkerClass::setLocalHostName(QString name)
+void PXMPeerWorker::setLocalHostName(QString name)
 {
     localHostname = name;
 }
-void PeerWorkerClass::setListenerPort(unsigned short port)
+void PXMPeerWorker::setListenerPort(unsigned short port)
 {
     ourListenerPort = QString::number(port);
 }
-void PeerWorkerClass::doneSync()
+void PXMPeerWorker::doneSync()
 {
     areWeSyncing = false;
     qDebug() << "Finished Syncing peers";
 }
 
-void PeerWorkerClass::beginSync()
+void PXMPeerWorker::beginSync()
 {
     if(syncer->isRunning())
         return;
@@ -49,7 +49,7 @@ void PeerWorkerClass::beginSync()
     areWeSyncing = true;
     syncer->start();
 }
-void PeerWorkerClass::hostnameCheck(QString comp, QUuid senderUuid)
+void PXMPeerWorker::hostnameCheck(QString comp, QUuid senderUuid)
 {
     if(areWeSyncing && (senderUuid != waitingOnIpsFrom))
     {
@@ -67,21 +67,20 @@ void PeerWorkerClass::hostnameCheck(QString comp, QUuid senderUuid)
     else
         attemptConnection(port, ipaddr, uuid);
 }
-void PeerWorkerClass::newTcpConnection(evutil_socket_t s, void *bev)
+void PXMPeerWorker::newTcpConnection(evutil_socket_t s)
 {
-    //bufferevent_free(bev);
     this->sendIdentityMsg(s);
 }
-void PeerWorkerClass::sendIdentityMsg(evutil_socket_t s)
+void PXMPeerWorker::sendIdentityMsg(evutil_socket_t s)
 {
     emit sendMsg(s, localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
 }
-void PeerWorkerClass::requestIps(evutil_socket_t s, QUuid uuid)
+void PXMPeerWorker::requestIps(evutil_socket_t s, QUuid uuid)
 {
     waitingOnIpsFrom = uuid;
     emit sendMsg(s, "", "/request", localUUID, "");
 }
-void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
+void PXMPeerWorker::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
 {
     if(peerDetailsHash.value(uuid).attemptingToConnect || uuid.isNull())
     {
@@ -108,7 +107,7 @@ void PeerWorkerClass::attemptConnection(QString portNumber, QString ipaddr, QStr
     }
     emit connectToPeer(s, ipaddr, portNumber);
 }
-void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
+void PXMPeerWorker::setPeerHostname(QString hname, QUuid uuid)
 {
     if(peerDetailsHash.contains(uuid))
     {
@@ -117,7 +116,7 @@ void PeerWorkerClass::setPeerHostname(QString hname, QUuid uuid)
     }
     return;
 }
-void PeerWorkerClass::peerQuit(evutil_socket_t s)
+void PXMPeerWorker::peerQuit(evutil_socket_t s)
 {
     for(auto &itr : peerDetailsHash)
     {
@@ -134,7 +133,7 @@ void PeerWorkerClass::peerQuit(evutil_socket_t s)
         }
     }
 }
-void PeerWorkerClass::sendIps(evutil_socket_t i)
+void PXMPeerWorker::sendIps(evutil_socket_t i)
 {
     QString type = "/ip:";
     QString msg = "";
@@ -153,7 +152,7 @@ void PeerWorkerClass::sendIps(evutil_socket_t i)
     }
     emit sendMsg(i, msg, type, localUUID, "");
 }
-void PeerWorkerClass::resultOfConnectionAttempt(evutil_socket_t socket, bool result)
+void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result)
 {
     QUuid uuid;
     for(auto &itr : peerDetailsHash)
@@ -172,7 +171,7 @@ void PeerWorkerClass::resultOfConnectionAttempt(evutil_socket_t socket, bool res
         evutil_make_socket_nonblocking(socket);
         bev = bufferevent_socket_new(realServer->base, socket, BEV_OPT_CLOSE_ON_FREE);
         bufferevent_setcb(bev, realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
-        bufferevent_setwatermark(bev, EV_READ, 0, 10000);
+        bufferevent_setwatermark(bev, EV_READ, 0, TCP_BUFFER_WATERMARK);
         bufferevent_enable(bev, EV_READ);
         if(peerDetailsHash[uuid].bev != NULL)
             bufferevent_free(peerDetailsHash[uuid].bev);
@@ -187,7 +186,7 @@ void PeerWorkerClass::resultOfConnectionAttempt(evutil_socket_t socket, bool res
         peerDetailsHash[uuid].isConnected = false;
     }
 }
-void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print)
+void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print)
 {
     QUuid uuid = uuidString;
     if(print)
@@ -220,7 +219,7 @@ void PeerWorkerClass::resultOfTCPSend(int levelOfSuccess, QString uuidString, QS
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PeerWorkerClass::updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr)
+void PXMPeerWorker::updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr)
 {
     if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
     {

@@ -31,25 +31,25 @@ CONFIG += c++11 \
 QMAKE_CXXFLAGS += -Wall
 
 SOURCES += \
-    main.cpp \
-    window.cpp \
-    mess_client.cpp \
-    mess_serv.cpp \
-    mess_textedit.cpp \
-    peerlist.cpp \
-    messinireader.cpp \
-    messsync.cpp
+    pxmclient.cpp \
+    pxmpeerworker.cpp \
+    pxmsync.cpp \
+    pxminireader.cpp \
+    pxmtextedit.cpp \
+    pxmserver.cpp \
+    pxmmainwindow.cpp \
+    pxmessenger.cpp
 
 HEADERS += \
-    window.h \
-    mess_client.h \
-    mess_serv.h \
-    peerlist.h \
-    mess_textedit.h \
-    messinireader.h \
-    settingsDialog.h \
-    messsync.h \
-    mess_structs.h
+    pxmdefinitions.h \
+    pxmpeerworker.h \
+    pxmsettingsdialog.h \
+    pxmmainwindow.h \
+    pxmsync.h \
+    pxminireader.h \
+    pxmtextedit.h \
+    pxmserver.h \
+    pxmclient.h
 
 DISTFILES +=
 

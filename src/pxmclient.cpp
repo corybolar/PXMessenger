@@ -1,18 +1,13 @@
-#include <mess_client.h>
+#include <pxmclient.h>
 
-MessengerClient::MessengerClient()
+PXMClient::PXMClient()
 {
-
 }
-void MessengerClient::setlocalUUID(QString uuid)
-{
-    localUUID = uuid;
-}
-void MessengerClient::udpSendSlot(QString msg, unsigned short port)
+void PXMClient::udpSendSlot(QString msg, unsigned short port)
 {
     this->udpSend(msg.toStdString().c_str(), port);
 }
-void MessengerClient::udpSend(const char* msg, unsigned short port)
+void PXMClient::udpSend(const char* msg, unsigned short port)
 {
     int len;
     struct sockaddr_in broadaddr;
@@ -34,9 +29,9 @@ void MessengerClient::udpSend(const char* msg, unsigned short port)
     }
     evutil_closesocket(socketfd2);
 }
-void MessengerClient::connectToPeerSlot(evutil_socket_t s, QString ipaddr, QString service)
+void PXMClient::connectToPeerSlot(evutil_socket_t s, QString ipaddr, QString service)
 {
-    this->c_connect(s, ipaddr.toStdString().c_str(), service.toStdString().c_str());
+    this->connectToPeer(s, ipaddr.toStdString().c_str(), service.toStdString().c_str());
 }
 /**
  * @brief 			This function connects a socket to a specific ip address.
@@ -44,7 +39,7 @@ void MessengerClient::connectToPeerSlot(evutil_socket_t s, QString ipaddr, QStri
  * @param ipaddr	ip address to connect socket to
  * @return			-1 on failure to connect, socket descriptor on success
  */
-int MessengerClient::c_connect(evutil_socket_t socketfd, const char *ipaddr, const char *service)
+int PXMClient::connectToPeer(evutil_socket_t socketfd, const char *ipaddr, const char *service)
 {
     int status;
     struct addrinfo hints, *res;
@@ -60,7 +55,7 @@ int MessengerClient::c_connect(evutil_socket_t socketfd, const char *ipaddr, con
 
     if( (status = ::connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
     {
-        std::cout << strerror(errno) << std::endl;
+        qDebug() << strerror(errno);
         freeaddrinfo(res);
         emit resultOfConnectionAttempt(socketfd, status);
 
@@ -84,7 +79,7 @@ int MessengerClient::c_connect(evutil_socket_t socketfd, const char *ipaddr, con
  *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
  *   				-5 if socket is not connected
  */
-void MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const char *type, const char *uuid, const char *theiruuid)
+void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, const char *type, const char *uuid, const char *theiruuid)
 {
     int packetLen, bytes_sent, sendcount = 0;
     bool print = false;
@@ -109,7 +104,7 @@ void MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const 
     strcat(full_mess, type);
     strcat(full_mess, msg);
 
-    bytes_sent = this->partialSend(socketfd, full_mess, packetLen, sendcount);
+    bytes_sent = this->recursiveSend(socketfd, full_mess, packetLen, sendcount);
 
     if(bytes_sent > 0)
     {
@@ -119,7 +114,6 @@ void MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const 
         }
         else
         {
-            std::cout << "Partial Send has failed not all bytes sent" << std::endl;
             emit resultOfTCPSend(bytes_sent, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
         }
     }
@@ -129,9 +123,9 @@ void MessengerClient::send_msg(evutil_socket_t socketfd, const char *msg, const 
     }
     return;
 }
-void MessengerClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
+void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
 {
-    this->send_msg(s, msg.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str(), theiruuid.toStdString().c_str());
+    this->sendMsg(s, msg.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str(), theiruuid.toStdString().c_str());
 }
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
@@ -141,7 +135,7 @@ void MessengerClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, 
  * @param count		Only attempt to resend 5 times so as not to hang the program if something goes wrong
  * @return 			-1 on error, total bytes sent otherwise
  */
-int MessengerClient::partialSend(evutil_socket_t socketfd, const char *msg, int len, int count)
+int PXMClient::recursiveSend(evutil_socket_t socketfd, const char *msg, int len, int count)
 {
     int status2 = 0;
 #ifdef _WIN32
@@ -164,7 +158,7 @@ int MessengerClient::partialSend(evutil_socket_t socketfd, const char *msg, int 
         strncpy(msg2, &msg[status], len2);
         count++;
 
-        status2 = partialSend(socketfd, msg2, len2, count);
+        status2 = recursiveSend(socketfd, msg2, len2, count);
         if(status2 <= 0)
             return -1;
     }

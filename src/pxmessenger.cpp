@@ -4,13 +4,13 @@
 #include <QMessageBox>
 #include <QString>
 #include <QLockFile>
-#include <messinireader.h>
-#include <mess_structs.h>
+#include <pxminireader.h>
+#include <pxmdefinitions.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <window.h>
-#include <event2/bufferevent.h>
+
+#include <pxmmainwindow.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     presets.mute = iniReader.getMute();
     presets.preventFocus = iniReader.getFocus();
 
-    MessengerWindow window(presets);
+    PXMWindow window(presets);
     //window.show();
 
     int result = app.exec();

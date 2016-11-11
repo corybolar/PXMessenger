@@ -1,26 +1,26 @@
-#include <mess_serv.h>
+#include <pxmserver.h>
 
-MessengerServer::MessengerServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort) : QThread(parent)
+PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort) : QThread(parent)
 {
     tcpListenerPort = tcpPort;
     udpListenerPort = udpPort;
 }
-MessengerServer::~MessengerServer()
+PXMServer::~PXMServer()
 {
 }
 
-void MessengerServer::setLocalHostname(QString hostname)
+void PXMServer::setLocalHostname(QString hostname)
 {
     localHostname = hostname;
 }
-void MessengerServer::setLocalUUID(QString uuid)
+void PXMServer::setLocalUUID(QString uuid)
 {
     localUUID = uuid;
 }
 /**
  * @brief				Start of thread, call the listener function which is an infinite loop
  */
-void MessengerServer::run()
+void PXMServer::run()
 {
     this->listener();
 }
@@ -30,11 +30,11 @@ void MessengerServer::run()
  * @param their_addr
  * @return 				Return socket descriptor for new connection, -1 on error on linux, INVALID_SOCKET on Windows
  */
-void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
+void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
 {
     evutil_socket_t result;
 
-    MessengerServer *realServer = static_cast<MessengerServer*>(arg);
+    PXMServer *realServer = static_cast<PXMServer*>(arg);
 
     struct event_base *base = realServer->base;
     struct sockaddr_storage ss;
@@ -51,15 +51,14 @@ void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
         evutil_make_socket_nonblocking(result);
         bev = bufferevent_socket_new(base, result, BEV_OPT_CLOSE_ON_FREE );
         bufferevent_setcb(bev, tcpRead, NULL, tcpError, (void*)realServer);
-        bufferevent_setwatermark(bev, EV_READ, 0, TCP_BUFFER_LENGTH);
+        bufferevent_setwatermark(bev, EV_READ, 0, TCP_BUFFER_WATERMARK);
         bufferevent_enable(bev, EV_READ);
-        realServer->newConnectionRecieved(result, bev);
+        realServer->newConnectionRecieved(result);
     }
-    //emit newConnectionRecieved(result);
 }
-void MessengerServer::tcpRead(struct bufferevent *bev, void *arg)
+void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
 {
-    MessengerServer *realServer = static_cast<MessengerServer*>(arg);
+    PXMServer *realServer = static_cast<PXMServer*>(arg);
     evutil_socket_t i = bufferevent_getfd(bev);
     while(evbuffer_get_length(bufferevent_get_input(bev)) > 0)
     {
@@ -75,9 +74,9 @@ void MessengerServer::tcpRead(struct bufferevent *bev, void *arg)
     }
 }
 
-void MessengerServer::tcpError(struct bufferevent *buf, short error, void *arg)
+void PXMServer::tcpError(struct bufferevent *buf, short error, void *arg)
 {
-    MessengerServer *realServer = static_cast<MessengerServer*>(arg);
+    PXMServer *realServer = static_cast<PXMServer*>(arg);
     evutil_socket_t i = bufferevent_getfd(buf);
     if (error & BEV_EVENT_EOF)
     {
@@ -93,35 +92,26 @@ void MessengerServer::tcpError(struct bufferevent *buf, short error, void *arg)
     }
     bufferevent_free(buf);
 }
-int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint32_t bufLen, bufferevent *bev)
+int PXMServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint32_t bufLen, bufferevent *bev)
 {
     //partialMsg points to the start of the original buffer.
     //If there is more than one message on it, it will be increased to where the
     //next message begins
     char *partialMsg = buf;
 
-    //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
-    //char bufLenStr[5] = {};
-
-    //The first three characters of each message should be the length of the message.
+    //The first four characters of each message should be the length of the message.
     //We parse this to an integer so as not to confuse messages with one another
     //when more than one are recieved from the same socket at the same time
     //If we encounter a valid character after this length, we come back here
     //and iterate through the if statements again.
-    //strncpy(bufLenStr, partialMsg, 4);
 
-    //int bufLen = atoi(bufLenStr);
     if(bufLen <= 38)
         return 1;
     bufLen -= 38;
-    //partialMsg = partialMsg+4;
-    //skip over the UUID, not checking this yet, initial stages
-    //FIX THIS AFTER MORE FUNCTIONALITY
     QUuid quuid = QString::fromUtf8(partialMsg, 38);
     if(quuid.isNull())
         return -1;
     partialMsg += 38;
-
 
     //These packets should be formatted like "/msghostname: msg\0"
     if( !( strncmp(partialMsg, "/msg", 4) ) )
@@ -172,7 +162,6 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint
     else if(!(strncmp(partialMsg, "/request", 8)))
     {
         qDebug() << "/request recieved from " << QString::number(i) << "\nsending ips";
-        //The following signal is going to the m_client object and thread and will call the slot sendIps(int)
         //The int here is the socketdescriptor we want to send our ip set too.
         emit sendIps(i);
     }
@@ -215,9 +204,9 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint
  * @param i				Socket descriptor to recieve UDP packet from
  * @return 				0 on success, 1 on error
  */
-void MessengerServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args)
+void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args)
 {
-    MessengerServer *realServer = (MessengerServer*)args;
+    PXMServer *realServer = (PXMServer*)args;
     sockaddr_in si_other;
     socklen_t si_other_len = sizeof(sockaddr);
     char buf[100] = {};
@@ -263,7 +252,7 @@ void MessengerServer::udpRecieve(evutil_socket_t socketfd, short int event, void
 
     return;
 }
-int MessengerServer::getPortNumber(evutil_socket_t socket)
+int PXMServer::getPortNumber(evutil_socket_t socket)
 {
     sockaddr_in needPortNumber;
     memset(&needPortNumber, 0, sizeof(needPortNumber));
@@ -275,7 +264,7 @@ int MessengerServer::getPortNumber(evutil_socket_t socket)
     }
     return ntohs(needPortNumber.sin_port);
 }
-evutil_socket_t MessengerServer::setupUDPSocket(evutil_socket_t s_listen)
+evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 {
     sockaddr_in si_me;
     ip_mreq multicastGroup;
@@ -315,7 +304,7 @@ evutil_socket_t MessengerServer::setupUDPSocket(evutil_socket_t s_listen)
 
     return socketUDP;
 }
-evutil_socket_t MessengerServer::setupTCPSocket()
+evutil_socket_t PXMServer::setupTCPSocket()
 {
     struct addrinfo hints, *res;
     evutil_socket_t socketTCP;
@@ -354,7 +343,7 @@ evutil_socket_t MessengerServer::setupTCPSocket()
     return socketTCP;
 
 }
-int MessengerServer::setSocketToNonBlocking(evutil_socket_t socket)
+int PXMServer::setSocketToNonBlocking(evutil_socket_t socket)
 {
 #ifdef _WIN32
     unsigned long ul = 1;
@@ -378,7 +367,7 @@ int MessengerServer::setSocketToNonBlocking(evutil_socket_t socket)
  *						descriptors added to the master FD set.
  * @return				Should never return, -1 means something terrible has happened
  */
-int MessengerServer::listener()
+int PXMServer::listener()
 {
     //Potential rewrite to change getaddrinfo to a manual setup of the socket structures.
     //Changing to manual setup may improve load times on windows systems.  Locks us into

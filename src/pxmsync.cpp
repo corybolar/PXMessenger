@@ -1,9 +1,9 @@
-#include "messsync.h"
+#include "pxmsync.h"
 
-MessSync::MessSync(QObject *parent) : QThread(parent)
+PXMSync::PXMSync(QObject *parent) : QThread(parent)
 {
 }
-void MessSync::run()
+void PXMSync::run()
 {
     for(auto &itr : peerDetailsHash)
     {
@@ -19,7 +19,7 @@ void MessSync::run()
     }
 }
 
-void MessSync::setHash(QHash<QUuid, peerDetails> hash)
+void PXMSync::setHash(QHash<QUuid, peerDetails> hash)
 {
    this->peerDetailsHash = hash;
 }

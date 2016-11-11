@@ -1,16 +1,15 @@
-#ifndef MESS_TEXTEDIT_H
-#define MESS_TEXTEDIT_H
+#ifndef PXMTEXTEDIT_H
+#define PXMTEXTEDIT_H
 
-#include <QObject>
 #include <QTextEdit>
 #include <QKeyEvent>
 #include <QWidget>
 
-class MessengerTextEdit : public QTextEdit
+class PXMTextEdit : public QTextEdit
 {
     Q_OBJECT
 public:
-    explicit MessengerTextEdit(QWidget* parent);
+    explicit PXMTextEdit(QWidget* parent);
     void keyPressEvent(QKeyEvent *event);
 signals:
     void returnPressed();

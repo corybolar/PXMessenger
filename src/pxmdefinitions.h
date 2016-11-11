@@ -1,9 +1,15 @@
-#ifndef MESS_STRUCTS_H
-#define MESS_STRUCTS_H
+#ifndef PXMDEFINITIONS_H
+#define PXMDEFINITIONS_H
+
 #include <event2/util.h>
-#include <QString>
 #include <event2/bufferevent.h>
+
 #include <QUuid>
+#include <QString>
+
+#define BACKLOG 20
+#define TCP_BUFFER_WATERMARK 10000
+#define MULTICAST_ADDRESS "239.192.13.13"
 
 struct peerDetails{
     bool isValid = false;
@@ -29,4 +35,4 @@ struct initialSettings{
     QSize windowSize;
     QUuid uuid;
 };
-#endif // MESS_STRUCTS_H
+#endif

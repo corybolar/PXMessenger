@@ -1,7 +1,7 @@
-#include <mess_textedit.h>
+#include <pxmtextedit.h>
 
 
-MessengerTextEdit::MessengerTextEdit(QWidget *parent) : QTextEdit(parent)
+PXMTextEdit::PXMTextEdit(QWidget *parent) : QTextEdit(parent)
 {
 
 }
@@ -10,7 +10,7 @@ MessengerTextEdit::MessengerTextEdit(QWidget *parent) : QTextEdit(parent)
  *				while this widget has focus
  * @param event	Type of event, only one we care about is key() == Key_Return
  */
-void MessengerTextEdit::keyPressEvent(QKeyEvent* event)
+void PXMTextEdit::keyPressEvent(QKeyEvent* event)
 {
     if(event->key() == Qt::Key_Return)
     {
