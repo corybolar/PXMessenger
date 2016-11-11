@@ -17,6 +17,6 @@ struct peerDetails{
     QString hostname = "";
     QString textBox = "";
     QUuid identifier;
-    bufferevent *bev = NULL;
+    bufferevent *bev = nullptr;
 };
 #endif // MESS_STRUCTS_H

@@ -37,7 +37,7 @@ class PeerWorkerClass : public QObject
     Q_OBJECT
 public:
     explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid, MessengerServer *server);
-    QHash<QUuid,peerDetails>*peerDetailsHash;
+    QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
     ~PeerWorkerClass();
 public slots:

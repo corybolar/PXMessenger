@@ -1,12 +1,11 @@
 #include "messsync.h"
 
-MessSync::MessSync(QObject *parent, QHash<QUuid, struct peerDetails> *hash) : QThread(parent)
+MessSync::MessSync(QObject *parent) : QThread(parent)
 {
-    peerDetailsHash = hash;
 }
 void MessSync::run()
 {
-    for(auto &itr : (*peerDetailsHash))
+    for(auto &itr : peerDetailsHash)
     {
         moveOnPlease = false;
         qDebug() << "requesting Ips from" << itr.hostname;
@@ -18,4 +17,9 @@ void MessSync::run()
             this->usleep(500000);
         }
     }
+}
+
+void MessSync::setHash(QHash<QUuid, peerDetails> hash)
+{
+   this->peerDetailsHash = hash;
 }

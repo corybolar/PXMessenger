@@ -13,11 +13,12 @@ class MessSync : public QThread
 {
     Q_OBJECT
 public:
-    MessSync(QObject *parent, QHash<QUuid, struct peerDetails> *hash);
+    MessSync(QObject *parent);
     void run();
+    void setHash(QHash<QUuid, struct peerDetails> hash);
     volatile bool moveOnPlease;
 private:
-    QHash<QUuid, struct peerDetails> *peerDetailsHash;
+    QHash<QUuid, struct peerDetails> peerDetailsHash;
 signals:
     void requestIps(evutil_socket_t, QUuid);
 };

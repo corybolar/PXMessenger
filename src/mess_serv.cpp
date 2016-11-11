@@ -208,12 +208,6 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint
         return -1;
     }
 
-    //Check if theres more in the buffer
-    //if(partialMsg[bufLen] != '\0')
-    //{
-    //partialMsg += bufLen;
-    //this->singleMessageIterator(i, partialMsg, bev);
-    //}
     return 0;
 }
 /**
