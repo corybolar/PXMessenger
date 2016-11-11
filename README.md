@@ -12,6 +12,8 @@ qtmultimedia
 
 gcc
 
+libevent >= 2.0.22
+
 
 ####BUILD INSTRUCTIONS
 
