@@ -37,7 +37,8 @@ SOURCES += \
     mess_serv.cpp \
     mess_textedit.cpp \
     peerlist.cpp \
-    messinireader.cpp
+    messinireader.cpp \
+    messsync.cpp
 
 HEADERS += \
     window.h \
@@ -46,7 +47,9 @@ HEADERS += \
     peerlist.h \
     mess_textedit.h \
     messinireader.h \
-    settingsDialog.h
+    settingsDialog.h \
+    messsync.h \
+    mess_structs.h
 
 DISTFILES +=
 

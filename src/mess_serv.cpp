@@ -34,7 +34,7 @@ void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
 {
     evutil_socket_t result;
 
-    MessengerServer *realServer = (MessengerServer*)arg;
+    MessengerServer *realServer = static_cast<MessengerServer*>(arg);
 
     struct event_base *base = realServer->base;
     struct sockaddr_storage ss;
@@ -57,23 +57,27 @@ void MessengerServer::accept_new(evutil_socket_t s, short event, void *arg)
     }
     //emit newConnectionRecieved(result);
 }
-void MessengerServer::tcpRead(struct bufferevent *bev, void *ctx)
+void MessengerServer::tcpRead(struct bufferevent *bev, void *arg)
 {
-    MessengerServer *realServer = (MessengerServer *)ctx;
-    struct evbuffer *input;
+    MessengerServer *realServer = static_cast<MessengerServer*>(arg);
     evutil_socket_t i = bufferevent_getfd(bev);
+    while(evbuffer_get_length(bufferevent_get_input(bev)) > 0)
+    {
+        char len[4] = {};
+        bufferevent_read(bev, &len, 4);
 
-    char *line = new char[TCP_BUFFER_LENGTH];
-    memset(line, 0, TCP_BUFFER_LENGTH);
-    input = bufferevent_get_input(bev);
-    evbuffer_remove(input, line, TCP_BUFFER_LENGTH);
+        ev_uint32_t bufLen = atoi(len);
 
-    realServer->singleMessageIterator(i, line, bev);
-    delete [] line;
+        char *buf = new char[bufLen];
+        bufferevent_read(bev, buf, bufLen);
+        realServer->singleMessageIterator(i, buf, bufLen, bev);
+        delete [] buf;
+    }
 }
-void MessengerServer::tcpError(struct bufferevent *buf, short error, void *ctx)
+
+void MessengerServer::tcpError(struct bufferevent *buf, short error, void *arg)
 {
-    MessengerServer *realServer = (MessengerServer *)ctx;
+    MessengerServer *realServer = static_cast<MessengerServer*>(arg);
     evutil_socket_t i = bufferevent_getfd(buf);
     if (error & BEV_EVENT_EOF)
     {
@@ -89,7 +93,7 @@ void MessengerServer::tcpError(struct bufferevent *buf, short error, void *ctx)
     }
     bufferevent_free(buf);
 }
-int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, bufferevent *bev)
+int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint32_t bufLen, bufferevent *bev)
 {
     //partialMsg points to the start of the original buffer.
     //If there is more than one message on it, it will be increased to where the
@@ -97,20 +101,20 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, buffere
     char *partialMsg = buf;
 
     //This holds the first 3 characters of partialMsg which will represent how long the recieved message should be.
-    char bufLenStr[5] = {};
+    //char bufLenStr[5] = {};
 
     //The first three characters of each message should be the length of the message.
     //We parse this to an integer so as not to confuse messages with one another
     //when more than one are recieved from the same socket at the same time
     //If we encounter a valid character after this length, we come back here
     //and iterate through the if statements again.
-    strncpy(bufLenStr, partialMsg, 4);
+    //strncpy(bufLenStr, partialMsg, 4);
 
-    int bufLen = atoi(bufLenStr);
-    bufLen -= 38;
-    if(bufLen <= 0)
+    //int bufLen = atoi(bufLenStr);
+    if(bufLen <= 38)
         return 1;
-    partialMsg = partialMsg+4;
+    bufLen -= 38;
+    //partialMsg = partialMsg+4;
     //skip over the UUID, not checking this yet, initial stages
     //FIX THIS AFTER MORE FUNCTIONALITY
     QUuid quuid = QString::fromUtf8(partialMsg, 38);
@@ -138,7 +142,7 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, buffere
 
         //We need to extract each hostname and ip set out of the message and send them to the main thread
         //to check if whether we already know about them or not
-        for(int k = 4; k < bufLen; k++)
+        for(unsigned int k = 4; k < bufLen; k++)
         {
             //Theres probably a better way to do this
             if(partialMsg[k] == '[' || partialMsg[k] == ']')
@@ -150,7 +154,7 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, buffere
                     *temp = 0;
                 else
                     //The following signal is going to the main thread and will call the slot ipCheck(QString)
-                    emit hostnameCheck(QString::fromUtf8(temp));
+                    emit hostnameCheck(QString::fromUtf8(temp), quuid);
             }
             else
                 count++;
@@ -205,11 +209,11 @@ int MessengerServer::singleMessageIterator(evutil_socket_t i, char *buf, buffere
     }
 
     //Check if theres more in the buffer
-    if(partialMsg[bufLen] != '\0')
-    {
-        partialMsg += bufLen;
-        this->singleMessageIterator(i, partialMsg, bev);
-    }
+    //if(partialMsg[bufLen] != '\0')
+    //{
+    //partialMsg += bufLen;
+    //this->singleMessageIterator(i, partialMsg, bev);
+    //}
     return 0;
 }
 /**
@@ -338,9 +342,9 @@ evutil_socket_t MessengerServer::setupTCPSocket()
     {
         perror("setsockopt error: ");
     }
-    
+
     evutil_make_socket_nonblocking(socketTCP);
-    
+
     if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
     {
         perror("bind error: ");
@@ -396,7 +400,7 @@ int MessengerServer::listener()
     qDebug() << "Using" << QString::fromUtf8(event_base_get_method(base)) << "as the libevent backend";
     if(!base)
         return -1;
-    
+
     //TCP STUFF
     s_listen = setupTCPSocket();
 
@@ -408,13 +412,13 @@ int MessengerServer::listener()
     event_add(eventDiscover, NULL);
 
     eventAccept = event_new(base, s_listen, EV_READ|EV_PERSIST, accept_new, (void*)this);
-    
+
     event_add(eventAccept, NULL);
 
     struct timeval halfSec;
     halfSec.tv_sec = 0;
     halfSec.tv_usec = 500000;
-    
+
     while(!this->isInterruptionRequested())
     {
         event_base_loopexit(base, &halfSec);

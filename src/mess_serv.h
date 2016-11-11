@@ -51,8 +51,8 @@ public:
     void setLocalUUID(QString uuid);
     ~MessengerServer();
     struct event_base *base;
-    static void tcpError(bufferevent *buf, short error, void *ctx);
-    static void tcpRead(bufferevent *bev, void *ctx);
+    static void tcpError(bufferevent *buf, short error, void *arg);
+    static void tcpRead(bufferevent *bev, void *arg);
 public slots:
 private:
     static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
@@ -62,7 +62,7 @@ private:
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
 
-    int singleMessageIterator(evutil_socket_t i, char *buf, bufferevent *bev);
+    int singleMessageIterator(evutil_socket_t i, char *buf, uint32_t len, bufferevent *bev);
     int getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
@@ -77,7 +77,7 @@ signals:
     void exitRecieved(QString);
     void sendIps(evutil_socket_t);
     void sendName(evutil_socket_t, QString, QString);
-    void hostnameCheck(QString);
+    void hostnameCheck(QString, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
     void sendUdp(QString, unsigned short);

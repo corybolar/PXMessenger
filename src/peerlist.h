@@ -8,8 +8,13 @@
 #include <QThread>
 
 #include <sys/unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <event2/bufferevent.h>
 #include <mess_serv.h>
+#include <messsync.h>
+#include <mess_structs.h>
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -25,31 +30,19 @@
 #include <ws2tcpip.h>
 #endif
 
-struct peerDetails{
-    bool isValid = false;
-    bool isConnected = false;
-    bool attemptingToConnect = false;
-    bool messagePending = false;
-    evutil_socket_t socketDescriptor = 0;
-    QString portNumber = "-1";
-    int listWidgetIndex = -1;
-    QString ipAddress = "";
-    QString hostname = "";
-    QString textBox = "";
-    QUuid identifier;
-    bufferevent *bev = NULL;
-};
+#define SYNC_INTERVAL 6000
 
 class PeerWorkerClass : public QObject
 {
     Q_OBJECT
 public:
     explicit PeerWorkerClass(QObject *parent, QString hostname, QString uuid, MessengerServer *server);
-    QHash<QUuid,peerDetails>peerDetailsHash;
+    QHash<QUuid,peerDetails>*peerDetailsHash;
     void setLocalHostName(QString name);
+    ~PeerWorkerClass();
 public slots:
     void setListenerPort(unsigned short port);
-    void hostnameCheck(QString comp);
+    void hostnameCheck(QString comp, QUuid senderUuid);
     void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
     void updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
     void newTcpConnection(evutil_socket_t s, void *bev);
@@ -58,12 +51,17 @@ public slots:
     void sendIps(evutil_socket_t i);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result);
     void resultOfTCPSend(int levelOfSuccess, QString uuidString, QString msg, bool print);
+    void beginSync();
 private:
     Q_DISABLE_COPY(PeerWorkerClass)
     QString localHostname;
     QString ourListenerPort;
     QString localUUID;
+    QUuid waitingOnIpsFrom = "";
+    QTimer *syncTimer;
+    bool areWeSyncing = false;
     MessengerServer *realServer;
+    MessSync *syncer;
     void sendIdentityMsg(evutil_socket_t s);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
@@ -72,6 +70,11 @@ signals:
     void connectToPeer(evutil_socket_t, QString, QString);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
+    void ipsReceivedFrom(QUuid);
+private slots:
+    void timerOut();
+    void doneSync();
+    void requestIps(evutil_socket_t s, QUuid uuid);
 };
 
 #endif // PEERLIST_H
