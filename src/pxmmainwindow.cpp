@@ -382,7 +382,7 @@ void PXMWindow::timerOutRepetitive()
 {
     if(messListWidget->count() < 4)
     {
-        emit sendUDP("/discover", ourUDPListenerPort);
+        //emit sendUDP("/discover", ourUDPListenerPort);
     }
     else
     {
@@ -425,7 +425,7 @@ void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
                 changeInConnection = " disconnected";
             else
                 changeInConnection = " reconnected";
-            //this->printToTextBrowser(this->getFormattedTime() % peerWorker->peerDetailsHash[uuid].hostname % " on " % peerWorker->peerDetailsHash[uuid].ipAddress % changeInConnection, uuid, false);
+            this->printToTextBrowser(peerWorker->peerDetailsHash[uuid].hostname % changeInConnection, uuid, false);
             return;
         }
     }
@@ -528,9 +528,16 @@ void PXMWindow::updateListWidget(QUuid uuid)
             QString str = messListWidget->item(i)->text();
             if(u == uuid)
             {
-                printToTextBrowser(str % " has changed their name to " % peerWorker->peerDetailsHash.value(uuid).hostname, uuid, false);
-                messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
-                break;
+                if(peerWorker->peerDetailsHash.value(uuid).hostname == messListWidget->item(i)->text())
+                {
+                    break;
+                }
+                else
+                {
+                    printToTextBrowser(str % " has changed their name to " % peerWorker->peerDetailsHash.value(uuid).hostname, uuid, false);
+                    messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
+                    break;
+                }
             }
             if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) == 0)
             {
@@ -718,8 +725,8 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     if(alert)
     {
         this->changeListColor(index, 1);
+        this->focusWindow();
     }
-    this->focusWindow();
     return;
 }
 /**

@@ -74,8 +74,6 @@ void PXMPeerWorker::hostnameCheck(QString comp, QUuid senderUuid)
         else
         {
             sockaddr_in addr;
-            addr.sin_family = AF_INET;
-            addr.sin_port = htons(sectionalIpPacket[1].toULong());
 
 #ifdef _WIN32
             char *ipaddr;
@@ -85,6 +83,8 @@ void PXMPeerWorker::hostnameCheck(QString comp, QUuid senderUuid)
 #else
             inet_pton(AF_INET, sectionalIpPacket[0].toLatin1(), &addr.sin_addr);
 #endif
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(sectionalIpPacket[1].toULong());
             attemptConnection(addr, sectionalIpPacket[2]);
         }
     }
