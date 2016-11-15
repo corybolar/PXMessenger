@@ -80,7 +80,8 @@ void PXMPeerWorker::hostnameCheck(QString comp, QUuid senderUuid)
 #ifdef _WIN32
             char *ipaddr;
             ipaddr = sectionalIpPacket[0].toLatin1().data();
-            WSAStringToAddress(reinterpret_cast<LPWSTR>(ipaddr), AF_INET, NULL, (struct sockaddr*)&addr, reinterpret_cast<LPINT>(sizeof(addr)));
+            int sockaddrLen = sizeof(addr);
+            WSAStringToAddress((ipaddr), AF_INET, NULL, (struct sockaddr*)&addr, &sockaddrLen);
 #else
             inet_pton(AF_INET, sectionalIpPacket[0].toLatin1(), &addr.sin_addr);
 #endif
@@ -257,7 +258,6 @@ void PXMPeerWorker::authenticationRecieved(QString hname, QString port, evutil_s
     //Get ip address of sender
     getpeername(s, (struct sockaddr*)&addr, &socklen);
     ipaddr = inet_ntoa((&addr)->sin_addr);
-    //bufferevent_setcb(static_cast<bufferevent*>(bevptr), realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
     if( !( peerDetailsHash.value(uuid).isConnected ) )
     {
         qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "authenticated!";

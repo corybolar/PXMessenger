@@ -6,6 +6,7 @@ QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
+DEFINES -= UNICODE
 
 unix: LIBS += -levent
 
@@ -21,7 +22,6 @@ LIBS += -lws2_32 \
 win32 {
 CONFIG += c++11 \
         debug \
-        release 
 }
 unix {
 CONFIG += c++11 \

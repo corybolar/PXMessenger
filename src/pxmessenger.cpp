@@ -47,8 +47,7 @@ int main(int argc, char **argv)
     DWORD user_size = UNLEN+1;
     if(GetUserName(t_user, &user_size))
     {
-        wcstombs(user, t_user, UNLEN+1);
-	strcpy(localHostname, user);
+        strcpy(localHostname, t_user);
     }
 #endif
 
