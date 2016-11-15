@@ -7,6 +7,8 @@
 #include <QUuid>
 #include <QThread>
 #include <QTimer>
+#include <QStringBuilder>
+#include <QBuffer>
 
 #include <sys/unistd.h>
 #include <stdio.h>
@@ -44,9 +46,9 @@ public:
 public slots:
     void setListenerPort(unsigned short port);
     void hostnameCheck(QString comp, QUuid senderUuid);
-    void attemptConnection(QString portNumber, QString ipaddr, QString uuid);
-    void updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
-    void newTcpConnection(evutil_socket_t s);
+    void attemptConnection(sockaddr_in addr, QUuid uuid);
+    void authenticationRecieved(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
+    void newTcpConnection(evutil_socket_t s, sockaddr_in ss);
     void peerQuit(evutil_socket_t s);
     void setPeerHostname(QString hname, QUuid uuid);
     void sendIps(evutil_socket_t i);
@@ -67,7 +69,7 @@ signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
-    void connectToPeer(evutil_socket_t, QString, QString);
+    void connectToPeer(evutil_socket_t, sockaddr_in);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);

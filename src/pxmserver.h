@@ -52,6 +52,7 @@ public:
     struct event_base *base;
     static void tcpError(bufferevent *buf, short error, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
+    static void tcpReadUUID(bufferevent *bev, void *arg);
 public slots:
 private:
     static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
@@ -65,13 +66,12 @@ private:
     int getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
-    int setSocketToNonBlocking(evutil_socket_t socket);
 signals:
-    void messageRecieved(const QString, QUuid, bool);
-    void newConnectionRecieved(evutil_socket_t);
+    void messageRecieved(const QString, QUuid, evutil_socket_t, bool);
+    void newConnectionRecieved(evutil_socket_t, sockaddr_in);
     void recievedUUIDForConnection(QString, QString, evutil_socket_t, QUuid, void*);
     void peerQuit(evutil_socket_t);
-    void updNameRecieved(QString hname, QString ipaddr, QString uuid);
+    void attemptConnection(sockaddr_in, QUuid);
     void potentialReconnect(QString);
     void exitRecieved(QString);
     void sendIps(evutil_socket_t);
@@ -79,7 +79,7 @@ signals:
     void hostnameCheck(QString, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
-    void sendUdp(QString, unsigned short);
+    void sendUDP(const char*, unsigned short);
     void setListenerPort(unsigned short);
 };
 

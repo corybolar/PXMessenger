@@ -15,6 +15,7 @@
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QMessageBox>
+
 #include <pxminireader.h>
 
 #ifdef __unix__
@@ -101,7 +102,7 @@ public:
         if (this->objectName().isEmpty())
             this->setObjectName(QStringLiteral("Settings"));
         this->resize(366, 181);
-        this->setMinimumSize(QSize(366, 181));
+        this->setMinimumSize(QSize(420, 181));
         this->setMaximumSize(QSize(600, 181));
         this->setLayoutDirection(Qt::LeftToRight);
         this->setSizeGripEnabled(true);
@@ -174,7 +175,6 @@ public:
         QObject::connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
         QObject::connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
         QObject::connect(buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
-        //QObject::connect(buttonBox->button(QDialogButtonBox::RestoreDefaults), SIGNAL(clicked()), this, SLOT(defaults()));
 
         QMetaObject::connectSlotsByName(this);
     } // setupUi

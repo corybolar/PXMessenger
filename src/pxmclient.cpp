@@ -3,11 +3,7 @@
 PXMClient::PXMClient()
 {
 }
-void PXMClient::udpSendSlot(QString msg, unsigned short port)
-{
-    this->udpSend(msg.toStdString().c_str(), port);
-}
-void PXMClient::udpSend(const char* msg, unsigned short port)
+void PXMClient::sendUDP(const char* msg, unsigned short port)
 {
     int len;
     struct sockaddr_in broadaddr;
@@ -29,20 +25,16 @@ void PXMClient::udpSend(const char* msg, unsigned short port)
     }
     evutil_closesocket(socketfd2);
 }
-void PXMClient::connectToPeerSlot(evutil_socket_t s, QString ipaddr, QString service)
-{
-    this->connectToPeer(s, ipaddr.toStdString().c_str(), service.toStdString().c_str());
-}
 /**
  * @brief 			This function connects a socket to a specific ip address.
  * @param socketfd	socket to connect on
  * @param ipaddr	ip address to connect socket to
  * @return			-1 on failure to connect, socket descriptor on success
  */
-int PXMClient::connectToPeer(evutil_socket_t socketfd, const char *ipaddr, const char *service)
+int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
 {
     int status;
-    struct addrinfo hints, *res;
+/*    struct addrinfo hints, *res, *connectionAddress;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
@@ -52,20 +44,17 @@ int PXMClient::connectToPeer(evutil_socket_t socketfd, const char *ipaddr, const
         fprintf(stderr, "getaddrinfo: %s\n", (char*)gai_strerror(status));
         return 2;
     }
-
-    if( (status = ::connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
+    */
+    //if( (status = ::connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
+    if( (status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr))) < 0 )
     {
         qDebug() << strerror(errno);
-        freeaddrinfo(res);
         emit resultOfConnectionAttempt(socketfd, status);
-
         evutil_closesocket(socketfd);
-
         return 1;
     }
-    qDebug() << "Successfully connected to" << ipaddr << "on port" << service << "on socket" << socketfd;
+    //qDebug() << "Successfully connected to" << socketAddr.sin_addr << "on port" << service << "on socket" << socketfd;
     emit resultOfConnectionAttempt(socketfd, status);
-    freeaddrinfo(res);
     return 0;
 }
 /**
@@ -125,7 +114,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, const char *t
 }
 void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
 {
-    this->sendMsg(s, msg.toStdString().c_str(), type.toStdString().c_str(), uuid.toString().toStdString().c_str(), theiruuid.toStdString().c_str());
+    this->sendMsg(s, msg.toLocal8Bit().constData(), type.toLocal8Bit().constData(), uuid.toString().toLocal8Bit().constData(), theiruuid.toLocal8Bit().constData());
 }
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass

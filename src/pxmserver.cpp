@@ -37,7 +37,7 @@ void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
     PXMServer *realServer = static_cast<PXMServer*>(arg);
 
     struct event_base *base = realServer->base;
-    struct sockaddr_storage ss;
+    struct sockaddr_in ss;
     socklen_t addr_size = sizeof(ss);
 
     result = (accept(s, (struct sockaddr *)&ss, &addr_size));
@@ -50,19 +50,51 @@ void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(result);
         bev = bufferevent_socket_new(base, result, BEV_OPT_CLOSE_ON_FREE );
-        bufferevent_setcb(bev, tcpRead, NULL, tcpError, (void*)realServer);
+        bufferevent_setcb(bev, tcpReadUUID, NULL, tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, 0, TCP_BUFFER_WATERMARK);
         bufferevent_enable(bev, EV_READ);
-        realServer->newConnectionRecieved(result);
+        realServer->newConnectionRecieved(result, ss);
     }
 }
+void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
+{
+    PXMServer *realServer = static_cast<PXMServer*>(arg);
+
+    char len[5] = {'0', '0', '0', '0', '\0'};
+    bufferevent_read(bev, &len, 4);
+    ev_uint32_t bufLen = atoi(len);
+    evutil_socket_t socket = bufferevent_getfd(bev);
+
+    char bufUUID[38];
+    if(bufferevent_read(bev, bufUUID, 38) < 38)
+        return;
+    QUuid quuid = QString::fromUtf8(bufUUID, 38);
+    if(quuid.isNull())
+        evutil_closesocket(socket);
+
+    char buf[bufLen-38];
+    bufLen = bufferevent_read(bev, buf, bufLen-38);
+    if(!strncmp(buf, "/uuid", 5))
+    {
+        bufferevent_setcb(bev, tcpRead, NULL, tcpError, (void*)realServer);
+        qDebug() << "uuid recieved: " + quuid.toString();
+        QString hostandport = QString::fromUtf8(buf+5, bufLen-5);
+        QStringList hpsplit = hostandport.split(":");
+        realServer->recievedUUIDForConnection(hpsplit[0], hpsplit[1], socket, quuid, bev);
+    }
+    else
+    {
+        evutil_closesocket(socket);
+    }
+}
+
 void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
 {
     PXMServer *realServer = static_cast<PXMServer*>(arg);
     evutil_socket_t i = bufferevent_getfd(bev);
     while(evbuffer_get_length(bufferevent_get_input(bev)) > 0)
     {
-        char len[4] = {};
+        char len[5] = {'0', '0', '0', '0', '\0'};
         bufferevent_read(bev, &len, 4);
 
         ev_uint32_t bufLen = atoi(len);
@@ -122,16 +154,18 @@ int PXMServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint32_t b
         //buf is actually at buf[7] from its original location
 
         //The following signal is going to the main thread and will call the slot prints(QString, QString)
-        emit messageRecieved(QString::fromUtf8(partialMsg+4, bufLen-4), quuid, false);
+        emit messageRecieved(QString::fromUtf8(partialMsg+4, bufLen-4), quuid, i, false);
     }
     //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
     else if( !( strncmp(partialMsg, "/ip", 3) ) )
     {
-        qDebug() << "/ip recieved from " << QString::number(i);
-        int count = 0;
+        //qDebug() << "/ip recieved from " << QString::number(i);
+        //int count = 0;
+        emit hostnameCheck(QString::fromUtf8(partialMsg+3, bufLen-3), quuid);
 
         //We need to extract each hostname and ip set out of the message and send them to the main thread
         //to check if whether we already know about them or not
+        /*
         for(unsigned int k = 4; k < bufLen; k++)
         {
             //Theres probably a better way to do this
@@ -141,14 +175,18 @@ int PXMServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint32_t b
                 strncpy(temp, partialMsg+(k-count), count);
                 count = 0;
                 if((strlen(temp) < 2))
+                {
                     *temp = 0;
+                }
                 else
-                    //The following signal is going to the main thread and will call the slot ipCheck(QString)
+                {
                     emit hostnameCheck(QString::fromUtf8(temp), quuid);
+                }
             }
             else
                 count++;
         }
+        /**/
     }
     else if(!(strncmp(partialMsg, "/uuid", 5)))
     {
@@ -172,7 +210,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t i, char *buf, ev_uint32_t b
         //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
         char emitStr[bufLen-6] = {};
         strncpy(emitStr, (partialMsg+7), bufLen-7);
-        emit messageRecieved(QString::fromUtf8(emitStr), quuid, true);
+        emit messageRecieved(QString::fromUtf8(emitStr), quuid, i, true);
     }
     //This packet is an updated hostname for the computer that sent it
     //These packets should come formatted like "/hostnameHostname1\0"
@@ -240,10 +278,10 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args
     {
         QString fullidStr = QString::fromUtf8(&buf[6]);
         QString portNumber = fullidStr.left(fullidStr.indexOf("{"));
-        QString uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
-        QString ipAddress = QString::fromUtf8(inet_ntoa(si_other.sin_addr));
+        QUuid uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
 
-        realServer->updNameRecieved(portNumber, ipAddress, uuid);
+        si_other.sin_port = htons(portNumber.toInt());
+        realServer->attemptConnection(si_other, uuid);
     }
     else
     {
@@ -300,7 +338,7 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
     setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
 
     //send our discover packet to find other computers
-    emit sendUdp("/discover:" + QString::number(tcpListenerPort), udpSocketNumber);
+    emit sendUDP("/discover:", udpSocketNumber);
 
     return socketUDP;
 }
@@ -341,25 +379,8 @@ evutil_socket_t PXMServer::setupTCPSocket()
     freeaddrinfo(res);
 
     return socketTCP;
+}
 
-}
-int PXMServer::setSocketToNonBlocking(evutil_socket_t socket)
-{
-#ifdef _WIN32
-    unsigned long ul = 1;
-    ioctlsocket(socket, FIONBIO, &ul);
-    return 0;
-#else
-    int flags;
-    flags = fcntl(socket, F_GETFL);
-    if(flags < 0)
-        return flags;
-    flags |= O_NONBLOCK;
-    if(fcntl(socket, F_SETFL, flags) < 0)
-        return -1;
-    return 0;
-#endif
-}
 /**
  * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
  *						the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked

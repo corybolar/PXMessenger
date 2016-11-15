@@ -25,6 +25,7 @@
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QMessageBox>
+#include <QStringBuilder>
 
 #include <sys/types.h>
 #include <ctime>
@@ -143,14 +144,6 @@ private:
      */
     void focusWindow();
     /*!
-     * \brief removeMessagePendingStatus
-     *
-     * Changes the text of the given item to no longer have " * " in front of
-     * and behind.  Called when a user clicks on this item if it was alerted.
-     * \param item Item whose text we are adjusting
-     */
-    void removeMessagePendingStatus(QListWidgetItem *item);
-    /*!
      * \brief changeListColor
      *
      * Changes the color of the background for an item in a given row of the
@@ -251,8 +244,8 @@ private slots:
     void currentItemChanged(QListWidgetItem *item1);
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void printToTextBrowser(QString str, QUuid uuid, bool message);
-    void printToTextBrowserServerSlot(const QString str, QUuid uuid, bool global);
+    void printToTextBrowser(QString str, QUuid uuid, bool alert);
+    void printToTextBrowserServerSlot(const QString str, QUuid uuid, int socket, bool global);
     void updateListWidget(QUuid uuid);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
@@ -261,9 +254,9 @@ private slots:
     void timerOutRepetitive();
     void setListenerPort(unsigned short port);
 signals:
-    void connectToPeer(evutil_socket_t, QString, QString);
+    void connectToPeer(evutil_socket_t, sockaddr_in);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
-    void sendUdp(QString, unsigned short);
+    void sendUDP(const char*, unsigned short);
     void retryDiscover();
 };
 

@@ -21,9 +21,9 @@ PXMPeerWorker::~PXMPeerWorker()
     {
         syncer->requestInterruption();
         syncer->quit();
-        syncer->wait();
+        syncer->wait(5000);
     }
-    delete syncer;
+    syncer->deleteLater();
 }
 
 void PXMPeerWorker::setLocalHostName(QString name)
@@ -51,61 +51,81 @@ void PXMPeerWorker::beginSync()
 }
 void PXMPeerWorker::hostnameCheck(QString comp, QUuid senderUuid)
 {
-    if(areWeSyncing && (senderUuid != waitingOnIpsFrom))
+    if(senderUuid != waitingOnIpsFrom)
     {
         return;
     }
+    waitingOnIpsFrom = QUuid();
     if(syncer->isRunning())
         syncer->moveOnPlease = true;
-    QStringList temp = comp.split(':');
-    QString ipaddr = temp[0];
-    QString port = temp[1];
-    QString uuid = temp[2];
-    emit ipsReceivedFrom(uuid);
-    if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
-        return;
-    else
-        attemptConnection(port, ipaddr, uuid);
+    QStringList fullIpPacket = comp.split("]", QString::SkipEmptyParts);
+    for(auto &str : fullIpPacket)
+    {
+        QStringList sectionalIpPacket = str.split(':');
+
+        if(sectionalIpPacket.length() != 3)
+            continue;
+
+        if(sectionalIpPacket[0].at(0) == '[')
+            sectionalIpPacket[0].remove(0,1);
+
+        if(peerDetailsHash.contains(sectionalIpPacket[2]) && peerDetailsHash.value(sectionalIpPacket[2]).isConnected)
+            return;
+        else
+        {
+            sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(sectionalIpPacket[1].toULong());
+
+#ifdef _WIN32
+            char *ipaddr;
+            ipaddr = sectionalIpPacket[0].toLatin1().data();
+            WSAStringToAddress(reinterpret_cast<LPWSTR>(ipaddr), AF_INET, NULL, (struct sockaddr*)&addr, reinterpret_cast<LPINT>(sizeof(addr)));
+#else
+            inet_pton(AF_INET, sectionalIpPacket[0].toLatin1(), &addr.sin_addr);
+#endif
+            attemptConnection(addr, sectionalIpPacket[2]);
+        }
+    }
 }
-void PXMPeerWorker::newTcpConnection(evutil_socket_t s)
+void PXMPeerWorker::newTcpConnection(evutil_socket_t s, struct sockaddr_in ss)
 {
     this->sendIdentityMsg(s);
 }
 void PXMPeerWorker::sendIdentityMsg(evutil_socket_t s)
 {
-    emit sendMsg(s, localHostname + ":" + ourListenerPort, "/uuid", localUUID, "");
+    emit sendMsg(s, localHostname % QStringLiteral(":") % ourListenerPort, QStringLiteral("/uuid"), localUUID, "");
 }
 void PXMPeerWorker::requestIps(evutil_socket_t s, QUuid uuid)
 {
     waitingOnIpsFrom = uuid;
-    emit sendMsg(s, "", "/request", localUUID, "");
+    emit sendMsg(s, "", QStringLiteral("/request"), localUUID, "");
 }
-void PXMPeerWorker::attemptConnection(QString portNumber, QString ipaddr, QString uuid)
+void PXMPeerWorker::attemptConnection(sockaddr_in addr, QUuid uuid)
 {
     if(peerDetailsHash.value(uuid).attemptingToConnect || uuid.isNull())
     {
         return;
     }
     evutil_socket_t s = socket(AF_INET, SOCK_STREAM, 0);
+
     if(peerDetailsHash.contains(uuid))
     {
         peerDetailsHash[uuid].identifier = uuid;
-        peerDetailsHash[uuid].ipAddress = ipaddr;
         peerDetailsHash[uuid].socketDescriptor = s;
-        peerDetailsHash[uuid].portNumber = portNumber;
         peerDetailsHash[uuid].attemptingToConnect = true;
+        peerDetailsHash[uuid].ipAddressRaw = addr;
     }
     else
     {
         peerDetails newPeer;
         newPeer.identifier = uuid;
-        newPeer.ipAddress = ipaddr;
         newPeer.socketDescriptor = s;
-        newPeer.portNumber = portNumber;
+        newPeer.ipAddressRaw = addr;
         newPeer.attemptingToConnect = true;
         peerDetailsHash.insert(newPeer.identifier, newPeer);
     }
-    emit connectToPeer(s, ipaddr, portNumber);
+    emit connectToPeer(s, addr);
 }
 void PXMPeerWorker::setPeerHostname(QString hname, QUuid uuid)
 {
@@ -122,35 +142,34 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s)
     {
         if(itr.socketDescriptor == s)
         {
-            qDebug() << itr.hostname << "has disconnected, attempting reconnect";
-            peerDetailsHash[itr.identifier].attemptingToConnect = 0;
+            qDebug() << itr.hostname << QStringLiteral("has disconnected, attempting reconnect");
+            peerDetailsHash[itr.identifier].attemptingToConnect = false;
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].socketDescriptor = -1;
             peerDetailsHash[itr.identifier].bev = NULL;
             emit setItalicsOnItem(itr.identifier, 1);
-            this->attemptConnection(itr.portNumber, itr.ipAddress, itr.identifier.toString());
+            this->attemptConnection(itr.ipAddressRaw, itr.identifier.toString());
             return;
         }
     }
 }
 void PXMPeerWorker::sendIps(evutil_socket_t i)
 {
-    QString type = "/ip:";
-    QString msg = "";
+    QString msgRaw;
     for(auto & itr : peerDetailsHash)
     {
-        if(itr.isConnected && (itr.hostname != itr.ipAddress))
+        if(itr.isConnected)
         {
-            msg.append("[");
-            msg.append(itr.ipAddress);
-            msg.append(":");
-            msg.append(itr.portNumber);
-            msg.append(":");
-            msg.append(itr.identifier.toString());
-            msg.append("]");
+            msgRaw.append("[");
+            msgRaw.append(QString::fromUtf8(inet_ntoa((&(itr.ipAddressRaw))->sin_addr)));
+            msgRaw.append(":");
+            msgRaw.append(QString::number(ntohs(itr.ipAddressRaw.sin_port)));
+            msgRaw.append(":");
+            msgRaw.append(itr.identifier.toString());
+            msgRaw.append("]");
         }
     }
-    emit sendMsg(i, msg, type, localUUID, "");
+    emit sendMsg(i, msgRaw, "/ip", localUUID, "");
 }
 void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result)
 {
@@ -170,15 +189,14 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(socket);
         bev = bufferevent_socket_new(realServer->base, socket, BEV_OPT_CLOSE_ON_FREE);
-        bufferevent_setcb(bev, realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
+        bufferevent_setcb(bev, realServer->tcpReadUUID, NULL, realServer->tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, 0, TCP_BUFFER_WATERMARK);
         bufferevent_enable(bev, EV_READ);
-        if(peerDetailsHash[uuid].bev != NULL)
+        if(peerDetailsHash[uuid].bev != nullptr)
             bufferevent_free(peerDetailsHash[uuid].bev);
         peerDetailsHash[uuid].bev = bev;
 
         emit sendIdentityMsg(socket);
-        emit requestIps(socket, uuid);
     }
     else
     {
@@ -193,12 +211,12 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QString uuidString, QStr
     {
         if(levelOfSuccess < 0)
         {
-            msg = "Message was not sent successfully, Broken Pipe.  Peer likely disconnected";
+            msg = QStringLiteral("Message was not sent successfully, Broken Pipe.  Peer likely disconnected");
             peerQuit(peerDetailsHash.value(uuid).socketDescriptor);
         }
         if(levelOfSuccess > 0)
         {
-            msg.append("\nThe previous message was only paritally sent.  This was very bad\nContact the administrator of this program immediately\nNumber of bytes sent: " + QString::number(levelOfSuccess));
+            msg.append(QStringLiteral("\nThe previous message was only paritally sent.  This was very bad\nContact the administrator of this program immediately\nNumber of bytes sent: ") % QString::number(levelOfSuccess));
         }
         if(levelOfSuccess == 0)
         {
@@ -219,56 +237,57 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QString uuidString, QStr
  * @param hname			Hostname of peer to compare to existing hostnames
  * @param ipaddr		IP address of peer to compare to existing IP addresses
  */
-void PXMPeerWorker::updatePeerDetailsHash(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr)
+void PXMPeerWorker::authenticationRecieved(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr)
 {
-    if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
+    if(uuid.isNull())
+    {
+        evutil_closesocket(s);
+        return;
+    }
+    else if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).isConnected)
     {
         return;
     }
     bufferevent *bev = (bufferevent*)bevptr;
-    struct sockaddr_storage addr;
+    struct sockaddr_in addr;
     socklen_t socklen = sizeof(addr);
     char *ipaddr;
+    memset(&addr, 0, socklen);
 
     //Get ip address of sender
     getpeername(s, (struct sockaddr*)&addr, &socklen);
-    ipaddr = inet_ntoa(((struct sockaddr_in*)&addr)->sin_addr);
+    ipaddr = inet_ntoa((&addr)->sin_addr);
+    //bufferevent_setcb(static_cast<bufferevent*>(bevptr), realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
     if( !( peerDetailsHash.value(uuid).isConnected ) )
     {
-        qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "reconnected!";
+        qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "authenticated!";
 
         peerDetailsHash[uuid].socketDescriptor = s;
         peerDetailsHash[uuid].isConnected = true;
         peerDetailsHash[uuid].attemptingToConnect = true;
-        peerDetailsHash[uuid].isValid = true;
-        peerDetailsHash[uuid].ipAddress = ipaddr;
         peerDetailsHash[uuid].identifier = uuid;
         peerDetailsHash[uuid].hostname = hname;
-        peerDetailsHash[uuid].portNumber = port;
         peerDetailsHash[uuid].bev = bev;
+        peerDetailsHash[uuid].ipAddressRaw = addr;
 
         emit setItalicsOnItem(uuid, 0);
-        emit updateListWidget(uuid);
-        return;
     }
     else
     {
-        qDebug() << "hostname: " << hname << " @ ip:" << ipaddr;
+       qDebug() << "hostname:" << hname << "@ ip:" << ipaddr << "on port" << port << "authenticated!";
 
         peerDetails newPeer;
 
         newPeer.socketDescriptor = s;
         newPeer.isConnected = true;
         newPeer.attemptingToConnect = true;
-        newPeer.isValid = true;
-        newPeer.ipAddress = ipaddr;
         newPeer.identifier = uuid;
         newPeer.hostname = hname;
-        newPeer.portNumber = port;
         newPeer.bev = bev;
+        newPeer.ipAddressRaw = addr;
 
         peerDetailsHash.insert(uuid, newPeer);
-
-        emit updateListWidget(uuid);
     }
+    emit requestIps(s, uuid);
+    emit updateListWidget(uuid);
 }

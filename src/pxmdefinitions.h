@@ -6,20 +6,18 @@
 
 #include <QUuid>
 #include <QString>
+#include <QSize>
 
 #define BACKLOG 20
 #define TCP_BUFFER_WATERMARK 10000
-#define MULTICAST_ADDRESS "239.192.13.13"
+#define MULTICAST_ADDRESS "239.192.14.14"
 
 struct peerDetails{
-    bool isValid = false;
     bool isConnected = false;
     bool attemptingToConnect = false;
-    bool messagePending = false;
     evutil_socket_t socketDescriptor = 0;
-    QString portNumber = "-1";
     int listWidgetIndex = -1;
-    QString ipAddress = "";
+    sockaddr_in ipAddressRaw;
     QString hostname = "";
     QString textBox = "";
     QUuid identifier;
