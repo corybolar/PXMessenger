@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 #endif
 
     QString tmpDir = QDir::tempPath();
-    QLockFile lockFile(tmpDir + "/pxmessenger" + QString::fromUtf8(localHostname) + ".lock");
+    QLockFile lockFile(tmpDir + "/pxmessenger" + QString::fromLatin1(localHostname) + ".lock");
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
 
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         }
     }
     presets.uuid = iniReader.getUUID(presets.uuidNum, allowMoreThanOne);
-    presets.username = iniReader.getHostname(QString::fromUtf8(localHostname));
+    presets.username = iniReader.getHostname(QString::fromLatin1(localHostname));
     presets.tcpPort = iniReader.getPort("TCP");
     presets.udpPort = iniReader.getPort("UDP");
     presets.windowSize = iniReader.getWindowSize(QSize(700, 500));

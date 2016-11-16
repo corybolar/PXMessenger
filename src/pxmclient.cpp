@@ -75,17 +75,17 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, const char *t
 
     //Combine strings into final message (host): (msg)\0
 
-    packetLen = strlen(uuid) + strlen(type) + strlen(msg);
+    packetLen = strlen(uuid) + strlen(type) + (strlen(msg));
     if(!strcmp(type, "/msg") )
     {
         print = true;
     }
 
-    int packetLenLength = 4;
+    int packetLenLength = 5;
     //account for the numbers we just added to the front of the final message
 
     char full_mess[packetLen + packetLenLength + 1] = {};
-    sprintf(full_mess, "%04d", packetLen);
+    sprintf(full_mess, "%05d", packetLen);
 
     packetLen += packetLenLength;
 
@@ -99,16 +99,16 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, const char *t
     {
         if(bytes_sent >= packetLen)
         {
-            emit resultOfTCPSend(0, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
+            emit resultOfTCPSend(0, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
         }
         else
         {
-            emit resultOfTCPSend(bytes_sent, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
+            emit resultOfTCPSend(bytes_sent, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
         }
     }
     else
     {
-        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
+        emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
     }
     return;
 }

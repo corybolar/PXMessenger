@@ -49,7 +49,7 @@ private slots:
 #endif
             spinBox->setValue(0);
             spinBox_2->setValue(13649);
-            lineEdit->setText(QString::fromUtf8(localHostname));
+            lineEdit->setText(QString::fromLatin1(localHostname));
             checkBox->setChecked(false);
         }
         if(button == buttonBox->button(QDialogButtonBox::Help))

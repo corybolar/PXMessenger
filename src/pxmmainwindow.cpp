@@ -191,7 +191,7 @@ void PXMWindow::createLineEdit()
     messLineEdit->setObjectName(QStringLiteral("messLineEdit"));
     messLineEdit->setMinimumSize(QSize(200, 0));
     messLineEdit->setMaximumSize(QSize(300, 16777215));
-    messLineEdit->setText(QString::fromUtf8(localHostname));
+    messLineEdit->setText(QString::fromLatin1(localHostname));
     messLineEdit->setReadOnly(true);
 
     layout->addWidget(messLineEdit, 0, 3, 1, 1);
@@ -299,7 +299,7 @@ void PXMWindow::connectPeerClassSignalsAndSlots()
 }
 void PXMWindow::createMessServ()
 {
-    messServer->setLocalHostname(QString::fromUtf8(localHostname));
+    messServer->setLocalHostname(QString::fromLatin1(localHostname));
     messServer->setLocalUUID(ourUUIDString);
     QObject::connect(messServer, &PXMServer::recievedUUIDForConnection, peerWorker, &PXMPeerWorker::authenticationRecieved);
     QObject::connect(messServer, &PXMServer::messageRecieved, this, &PXMWindow::printToTextBrowserServerSlot );
@@ -418,6 +418,8 @@ void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
         if(messListWidget->item(i)->data(Qt::UserRole) == uuid)
         {
             QFont mfont = messListWidget->item(i)->font();
+            if(mfont.italic() == italics)
+                return;
             mfont.setItalic(italics);
             messListWidget->item(i)->setFont(mfont);
             QString changeInConnection;
@@ -435,9 +437,9 @@ void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
  */
 void PXMWindow::textEditChanged()
 {
-    if(messTextEdit->toPlainText().length() > 1000)
+    if(messTextEdit->toPlainText().length() > 2000)
     {
-        int diff = messTextEdit->toPlainText().length() - 1000;
+        int diff = messTextEdit->toPlainText().length() - 2000;
         QString temp = messTextEdit->toPlainText();
         temp.chop(diff);
         messTextEdit->setText(temp);
@@ -576,6 +578,7 @@ void PXMWindow::updateListWidget(QUuid uuid)
         }
     }
     messListWidget->setUpdatesEnabled(true);
+    qDebug() << "Number of peers in the hash" << peerWorker->peerDetailsHash.size();
     return;
 }
 /**
@@ -603,7 +606,7 @@ void PXMWindow::globalSend(QString msg)
     {
         if(itr.isConnected)
         {
-            emit sendMsg(itr.socketDescriptor, QString::fromUtf8(localHostname) % ": " % msg, "/global", ourUUIDString, "");
+            emit sendMsg(itr.socketDescriptor, QString::fromLatin1(localHostname) % ": " % msg, "/global", ourUUIDString, "");
         }
     }
     messTextEdit->setText("");
@@ -640,7 +643,7 @@ void PXMWindow::sendButtonClicked()
             peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor = s;
             emit connectToPeer(s, destination.ipAddressRaw);
         }
-        emit sendMsg(destination.socketDescriptor, QString::fromUtf8(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
+        emit sendMsg(destination.socketDescriptor, QString::fromLatin1(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");
     }
 

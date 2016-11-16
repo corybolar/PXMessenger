@@ -6,6 +6,9 @@
 #include <QUuid>
 #include <QDebug>
 
+//TEMP
+#include <QMessageBox>
+
 #include <ctime>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -62,13 +65,13 @@ private:
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
 
-    int singleMessageIterator(evutil_socket_t i, char *buf, uint32_t len, bufferevent *bev);
+    int singleMessageIterator(evutil_socket_t socket, char *buf, long len, bufferevent *bev);
     int getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 signals:
     void messageRecieved(const QString, QUuid, evutil_socket_t, bool);
-    void newConnectionRecieved(evutil_socket_t, sockaddr_in);
+    void newConnectionRecieved(evutil_socket_t);
     void recievedUUIDForConnection(QString, QString, evutil_socket_t, QUuid, void*);
     void peerQuit(evutil_socket_t);
     void attemptConnection(sockaddr_in, QUuid);

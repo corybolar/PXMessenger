@@ -48,7 +48,7 @@ public slots:
     void hostnameCheck(QString comp, QUuid senderUuid);
     void attemptConnection(sockaddr_in addr, QUuid uuid);
     void authenticationRecieved(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
-    void newTcpConnection(evutil_socket_t s, sockaddr_in ss);
+    void newTcpConnection(evutil_socket_t s);
     void peerQuit(evutil_socket_t s);
     void setPeerHostname(QString hname, QUuid uuid);
     void sendIps(evutil_socket_t i);
