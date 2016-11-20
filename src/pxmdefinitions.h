@@ -9,12 +9,14 @@
 #include <QSize>
 
 #define BACKLOG 20
-#define TCP_BUFFER_WATERMARK 10000
-#define MULTICAST_ADDRESS "239.192.14.14"
+#define MULTICAST_ADDRESS "239.192.15.15"
+#define PACKED_UUID_BYTE_LENGTH 16
+#define QSTRING_HISTORY_LENGTH 100000
+#define MIDNIGHT_TIMER_INTERVAL 60000
 
 struct peerDetails{
     bool isConnected = false;
-    bool attemptingToConnect = false;
+    bool isAuthenticated = false;
     evutil_socket_t socketDescriptor = 0;
     int listWidgetIndex = -1;
     sockaddr_in ipAddressRaw;
@@ -29,8 +31,8 @@ struct initialSettings{
     unsigned short udpPort = 0;
     bool mute = false;
     bool preventFocus = false;
-    QString username;
-    QSize windowSize;
-    QUuid uuid;
+    QString username = "";
+    QSize windowSize = QSize(700, 500);
+    QUuid uuid = "";
 };
 #endif

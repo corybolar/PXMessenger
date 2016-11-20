@@ -41,6 +41,7 @@ public:
      * \param uuid
      */
     void setlocalUUID(QString uuid);
+    void packUUID(char *dest, QUuid uuid, size_t index);
 public slots:
     /*!
      * \brief sendMsg
@@ -61,7 +62,7 @@ public slots:
      * \return emits a resultsOfTCPSend()
      * \see man send
      */
-    void sendMsg(evutil_socket_t socketfd, const char *msg, const char *type, const char *uuid, const char *theiruuid);
+    void sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuid, const char *theiruuid);
     /*!
      * \brief sendMsgSlot
      *
@@ -97,10 +98,9 @@ public slots:
      * \see man connect
      */
     int connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr);
+    void sendIpsSlot(int s, const char *msg, size_t len, QString type, QUuid uuid, QString theiruuid);
 private:
-
-
-    int recursiveSend(evutil_socket_t socketfd, const char *msg, int len, int count);
+    int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
 signals:
     void resultOfConnectionAttempt(evutil_socket_t, bool);
     void resultOfTCPSend(evutil_socket_t, QString, QString, bool);

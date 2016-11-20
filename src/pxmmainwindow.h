@@ -26,6 +26,7 @@
 #include <QStatusBar>
 #include <QMessageBox>
 #include <QStringBuilder>
+#include <QDateTime>
 
 #include <sys/types.h>
 #include <ctime>
@@ -70,6 +71,8 @@ class PXMWindow : public QMainWindow
 public:
     PXMWindow(initialSettings presets);
     ~PXMWindow();
+public slots:
+    void midnightTimerPersistent();
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;
     void changeEvent(QEvent *event)  Q_DECL_OVERRIDE;
@@ -95,7 +98,8 @@ private:
     QCheckBox *muteCheckBox;
     QCheckBox *focusCheckBox;
     QThread *messClientThread;
-    QTimer *timer;
+    QTimer *discoveryTimer;
+    QTimer *midnightTimer;
     QString ourUUIDString;
     PXMTextEdit *messTextEdit;
     PXMClient *messClient;
@@ -250,8 +254,8 @@ private slots:
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
     void settingsActionsSlot();
-    void timerOutSingleShot();
-    void timerOutRepetitive();
+    void discoveryTimerSingleShot();
+    void discoveryTimerPersistent();
     void setListenerPort(unsigned short port);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);

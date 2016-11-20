@@ -4,12 +4,14 @@
 Q_DECLARE_METATYPE(intptr_t)
 #endif
 Q_DECLARE_METATYPE(sockaddr_in)
+Q_DECLARE_METATYPE(size_t)
 PXMWindow::PXMWindow(initialSettings presets)
 {
 #ifdef _WIN32
     qRegisterMetaType<intptr_t>("intptr_t");
 #endif
     qRegisterMetaType<sockaddr_in>();
+    qRegisterMetaType<size_t>("size_t");
     ourUUIDString = presets.uuid.toString();
     qDebug() << "Our UUID:" << ourUUIDString;
 
@@ -66,27 +68,57 @@ PXMWindow::PXMWindow(initialSettings presets)
     this->show();
     this->resize(presets.windowSize);
 
-    QTimer::singleShot(5000, this, SLOT(timerOutSingleShot()));
+    QTimer::singleShot(5000, this, SLOT(discoveryTimerSingleShot()));
+
+    midnightTimer = new QTimer(this);
+    midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL);
+    QObject::connect(midnightTimer, &QTimer::timeout, this, &PXMWindow::midnightTimerPersistent);
+    midnightTimer->start();
+
+    /*
+    qDebug() << sizeof(sockaddr_in);
+    qDebug() << sizeof(in_addr);
+    qDebug() << sizeof(in_port_t);
+    qDebug() << sizeof(sa_family_t);
+    qDebug() << sizeof("192.168.1.1:35678");
+    in_addr_t ip = inet_addr("10.255.255.1");
+    uint32_t ipnbo = htonl(ip);
+    qDebug() << ipnbo;
+    qDebug() << inet_ntoa(*(struct in_addr *)&ip);
+
+    QUuid uuid1 = QUuid::createUuid();
+    qDebug() << uuid1.data2;
+    uint32_t uuidSection = htonl((uint32_t)(uuid1.data1));
+    qDebug() << ntohl(uuidSection);
+    unsigned char* cat = uuid1.data4;
+    char *hello = new char[10];
+    memcpy(hello, cat, 8);
+    qDebug() << hello;
+    */
+    //memcpy(msgRaw + index, &(uuidSection), sizeof(uint16_t));
+
 }
 PXMWindow::~PXMWindow()
 {
     for(auto &itr : peerWorker->peerDetailsHash)
     {
         if(itr.bev != nullptr)
+        {
             bufferevent_free(itr.bev);
+        }
         evutil_closesocket(itr.socketDescriptor);
     }
+    delete peerWorker;
     if(messServer != 0 && messServer->isRunning())
     {
         messServer->requestInterruption();
         messServer->quit();
         messServer->wait(5000);
     }
+    delete messClient;
     messClientThread->quit();
     messClientThread->wait(5000);
 
-    delete messClient;
-    delete peerWorker;
     delete [] localHostname;
 }
 
@@ -296,6 +328,7 @@ void PXMWindow::connectPeerClassSignalsAndSlots()
     QObject::connect(peerWorker, &PXMPeerWorker::printToTextBrowser, this, &PXMWindow::printToTextBrowser);
     QObject::connect(peerWorker, &PXMPeerWorker::setItalicsOnItem, this, &PXMWindow::setItalicsOnItem);
     QObject::connect(peerWorker, &PXMPeerWorker::updateListWidget, this, &PXMWindow::updateListWidget);
+    QObject::connect(peerWorker, &PXMPeerWorker::sendMsgIps, messClient, &PXMClient::sendIpsSlot);
 }
 void PXMWindow::createMessServ()
 {
@@ -369,28 +402,57 @@ QString PXMWindow::getFormattedTime()
 {
     char time_str[12];
     messTime = time(0);
-    QString time = "";
-    time = std::ctime(&messTime);
-    time.remove('\n');
-    time.push_front('(');
-    time.push_back(") ");
     currentTime = localtime(&messTime);
     strftime(time_str, 12, "(%H:%M:%S) ", currentTime);
-    return time;
+    return QString::fromLatin1(time_str);
 }
-void PXMWindow::timerOutRepetitive()
+void PXMWindow::midnightTimerPersistent()
+{
+    QDateTime dt = QDateTime::currentDateTime();
+    if(dt.time() <= QTime(0, (MIDNIGHT_TIMER_INTERVAL/60000), 0, 0))
+    {
+        for(auto &itr : peerWorker->peerDetailsHash)
+        {
+            QString str;
+            int len = dt.date().toString().length();
+            for(int i = 0; i < len+50; i++)
+            {
+                str.append('-');
+            }
+            str.append("\n");
+            str.append('|');
+            for(int i = 0; i < 24; i++)
+            {
+                str.append(' ');
+            }
+            str.append(dt.date().toString());
+            for(int i = 0; i < 24; i++)
+            {
+                str.append(' ');
+            }
+            str.append('|');
+            str.append("\n");
+            for(int i = 0; i < len+50; i++)
+            {
+                str.append('-');
+            }
+            this->printToTextBrowser(str, itr.identifier, false);
+        }
+    }
+}
+void PXMWindow::discoveryTimerPersistent()
 {
     if(messListWidget->count() < 4)
     {
-        //emit sendUDP("/discover", ourUDPListenerPort);
+        emit sendUDP("/discover", ourUDPListenerPort);
     }
     else
     {
         qDebug() << "Found enough peers";
-        timer->stop();
+        discoveryTimer->stop();
     }
 }
-void PXMWindow::timerOutSingleShot()
+void PXMWindow::discoveryTimerSingleShot()
 {
     if(messListWidget->count() < 3)
     {
@@ -399,12 +461,12 @@ void PXMWindow::timerOutSingleShot()
 
     if(messListWidget->count() < 4)
     {
-        timer = new QTimer(this);
-        timer->setInterval(5000);
-        QObject::connect(timer, &QTimer::timeout, this, &PXMWindow::timerOutRepetitive);
+        discoveryTimer= new QTimer(this);
+        discoveryTimer->setInterval(30000);
+        QObject::connect(discoveryTimer, &QTimer::timeout, this, &PXMWindow::discoveryTimerPersistent);
         emit sendUDP("/discover", ourUDPListenerPort);
         qDebug() << QStringLiteral("Retrying discovery packet, looking for other computers...");
-        timer->start();
+        discoveryTimer->start();
     }
     else
     {
@@ -639,11 +701,9 @@ void PXMWindow::sendButtonClicked()
         }
         if(!(destination.isConnected))
         {
-            int s = socket(AF_INET, SOCK_STREAM, 0);
-            peerWorker->peerDetailsHash[uuidOfSelectedItem].socketDescriptor = s;
-            emit connectToPeer(s, destination.ipAddressRaw);
+            peerWorker->attemptConnection(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).ipAddressRaw, uuidOfSelectedItem);
         }
-        emit sendMsg(destination.socketDescriptor, QString::fromLatin1(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
+        emit sendMsg(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).socketDescriptor, QString::fromLatin1(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");
     }
 
@@ -708,10 +768,14 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     if(uuid == globalChatUuid)
     {
         globalChat.append(str % "\n");
+        if(globalChat.length() > QSTRING_HISTORY_LENGTH)
+            globalChat.remove(0, globalChat.length() - QSTRING_HISTORY_LENGTH);
     }
     else
     {
         peerWorker->peerDetailsHash[uuid].textBox.append(str % "\n");
+        if(peerWorker->peerDetailsHash.value(uuid).textBox.length() > QSTRING_HISTORY_LENGTH)
+            peerWorker->peerDetailsHash[uuid].textBox.remove(0, peerWorker->peerDetailsHash[uuid].textBox.length() - QSTRING_HISTORY_LENGTH);
     }
 
     if(messListWidget->currentItem() != NULL)

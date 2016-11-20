@@ -45,7 +45,7 @@ public:
     ~PXMPeerWorker();
 public slots:
     void setListenerPort(unsigned short port);
-    void hostnameCheck(QString comp, QUuid senderUuid);
+    void hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUuid);
     void attemptConnection(sockaddr_in addr, QUuid uuid);
     void authenticationRecieved(QString hname, QString port, evutil_socket_t s, QUuid uuid, void *bevptr);
     void newTcpConnection(evutil_socket_t s);
@@ -69,6 +69,7 @@ signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
+    void sendMsgIps(evutil_socket_t, char *, size_t len, QString, QUuid, QString);
     void connectToPeer(evutil_socket_t, sockaddr_in);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);

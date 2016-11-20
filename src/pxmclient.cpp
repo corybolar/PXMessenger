@@ -19,6 +19,9 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
 
     len = strlen(msg);
 
+    unsigned char loopback = 1;
+    setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback));
+
     for(int i = 0; i < 1; i++)
     {
         sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
@@ -34,18 +37,6 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
 int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
 {
     int status;
-/*    struct addrinfo hints, *res, *connectionAddress;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((status = getaddrinfo(ipaddr, service, &hints, &res)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", (char*)gai_strerror(status));
-        return 2;
-    }
-    */
-    //if( (status = ::connect(socketfd, res->ai_addr, res->ai_addrlen)) < 0 )
     if( (status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr))) < 0 )
     {
         qDebug() << strerror(errno);
@@ -53,7 +44,6 @@ int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
         evutil_closesocket(socketfd);
         return 1;
     }
-    //qDebug() << "Successfully connected to" << socketAddr.sin_addr << "on port" << service << "on socket" << socketfd;
     emit resultOfConnectionAttempt(socketfd, status);
     return 0;
 }
@@ -68,54 +58,77 @@ int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
  *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
  *   				-5 if socket is not connected
  */
-void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, const char *type, const char *uuid, const char *theiruuid)
+void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuid, const char *theiruuid)
 {
-    int packetLen, bytes_sent, sendcount = 0;
+    int bytesSent = 0;
+    uint16_t packetLen;
+    uint16_t packetLenNBO;
     bool print = false;
 
     //Combine strings into final message (host): (msg)\0
 
-    packetLen = strlen(uuid) + strlen(type) + (strlen(msg));
+    if(msgLen > 65400)
+    {
+        emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
+    }
+    packetLen = PACKED_UUID_BYTE_LENGTH + strlen(type) + msgLen;
+
     if(!strcmp(type, "/msg") )
     {
         print = true;
     }
 
-    int packetLenLength = 5;
-    //account for the numbers we just added to the front of the final message
+    char full_mess[packetLen + 1] = {};
 
-    char full_mess[packetLen + packetLenLength + 1] = {};
-    sprintf(full_mess, "%05d", packetLen);
+    packetLenNBO = htons(packetLen);
 
-    packetLen += packetLenLength;
+    //strcat(full_mess, uuid);
+    packUUID(full_mess, uuid ,0);
+    memcpy(full_mess+PACKED_UUID_BYTE_LENGTH, type, strlen(type));
+    memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
 
-    strcat(full_mess, uuid);
-    strcat(full_mess, type);
-    strcat(full_mess, msg);
+    bytesSent = this->recursiveSend(socketfd, &packetLenNBO, sizeof(uint16_t), 0);
 
-    bytes_sent = this->recursiveSend(socketfd, full_mess, packetLen, sendcount);
-
-    if(bytes_sent > 0)
-    {
-        if(bytes_sent >= packetLen)
-        {
-            emit resultOfTCPSend(0, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
-        }
-        else
-        {
-            emit resultOfTCPSend(bytes_sent, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
-        }
-    }
-    else
+    if(bytesSent != sizeof(uint16_t))
     {
         emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
+        return;
     }
+
+    bytesSent = this->recursiveSend(socketfd, full_mess, packetLen, 0);
+
+    if(bytesSent >= static_cast<int>(packetLen))
+    {
+        bytesSent = 0;
+    }
+    emit resultOfTCPSend(bytesSent, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
     return;
 }
 void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
 {
-    this->sendMsg(s, msg.toLocal8Bit().constData(), type.toLocal8Bit().constData(), uuid.toString().toLocal8Bit().constData(), theiruuid.toLocal8Bit().constData());
+    this->sendMsg(s, msg.toLocal8Bit().constData(), strlen(msg.toLocal8Bit().constData()), type.toLocal8Bit().constData(), uuid, theiruuid.toLocal8Bit().constData());
 }
+void PXMClient::packUUID(char *dest, QUuid uuid, size_t index)
+{
+    uint32_t uuidSectionL = htonl((uint32_t)(uuid.data1));
+    memcpy(dest + index, &(uuidSectionL), sizeof(uint32_t));
+    index += sizeof(uint32_t);
+    uint16_t uuidSectionS = htons((uint16_t)(uuid.data2));
+    memcpy(dest + index, &(uuidSectionS), sizeof(uint16_t));
+    index += sizeof(uint16_t);
+    uuidSectionS = htons((uint16_t)(uuid.data3));
+    memcpy(dest + index, &(uuidSectionS), sizeof(uint16_t));
+    index += sizeof(uint16_t);
+    memcpy(dest + index, &(uuid.data4), 8);
+    return;
+}
+
+void PXMClient::sendIpsSlot(evutil_socket_t s, const char *msg, size_t len, QString type, QUuid uuid, QString theiruuid)
+{
+    this->sendMsg(s, msg, len, type.toLocal8Bit().constData(), uuid, theiruuid.toLocal8Bit().constData());
+    delete [] msg;
+}
+
 /**
  * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
  * @param socketfd	Socket to send to
@@ -124,7 +137,7 @@ void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid 
  * @param count		Only attempt to resend 5 times so as not to hang the program if something goes wrong
  * @return 			-1 on error, total bytes sent otherwise
  */
-int PXMClient::recursiveSend(evutil_socket_t socketfd, const char *msg, int len, int count)
+int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count)
 {
     int status2 = 0;
 #ifdef _WIN32
@@ -142,12 +155,13 @@ int PXMClient::recursiveSend(evutil_socket_t socketfd, const char *msg, int len,
 
     if( ( status != len ) && ( count < 10 ) )
     {
+        qDebug() << "We are partially sending this msg";
         int len2 = len - status;
-        char msg2[len2];
-        strncpy(msg2, &msg[status], len2);
+        //uint8_t cast to avoid compiler warning, we want to advance the pointer the number of bytes in status
+        msg = (uint8_t*)msg + status;
         count++;
 
-        status2 = recursiveSend(socketfd, msg2, len2, count);
+        status2 = recursiveSend(socketfd, msg, len2, count);
         if(status2 <= 0)
             return -1;
     }

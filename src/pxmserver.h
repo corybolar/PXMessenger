@@ -56,7 +56,7 @@ public:
     static void tcpError(bufferevent *buf, short error, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
-public slots:
+    QUuid unpackUUID(unsigned char *src);
 private:
     static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
     static void accept_new(evutil_socket_t socketfd, short event, void *arg);
@@ -65,7 +65,7 @@ private:
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
 
-    int singleMessageIterator(evutil_socket_t socket, char *buf, long len, bufferevent *bev);
+    int singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t len, QUuid quuid);
     int getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
@@ -79,7 +79,7 @@ signals:
     void exitRecieved(QString);
     void sendIps(evutil_socket_t);
     void sendName(evutil_socket_t, QString, QString);
-    void hostnameCheck(QString, QUuid);
+    void hostnameCheck(char*, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
     void sendUDP(const char*, unsigned short);
