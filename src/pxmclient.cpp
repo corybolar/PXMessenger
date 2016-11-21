@@ -19,7 +19,7 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
 
     len = strlen(msg);
 
-    unsigned char loopback = 1;
+    char loopback = 1;
     setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback));
 
     for(int i = 0; i < 1; i++)
