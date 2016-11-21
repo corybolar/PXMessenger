@@ -451,6 +451,5 @@ int PXMServer::listener()
 
     event_base_free(base);
 
-
     return 0;
 }

@@ -141,7 +141,7 @@ int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int c
 {
     int status2 = 0;
 #ifdef _WIN32
-    int status = send(socketfd, msg, len, 0);
+    int status = send(socketfd, (char*)msg, len, 0);
 #else
     int status = send(socketfd, msg, len, MSG_NOSIGNAL);
 #endif

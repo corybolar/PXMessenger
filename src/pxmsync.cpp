@@ -2,6 +2,7 @@
 
 PXMSync::PXMSync(QObject *parent) : QThread(parent)
 {
+
 }
 void PXMSync::run()
 {
