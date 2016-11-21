@@ -18,7 +18,6 @@ struct peerDetails{
     bool isConnected = false;
     bool isAuthenticated = false;
     evutil_socket_t socketDescriptor = 0;
-    int listWidgetIndex = -1;
     sockaddr_in ipAddressRaw;
     QString hostname = "";
     QString textBox = "";

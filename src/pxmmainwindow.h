@@ -73,6 +73,7 @@ public:
     ~PXMWindow();
 public slots:
     void midnightTimerPersistent();
+    void bloomActionsSlot();
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;
     void changeEvent(QEvent *event)  Q_DECL_OVERRIDE;

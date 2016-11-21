@@ -138,9 +138,13 @@ void PXMWindow::setupMenuBar()
 
     QMenu *optionsMenu;
     QAction *settingsAction = new QAction("&Settings", this);
-    optionsMenu = menuBar()->addMenu("&Options");
+    QAction *bloomAction = new QAction("&Bloom", this);
+    optionsMenu = menuBar()->addMenu("&Tools");
+    //optionsMenu = menuBar()->addMenu("&Bloom");
     optionsMenu->addAction(settingsAction);
+    optionsMenu->addAction(bloomAction);
     QObject::connect(settingsAction, &QAction::triggered, this, &PXMWindow::settingsActionsSlot);
+    QObject::connect(bloomAction, &QAction::triggered, this, &PXMWindow::bloomActionsSlot);
 
     QMenu *helpMenu;
     QAction *aboutAction = new QAction("&About", this);
@@ -259,11 +263,11 @@ void PXMWindow::createListWidget()
     messListWidget->setMaximumSize(QSize(300, 16777215));
 
     layout->addWidget(messListWidget, 1, 3, 2, 1);
-    //messListWidget->setGeometry(640, 60, 200, 300);
-    messListWidget->insertItem(0, "--------------------");
-    messListWidget->insertItem(1, "Global Chat");
-    messListWidget->item(1)->setData(Qt::UserRole, globalChatUuid);
-    messListWidget->item(0)->setFlags(messListWidget->item(0)->flags() & ~Qt::ItemIsEnabled);
+    messListWidget->insertItem(0, "Global Chat");
+    messListWidget->insertItem(1, "--------------------");
+    messListWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
+    messListWidget->item(1)->setFlags(messListWidget->item(0)->flags() & ~Qt::ItemIsEnabled);
+    messListWidget->setSortingEnabled(false);
 }
 void PXMWindow::createSystemTray()
 {
@@ -372,6 +376,22 @@ void PXMWindow::settingsActionsSlot()
     setD->readIni();
     setD->show();
 }
+void PXMWindow::bloomActionsSlot()
+{
+    QMessageBox box;
+    box.setText("This will resend our initial discovery"
+                "packet to the multicast group.  If we"
+                "have only found ourselves this is happening"
+                "automatically on a 15 second timer.");
+    QPushButton *bloomButton = box.addButton(tr("Bloom"), QMessageBox::ActionRole);
+    QPushButton *cancelButton = box.addButton(QMessageBox::Abort);
+    box.exec();
+    if(box.clickedButton() == bloomButton)
+    {
+        emit sendUDP("/discover", ourUDPListenerPort);
+    }
+}
+
 void PXMWindow::createMessTime()
 {
     messTime = time(0);
@@ -576,13 +596,38 @@ void PXMWindow::quitButtonClicked()
 void PXMWindow::updateListWidget(QUuid uuid)
 {
     messListWidget->setUpdatesEnabled(false);
+    for(int i = 0; i < messListWidget->count() - 2; i++)
+    {
+        if(messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid)
+        {
+            QListWidgetItem *global = messListWidget->takeItem(0);
+            QListWidgetItem *seperator = messListWidget->takeItem(0);
+            messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
+            messListWidget->sortItems();
+            messListWidget->insertItem(0, global);
+            messListWidget->insertItem(1, seperator);
+            messListWidget->setUpdatesEnabled(true);
+            return;
+        }
+    }
+
+    QListWidgetItem *global = messListWidget->takeItem(0);
+    QListWidgetItem *seperator = messListWidget->takeItem(0);
+    QListWidgetItem *item = new QListWidgetItem(peerWorker->peerDetailsHash.value(uuid).hostname, messListWidget);
+
+    messListWidget->removeItemWidget(global);
+    messListWidget->removeItemWidget(seperator);
+    item->setData(Qt::UserRole, uuid);
+    messListWidget->addItem(item);
+    messListWidget->sortItems();
+    messListWidget->insertItem(0, global);
+    messListWidget->insertItem(1, seperator);
+    /*
     int count = messListWidget->count() - 2;
     if(count == 0)
     {
         messListWidget->insertItem(0, peerWorker->peerDetailsHash.value(uuid).hostname);
         messListWidget->item(0)->setData(Qt::UserRole, uuid);
-        peerWorker->peerDetailsHash[uuid].listWidgetIndex = 0;
-
     }
     else
     {
@@ -614,11 +659,6 @@ void PXMWindow::updateListWidget(QUuid uuid)
             {
                 messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
                 messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                peerWorker->peerDetailsHash[uuid].listWidgetIndex = i;
-                if(!(u.isNull()))
-                {
-                    peerWorker->peerDetailsHash[u].listWidgetIndex = i+1;
-                }
                 break;
             }
             else if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) > 0)
@@ -627,7 +667,6 @@ void PXMWindow::updateListWidget(QUuid uuid)
                 {
                     messListWidget->insertItem(i, peerWorker->peerDetailsHash.value(uuid).hostname);
                     messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                    peerWorker->peerDetailsHash[uuid].listWidgetIndex = i+1;
                     break;
                 }
                 else
@@ -639,9 +678,9 @@ void PXMWindow::updateListWidget(QUuid uuid)
             }
         }
     }
+    */
     messListWidget->setUpdatesEnabled(true);
     qDebug() << "Number of peers in the hash" << peerWorker->peerDetailsHash.size();
-    return;
 }
 /**
  * @brief				Garbage collection, called upon sending a close signal to the process.  (X button, Quit Debug button, SIGTERM in linux)
