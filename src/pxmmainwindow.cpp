@@ -96,6 +96,9 @@ PXMWindow::~PXMWindow()
     messClientThread->quit();
     messClientThread->wait(5000);
 
+    for(auto &itr : globalChat)
+        delete itr;
+
     delete [] localHostname;
 }
 
@@ -552,12 +555,12 @@ void PXMWindow::changeEvent(QEvent *event)
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
     messTextBrowser->setUpdatesEnabled(false);
-    messTextBrowser->setText("");
+    messTextBrowser->clear();
     QUuid uuid1 = item1->data(Qt::UserRole).toString();
     if(uuid1 == globalChatUuid)
     {
         for(auto &itr : globalChat)
-            messTextBrowser->append(itr);
+            messTextBrowser->append(*itr);
     }
     else
     {
@@ -733,14 +736,23 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
 
     str = this->getFormattedTime() % str;
 
+    QString *heapStr = new QString(str.toUtf8());
+
     if(uuid == globalChatUuid)
     {
-        globalChat.append(str);
+        globalChat.append(heapStr);
+        if(globalChat.length() > MESSAGE_HISTORY_LENGTH)
+        {
+            delete globalChat.takeFirst();
+        }
     }
     else
     {
-        QString *heapStr = new QString(str.toUtf8());
         peerWorker->peerDetailsHash[uuid].messages.append(heapStr);
+        if(peerWorker->peerDetailsHash[uuid].messages.length() > MESSAGE_HISTORY_LENGTH)
+        {
+            delete peerWorker->peerDetailsHash[uuid].messages.takeFirst();
+        }
     }
 
     if(messListWidget->currentItem() != NULL)

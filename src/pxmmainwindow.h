@@ -113,7 +113,7 @@ private:
     char *localHostname;
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
-    QStringList globalChat;
+    QVector<QString*> globalChat;
     QUuid globalChatUuid;
     bool globalChatAlerted = false;
 
