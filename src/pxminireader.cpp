@@ -18,6 +18,11 @@ bool MessIniReader::checkAllowMoreThanOne()
     inisettings->setValue("config/AllowMoreThanOneInstance", false);
     return false;
 }
+void MessIniReader::setAllowMoreThanOne(bool value)
+{
+    inisettings->setValue("config/AllowMoreThanOneInstance", value);
+}
+
 int MessIniReader::getUUIDNumber()
 {
     int i = 0;
@@ -124,3 +129,12 @@ bool MessIniReader::getFocus()
 {
     return inisettings->value("config/PreventFocus", false).toBool();
 }
+QString MessIniReader::getFont()
+{
+    return inisettings->value("config/Font", "").toString();
+}
+void MessIniReader::setFont(QString font)
+{
+    inisettings->setValue("config/Font", font);
+}
+

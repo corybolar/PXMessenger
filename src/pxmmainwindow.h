@@ -102,6 +102,7 @@ private:
     QTimer *discoveryTimer;
     QTimer *midnightTimer;
     QString ourUUIDString;
+    QFrame *fsep;
     PXMTextEdit *messTextEdit;
     PXMClient *messClient;
     PXMServer *messServer;

@@ -63,10 +63,10 @@ void PXMPeerWorker::hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUui
         sockaddr_in addr;
         QUuid uuid;
         addr.sin_family = AF_INET;
-        memcpy(&(addr.sin_addr.s_addr), ipHeapArray+index, sizeof(in_addr_t));
-        index += sizeof(in_addr_t);
-        memcpy(&(addr.sin_port), ipHeapArray+index, sizeof(in_port_t));
-        index += sizeof(in_port_t);
+        memcpy(&(addr.sin_addr.s_addr), ipHeapArray+index, sizeof(uint32_t));
+        index += sizeof(uint32_t);
+        memcpy(&(addr.sin_port), ipHeapArray+index, sizeof(uint16_t));
+        index += sizeof(uint16_t);
         memcpy(&(uuid.data1), ipHeapArray+index, sizeof(uint32_t));
         index += sizeof(uint32_t);
         uuid.data1 = ntohl(uuid.data1);
@@ -78,8 +78,8 @@ void PXMPeerWorker::hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUui
         uuid.data3 = ntohs(uuid.data3);
         memcpy(&(uuid.data4), ipHeapArray+index, 8);
         index += 8;
-        qDebug() << inet_ntoa(addr.sin_addr);
-        qDebug() << uuid;
+        //qDebug() << inet_ntoa(addr.sin_addr);
+        //qDebug() << uuid;
         attemptConnection(addr, uuid);
     }
 
@@ -133,7 +133,7 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s)
     {
         if(itr.socketDescriptor == s)
         {
-            qDebug() << itr.hostname << QStringLiteral("has disconnected, attempting reconnect");
+            //qDebug() << itr.hostname << QStringLiteral("has disconnected, attempting reconnect");
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].isAuthenticated = false;
             peerDetailsHash[itr.identifier].socketDescriptor = -1;
@@ -147,17 +147,16 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s)
 void PXMPeerWorker::sendIps(evutil_socket_t i)
 {
     qDebug() << "Sending ips to" << i;
-    //QString msgRaw;
-    char *msgRaw = new char[peerDetailsHash.size() * (sizeof(in_addr_t) + sizeof(in_port_t) + 38)];
+    char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + 38)];
     size_t index = 0;
     for(auto & itr : peerDetailsHash)
     {
         if(itr.isConnected)
         {
-            memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_addr.s_addr),sizeof(in_addr_t));
-            index += sizeof(in_addr_t);
-            memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_port), sizeof(in_port_t));
-            index += sizeof(in_port_t);
+            memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_addr.s_addr),sizeof(uint32_t));
+            index += sizeof(uint32_t);
+            memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_port), sizeof(uint16_t));
+            index += sizeof(uint16_t);
             uint32_t uuidSectionL = htonl((uint32_t)(itr.identifier.data1));
             memcpy(msgRaw + index, &(uuidSectionL), sizeof(uint32_t));
             index += sizeof(uint32_t);

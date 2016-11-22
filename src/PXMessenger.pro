@@ -6,7 +6,6 @@ QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
-DEFINES -= UNICODE
 
 unix: LIBS += -levent
 

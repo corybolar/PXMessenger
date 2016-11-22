@@ -15,6 +15,7 @@
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QMessageBox>
+#include <QtWidgets/QFontComboBox>
 
 #include <pxminireader.h>
 
@@ -39,11 +40,13 @@ private slots:
             user = getpwuid(getuid());
             strcpy(localHostname, user->pw_name);
 #elif _WIN32
+            char user[UNLEN+1];
             TCHAR t_user[UNLEN+1];
             DWORD user_size = UNLEN+1;
             if(GetUserName(t_user, &user_size))
             {
-                strcpy(localHostname, t_user);
+                wcstombs(user, t_user, UNLEN+1);
+                strcpy(localHostname, user);
             }
 #endif
             spinBox->setValue(0);
@@ -65,16 +68,27 @@ private slots:
 
     void accept()
     {
-        QSettings inisettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL);
-        inisettings.setValue("config/AllowMoreThanOneInstance", this->checkBox->isChecked());
-        inisettings.setValue("hostname/hostname", this->lineEdit->text());
-        int tcpPort = this->spinBox->value();
-        inisettings.setValue("port/TCP", tcpPort);
-        int udpPort = this->spinBox_2->value();
-        inisettings.setValue("port/UDP", udpPort);
+        MessIniReader iniReader;
+        iniReader.setAllowMoreThanOne(this->checkBox->isChecked());
+        iniReader.setHostname(this->lineEdit->text());
+        iniReader.setPort("TCP", this->spinBox->value());
+        iniReader.setPort("UDP", this->spinBox_2->value());
+        iniReader.setFont(qApp->font().toString());
         QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
         QDialog::accept();
     }
+
+    void currentFontChanged(QFont font)
+    {
+        qApp->setFont(font);
+    }
+    void valueChanged(int size)
+    {
+        iniFont = qApp->font();
+        iniFont.setPointSize(size);
+        qApp->setFont(iniFont);
+    }
+
 public:
     explicit PXMSettingsDialog(QWidget* parent) : QDialog(parent) {}
 
@@ -82,6 +96,8 @@ public:
     QString hostname;
     int tcpPort;
     int udpPort;
+    QFont iniFont;
+    int fontSize;
 
     QGridLayout *gridLayout;
     QSpacerItem *verticalSpacer;
@@ -91,24 +107,28 @@ public:
     QLabel *label;
     QLabel *label_3;
     QLabel *label_4;
+    QLabel *label_5;
+    QLabel *label_6;
     QDialogButtonBox *buttonBox;
     QSpinBox *spinBox;
     QSpinBox *spinBox_2;
+    QFontComboBox *fontComboBox;
+    QSpinBox *spinBox_3;
 
     void setupUi()
     {
         if (this->objectName().isEmpty())
             this->setObjectName(QStringLiteral("Settings"));
-        this->resize(366, 181);
+        //this->resize(366, 181);
         this->setMinimumSize(QSize(420, 181));
-        this->setMaximumSize(QSize(600, 181));
+        this->setMaximumSize(QSize(800, 300));
         this->setLayoutDirection(Qt::LeftToRight);
         this->setSizeGripEnabled(true);
         gridLayout = new QGridLayout(this);
         gridLayout->setObjectName(QStringLiteral("gridLayout"));
         verticalSpacer = new QSpacerItem(20, 120, QSizePolicy::Minimum, QSizePolicy::Expanding);
 
-        gridLayout->addItem(verticalSpacer, 5, 0, 1, 2);
+        gridLayout->addItem(verticalSpacer, 6, 0, 1, 2);
 
         checkBox = new QCheckBox(this);
         checkBox->setObjectName(QStringLiteral("checkBox"));
@@ -154,7 +174,7 @@ public:
         buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults);
         buttonBox->setCenterButtons(true);
 
-        gridLayout->addWidget(buttonBox, 6, 0, 1, 2);
+        gridLayout->addWidget(buttonBox, 7, 0, 1, 2);
 
         spinBox = new QSpinBox(this);
         spinBox->setObjectName(QStringLiteral("spinBox"));
@@ -168,13 +188,31 @@ public:
 
         gridLayout->addWidget(spinBox_2, 3, 1, 1, 1);
 
+        fontComboBox = new QFontComboBox(this);
+        gridLayout->addWidget(fontComboBox, 4, 1, 1, 1);
+
+        label_5 = new QLabel(this);
+        gridLayout->addWidget(label_5, 4, 0, 1, 1);
+
+        label_6 = new QLabel(this);
+        gridLayout->addWidget(label_6, 5, 0, 1, 1);
+
+        spinBox_3 = new QSpinBox(this);
+        spinBox_3->setMaximum(24);
+        spinBox_3->setMinimum(8);
+        spinBox_3->setValue(qApp->font().pointSize());
+        gridLayout->addWidget(spinBox_3, 5, 1, 1, 1);
+
 
         retranslateUi();
         QObject::connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
         QObject::connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
         QObject::connect(buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
+        QObject::connect(fontComboBox, &QFontComboBox::currentFontChanged, this, &PXMSettingsDialog::currentFontChanged);
+        void (QSpinBox:: *signal)(int) = &QSpinBox::valueChanged;
+        QObject::connect(spinBox_3, signal, this, &PXMSettingsDialog::valueChanged);
 
-        QMetaObject::connectSlotsByName(this);
+        //QMetaObject::connectSlotsByName(this);
     } // setupUi
 
     void retranslateUi()
@@ -185,6 +223,8 @@ public:
         label->setText(QApplication::translate("Settings", "Allow more than one instance", 0));
         label_3->setText(QApplication::translate("Settings", "Preferred TCP Listener port", 0));
         label_4->setText(QApplication::translate("Settings", "Preferred UDP Listener port", 0));
+        label_5->setText(QApplication::translate("Settings", "Font Family", 0));
+        label_6->setText(QApplication::translate("Settings", "Font Size", 0));
     } // retranslateUi
 
     void readIni()
@@ -194,13 +234,13 @@ public:
         hostname = iniReader.getHostname("");
         tcpPort = iniReader.getPort("TCP");
         udpPort = iniReader.getPort("UDP");
+        fontSize = qApp->font().pointSize();
+        spinBox_3->setValue(fontSize);
         spinBox->setValue(tcpPort);
         spinBox_2->setValue(udpPort);
         lineEdit->setText(hostname);
         checkBox->setChecked(AllowMoreThanOneInstance);
     }
-
-
 
 };
 

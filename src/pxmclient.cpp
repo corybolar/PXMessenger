@@ -69,7 +69,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
 
     if(msgLen > 65400)
     {
-        emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
+        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
     }
     packetLen = PACKED_UUID_BYTE_LENGTH + strlen(type) + msgLen;
 
@@ -91,7 +91,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
 
     if(bytesSent != sizeof(uint16_t))
     {
-        emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
+        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
         return;
     }
 
@@ -101,12 +101,13 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
     {
         bytesSent = 0;
     }
-    emit resultOfTCPSend(bytesSent, QString::fromLatin1(theiruuid), QString::fromLatin1(msg), print);
+    emit resultOfTCPSend(bytesSent, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
     return;
 }
 void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
 {
-    this->sendMsg(s, msg.toLocal8Bit().constData(), strlen(msg.toLocal8Bit().constData()), type.toLocal8Bit().constData(), uuid, theiruuid.toLocal8Bit().constData());
+    QByteArray msgB = msg.toUtf8();
+    this->sendMsg(s, msgB, msgB.length(), type.toLocal8Bit().constData(), uuid, theiruuid.toLocal8Bit().constData());
 }
 void PXMClient::packUUID(char *dest, QUuid uuid, size_t index)
 {

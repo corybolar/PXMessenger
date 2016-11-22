@@ -26,6 +26,11 @@ public:
     bool getMute();
     void setFocus(bool focus);
     bool getFocus();
+    QString getFont();
+    void setFont(QString font);
+    int getFontSize();
+    void setFontSize(int size);
+    void setAllowMoreThanOne(bool value);
 private:
     QSettings *inisettings;
 };

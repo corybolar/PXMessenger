@@ -62,9 +62,9 @@ PXMWindow::PXMWindow(initialSettings presets)
     focusCheckBox->setChecked(presets.preventFocus);
     muteCheckBox->setChecked(presets.mute);
 
-    statusbar = new QStatusBar(this);
-    statusbar->setObjectName(QStringLiteral("statusbar"));
-    this->setStatusBar(statusbar);
+    //statusbar = new QStatusBar(this);
+    //statusbar->setObjectName(QStringLiteral("statusbar"));
+    //this->setStatusBar(statusbar);
     this->show();
     this->resize(presets.windowSize);
 
@@ -74,29 +74,6 @@ PXMWindow::PXMWindow(initialSettings presets)
     midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL);
     QObject::connect(midnightTimer, &QTimer::timeout, this, &PXMWindow::midnightTimerPersistent);
     midnightTimer->start();
-
-    /*
-    qDebug() << sizeof(sockaddr_in);
-    qDebug() << sizeof(in_addr);
-    qDebug() << sizeof(in_port_t);
-    qDebug() << sizeof(sa_family_t);
-    qDebug() << sizeof("192.168.1.1:35678");
-    in_addr_t ip = inet_addr("10.255.255.1");
-    uint32_t ipnbo = htonl(ip);
-    qDebug() << ipnbo;
-    qDebug() << inet_ntoa(*(struct in_addr *)&ip);
-
-    QUuid uuid1 = QUuid::createUuid();
-    qDebug() << uuid1.data2;
-    uint32_t uuidSection = htonl((uint32_t)(uuid1.data1));
-    qDebug() << ntohl(uuidSection);
-    unsigned char* cat = uuid1.data4;
-    char *hello = new char[10];
-    memcpy(hello, cat, 8);
-    qDebug() << hello;
-    */
-    //memcpy(msgRaw + index, &(uuidSection), sizeof(uint16_t));
-
 }
 PXMWindow::~PXMWindow()
 {
@@ -227,7 +204,7 @@ void PXMWindow::createLineEdit()
     messLineEdit->setObjectName(QStringLiteral("messLineEdit"));
     messLineEdit->setMinimumSize(QSize(200, 0));
     messLineEdit->setMaximumSize(QSize(300, 16777215));
-    messLineEdit->setText(QString::fromLatin1(localHostname));
+    messLineEdit->setText(QString::fromUtf8(localHostname));
     messLineEdit->setReadOnly(true);
 
     layout->addWidget(messLineEdit, 0, 3, 1, 1);
@@ -264,9 +241,15 @@ void PXMWindow::createListWidget()
 
     layout->addWidget(messListWidget, 1, 3, 2, 1);
     messListWidget->insertItem(0, "Global Chat");
-    messListWidget->insertItem(1, "--------------------");
+    QListWidgetItem *seperator = new QListWidgetItem(messListWidget);
+    seperator->setSizeHint(QSize(200, 10));
+    seperator->setFlags(Qt::NoItemFlags);
+    messListWidget->insertItem(1, seperator);
+    fsep = new QFrame(messListWidget);
+    fsep->setFrameStyle(QFrame::HLine | QFrame::Plain);
+    fsep->setLineWidth(2);
+    messListWidget->setItemWidget(seperator, fsep);
     messListWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
-    messListWidget->item(1)->setFlags(messListWidget->item(0)->flags() & ~Qt::ItemIsEnabled);
     messListWidget->setSortingEnabled(false);
 }
 void PXMWindow::createSystemTray()
@@ -336,7 +319,7 @@ void PXMWindow::connectPeerClassSignalsAndSlots()
 }
 void PXMWindow::createMessServ()
 {
-    messServer->setLocalHostname(QString::fromLatin1(localHostname));
+    messServer->setLocalHostname(QString::fromUtf8(localHostname));
     messServer->setLocalUUID(ourUUIDString);
     QObject::connect(messServer, &PXMServer::recievedUUIDForConnection, peerWorker, &PXMPeerWorker::authenticationRecieved);
     QObject::connect(messServer, &PXMServer::messageRecieved, this, &PXMWindow::printToTextBrowserServerSlot );
@@ -424,7 +407,7 @@ QString PXMWindow::getFormattedTime()
     messTime = time(0);
     currentTime = localtime(&messTime);
     strftime(time_str, 12, "(%H:%M:%S) ", currentTime);
-    return QString::fromLatin1(time_str);
+    return QString::fromUtf8(time_str);
 }
 void PXMWindow::midnightTimerPersistent()
 {
@@ -601,84 +584,23 @@ void PXMWindow::updateListWidget(QUuid uuid)
         if(messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid)
         {
             QListWidgetItem *global = messListWidget->takeItem(0);
-            QListWidgetItem *seperator = messListWidget->takeItem(0);
             messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
             messListWidget->sortItems();
             messListWidget->insertItem(0, global);
-            messListWidget->insertItem(1, seperator);
+
             messListWidget->setUpdatesEnabled(true);
             return;
         }
     }
 
     QListWidgetItem *global = messListWidget->takeItem(0);
-    QListWidgetItem *seperator = messListWidget->takeItem(0);
     QListWidgetItem *item = new QListWidgetItem(peerWorker->peerDetailsHash.value(uuid).hostname, messListWidget);
 
-    messListWidget->removeItemWidget(global);
-    messListWidget->removeItemWidget(seperator);
     item->setData(Qt::UserRole, uuid);
     messListWidget->addItem(item);
     messListWidget->sortItems();
     messListWidget->insertItem(0, global);
-    messListWidget->insertItem(1, seperator);
-    /*
-    int count = messListWidget->count() - 2;
-    if(count == 0)
-    {
-        messListWidget->insertItem(0, peerWorker->peerDetailsHash.value(uuid).hostname);
-        messListWidget->item(0)->setData(Qt::UserRole, uuid);
-    }
-    else
-    {
-        for(int i = 0; i <= count; i++)
-        {
-            QUuid u = messListWidget->item(i)->data(Qt::UserRole).toString();
-            QString str = messListWidget->item(i)->text();
-            if(u == uuid)
-            {
-                if(peerWorker->peerDetailsHash.value(uuid).hostname == messListWidget->item(i)->text())
-                {
-                    break;
-                }
-                else
-                {
-                    printToTextBrowser(str % " has changed their name to " % peerWorker->peerDetailsHash.value(uuid).hostname, uuid, false);
-                    messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
-                    break;
-                }
-            }
-            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) == 0)
-            {
-                if(u == uuid)
-                    break;
-                else
-                    continue;
-            }
-            if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) < 0)
-            {
-                messListWidget->insertItem(i, peerWorker->peerDetailsHash.value((uuid)).hostname);
-                messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                break;
-            }
-            else if(peerWorker->peerDetailsHash.value(uuid).hostname.compare(str, Qt::CaseInsensitive) > 0)
-            {
-                if(i == count)
-                {
-                    messListWidget->insertItem(i, peerWorker->peerDetailsHash.value(uuid).hostname);
-                    messListWidget->item(i)->setData(Qt::UserRole, uuid);
-                    break;
-                }
-                else
-                    continue;
-            }
-            else
-            {
-                qDebug() << "Error Displaying a Peer in MessengerWindow::updateListWidget";
-            }
-        }
-    }
-    */
+
     messListWidget->setUpdatesEnabled(true);
     qDebug() << "Number of peers in the hash" << peerWorker->peerDetailsHash.size();
 }
@@ -707,7 +629,7 @@ void PXMWindow::globalSend(QString msg)
     {
         if(itr.isConnected)
         {
-            emit sendMsg(itr.socketDescriptor, QString::fromLatin1(localHostname) % ": " % msg, "/global", ourUUIDString, "");
+            emit sendMsg(itr.socketDescriptor, QString::fromUtf8(localHostname) % ": " % msg, "/global", ourUUIDString, "");
         }
     }
     messTextEdit->setText("");
@@ -722,7 +644,8 @@ void PXMWindow::sendButtonClicked()
         return;
     }
 
-    QString str = messTextEdit->toPlainText();
+    QString str = messTextEdit->toPlainText().toUtf8();
+    //QString str = messTextEdit->toHtml();
     if(!(str.isEmpty()))
     {
         int index = messListWidget->currentRow();
@@ -742,7 +665,7 @@ void PXMWindow::sendButtonClicked()
         {
             peerWorker->attemptConnection(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).ipAddressRaw, uuidOfSelectedItem);
         }
-        emit sendMsg(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).socketDescriptor, QString::fromLatin1(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
+        emit sendMsg(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).socketDescriptor, QString::fromUtf8(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");
     }
 
@@ -822,6 +745,8 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
         if(uuid == messListWidget->currentItem()->data(Qt::UserRole))
         {
             messTextBrowser->append(str);
+            //messTextBrowser->insertHtml(str);
+            //messTextBrowser->append("");
             if(alert)
                 this->focusWindow();
             return;

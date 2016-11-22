@@ -70,7 +70,7 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
         if(bufLen == 0)
         {
             qDebug() << "Bad buffer length, draining...";
-            evbuffer_drain(bufferevent_get_input(bev), 10000);
+            evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
             return;
         }
         bufferevent_setwatermark(bev, EV_READ, bufLen + sizeof(uint16_t), bufLen + sizeof(uint16_t));
@@ -102,8 +102,7 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     buf[bufLen] = 0;
     if(!strncmp(buf, "/uuid", 5))
     {
-        qDebug() << "uuid recieved: " + quuid.toString();
-        QStringList hpsplit = (QString::fromLatin1(buf+5, bufLen-5)).split(":");
+        QStringList hpsplit = (QString::fromUtf8(buf+5, bufLen-5)).split(":");
         realServer->recievedUUIDForConnection(hpsplit[0], hpsplit[1], socket, quuid, bev);
     }
     else
@@ -124,35 +123,41 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
         if(bufLen == 0)
         {
             qDebug() << "Bad buffer length, draining...";
-            evbuffer_drain(bufferevent_get_input(bev), 10000);
+            evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
             return;
         }
         bufferevent_setwatermark(bev, EV_READ, bufLen + sizeof(uint16_t), bufLen + sizeof(uint16_t));
         return;
     }
-
     bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
 
     evutil_socket_t i = bufferevent_getfd(bev);
     bufferevent_read(bev, &nboBufLen, 2);
 
     bufLen = ntohs(nboBufLen);
-
+    if(bufLen <= PACKED_UUID_BYTE_LENGTH)
+    {
+        evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
+        return;
+    }
 
     unsigned char rawUUID[PACKED_UUID_BYTE_LENGTH];
     bufferevent_read(bev, rawUUID, PACKED_UUID_BYTE_LENGTH);
 
     QUuid uuid = realServer->unpackUUID(rawUUID);
     if(uuid.isNull())
+    {
+        evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
         return;
+    }
 
     bufLen -= PACKED_UUID_BYTE_LENGTH;
     char *buf = new char[bufLen + 1];
-    //memset(buf, 0, bufLen - PACKED_UUID_BYTE_LENGTH);
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
 
     realServer->singleMessageIterator(i, buf, bufLen, uuid);
+
     delete [] buf;
 }
 
@@ -186,7 +191,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
         //buf is actually at buf[7] from its original location
 
         //The following signal is going to the main thread and will call the slot prints(QString, QString)
-        emit messageRecieved(QString::fromLatin1(buf+4, bufLen-4), quuid, socket, false);
+        emit messageRecieved(QString::fromUtf8(buf+4, bufLen-4), quuid, socket, false);
     }
     //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
     else if( !( strncmp(buf, "/ip", 3) ) )
@@ -209,7 +214,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     else if(!(strncmp(buf, "/global", 7)))
     {
         //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
-        emit messageRecieved(QString::fromLatin1(buf+7, bufLen -7), quuid, socket, true);
+        emit messageRecieved(QString::fromUtf8(buf+7, bufLen -7), quuid, socket, true);
     }
     //This packet is an updated hostname for the computer that sent it
     //These packets should come formatted like "/hostnameHostname1\0"
@@ -217,7 +222,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     {
         qDebug() << "/hostname recieved" << QString::number(socket);
         //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
-        emit setPeerHostname(QString::fromLatin1(buf+9, bufLen-9), quuid);
+        emit setPeerHostname(QString::fromUtf8(buf+9, bufLen-9), quuid);
     }
     //This packet is asking us to communicate an updated hostname to the sender
     //These packets should come formatted like "/namerequest\0"
@@ -292,7 +297,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args
     //when this is recieved it add the sender to the list of peers and connects to him
     else if ((strncmp(buf, "/name:", 6)) == 0)
     {
-        QString fullidStr = QString::fromLatin1(&buf[6]);
+        QString fullidStr = QString::fromUtf8(&buf[6]);
         QString portNumber = fullidStr.left(fullidStr.indexOf("{"));
         QUuid uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
 
@@ -417,7 +422,7 @@ int PXMServer::listener()
     base = event_base_new();
 
 
-    qDebug() << "Using" << QString::fromLatin1(event_base_get_method(base)) << "as the libevent backend";
+    qDebug() << "Using" << QString::fromUtf8(event_base_get_method(base)) << "as the libevent backend";
     if(!base)
         return -1;
 

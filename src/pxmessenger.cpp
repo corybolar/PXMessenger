@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QString>
 #include <QLockFile>
+#include <QFontDatabase>
 #include <pxminireader.h>
 #include <pxmdefinitions.h>
 #include <stdlib.h>
@@ -33,9 +34,17 @@ int main(int argc, char **argv)
     QCoreApplication::setOrganizationName("PXMessenger");
     QCoreApplication::setOrganizationDomain("PXMessenger");
     QCoreApplication::setApplicationVersion("0.8");
+
     MessIniReader iniReader;
     initialSettings presets;
     char localHostname[250];
+
+    QFont font;
+    if(!(iniReader.getFont().isEmpty()))
+    {
+        font.fromString(iniReader.getFont());
+        app.setFont(font);
+    }
 
 #ifdef __unix__
     struct passwd *user;
@@ -47,7 +56,8 @@ int main(int argc, char **argv)
     DWORD user_size = UNLEN+1;
     if(GetUserName(t_user, &user_size))
     {
-        strcpy(localHostname, t_user);
+        wcstombs(user, t_user, UNLEN+1);
+        strcpy(localHostname, user);
     }
 #endif
 
