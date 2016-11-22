@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     QCoreApplication::setApplicationName("PXMessenger");
     QCoreApplication::setOrganizationName("PXMessenger");
     QCoreApplication::setOrganizationDomain("PXMessenger");
-    QCoreApplication::setApplicationVersion("0.8");
+    QCoreApplication::setApplicationVersion("0.9");
 
     MessIniReader iniReader;
     initialSettings presets;
