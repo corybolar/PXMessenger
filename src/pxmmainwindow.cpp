@@ -417,33 +417,34 @@ void PXMWindow::midnightTimerPersistent()
     QDateTime dt = QDateTime::currentDateTime();
     if(dt.time() <= QTime(0, (MIDNIGHT_TIMER_INTERVAL/60000), 0, 0))
     {
+        QString *str = new QString();
+        int len = dt.date().toString().length();
+        for(int i = 0; i < len+50; i++)
+        {
+            str->append('-');
+        }
+        str->append("\n");
+        str->append('|');
+        for(int i = 0; i < 24; i++)
+        {
+            str->append(' ');
+        }
+        str->append(dt.date().toString());
+        for(int i = 0; i < 24; i++)
+        {
+            str->append(' ');
+        }
+        str->append('|');
+        str->append("\n");
+        for(int i = 0; i < len+50; i++)
+        {
+            str->append('-');
+        }
         for(auto &itr : peerWorker->peerDetailsHash)
         {
-            QString str;
-            int len = dt.date().toString().length();
-            for(int i = 0; i < len+50; i++)
-            {
-                str.append('-');
-            }
-            str.append("\n");
-            str.append('|');
-            for(int i = 0; i < 24; i++)
-            {
-                str.append(' ');
-            }
-            str.append(dt.date().toString());
-            for(int i = 0; i < 24; i++)
-            {
-                str.append(' ');
-            }
-            str.append('|');
-            str.append("\n");
-            for(int i = 0; i < len+50; i++)
-            {
-                str.append('-');
-            }
-            this->printToTextBrowser(str, itr.identifier, false);
+            itr.messages.append(str);
         }
+        globalChat.append(str);
     }
 }
 void PXMWindow::discoveryTimerPersistent()
