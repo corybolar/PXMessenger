@@ -25,7 +25,7 @@ CONFIG += c++11 \
 unix {
 CONFIG += c++11 \
 		release \
-		debug
+                debug
 }
 QMAKE_CXXFLAGS += -Wall
 

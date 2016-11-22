@@ -362,12 +362,12 @@ void PXMWindow::settingsActionsSlot()
 void PXMWindow::bloomActionsSlot()
 {
     QMessageBox box;
-    box.setText("This will resend our initial discovery"
-                "packet to the multicast group.  If we"
-                "have only found ourselves this is happening"
+    box.setText("This will resend our initial discovery "
+                "packet to the multicast group.  If we "
+                "have only found ourselves this is happening "
                 "automatically on a 15 second timer.");
     QPushButton *bloomButton = box.addButton(tr("Bloom"), QMessageBox::ActionRole);
-    QPushButton *cancelButton = box.addButton(QMessageBox::Abort);
+    box.addButton(QMessageBox::Abort);
     box.exec();
     if(box.clickedButton() == bloomButton)
     {
@@ -478,7 +478,7 @@ void PXMWindow::discoveryTimerSingleShot()
 }
 void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
-    for(int i = 0; i < messListWidget->count() - 2; i++)
+    for(int i = 0; i < messListWidget->count(); i++)
     {
         if(messListWidget->item(i)->data(Qt::UserRole) == uuid)
         {
@@ -551,15 +551,18 @@ void PXMWindow::changeEvent(QEvent *event)
  */
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
-    int index1 = messListWidget->row(item1);
+    messTextBrowser->setUpdatesEnabled(false);
+    messTextBrowser->setText("");
     QUuid uuid1 = item1->data(Qt::UserRole).toString();
-    if(index1 == messListWidget->count() - 1)
+    if(uuid1 == globalChatUuid)
     {
-        messTextBrowser->setText(globalChat);
+        for(auto &itr : globalChat)
+            messTextBrowser->append(itr);
     }
     else
     {
-        messTextBrowser->setText(peerWorker->peerDetailsHash[uuid1].textBox);
+        for(auto &itr : peerWorker->peerDetailsHash.value(uuid1).messages)
+            messTextBrowser->append(*itr);
     }
     if(item1->background() == Qt::red)
     {
@@ -567,6 +570,7 @@ void PXMWindow::currentItemChanged(QListWidgetItem *item1)
     }
     QScrollBar *sb = this->messTextBrowser->verticalScrollBar();
     sb->setValue(sb->maximum());
+    messTextBrowser->setUpdatesEnabled(true);
     return;
 }
 /**
@@ -629,7 +633,7 @@ void PXMWindow::globalSend(QString msg)
     {
         if(itr.isConnected)
         {
-            emit sendMsg(itr.socketDescriptor, QString::fromUtf8(localHostname) % ": " % msg, "/global", ourUUIDString, "");
+            emit sendMsg(itr.socketDescriptor, QString::fromUtf8(localHostname) % ": " % msg, "/global", ourUUIDString, itr.identifier.toString());
         }
     }
     messTextEdit->setText("");
@@ -661,10 +665,10 @@ void PXMWindow::sendButtonClicked()
             messTextEdit->setText("");
             return;
         }
-        if(!(destination.isConnected))
-        {
-            peerWorker->attemptConnection(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).ipAddressRaw, uuidOfSelectedItem);
-        }
+        //if(!(destination.isConnected))
+        //{
+            //peerWorker->attemptConnection(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).ipAddressRaw, uuidOfSelectedItem);
+        //}
         emit sendMsg(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).socketDescriptor, QString::fromUtf8(localHostname) % QStringLiteral(": ") % str, QStringLiteral("/msg"), ourUUIDString, uuidOfSelectedItem.toString());
         messTextEdit->setText("");
     }
@@ -673,10 +677,12 @@ void PXMWindow::sendButtonClicked()
 }
 void PXMWindow::changeListColor(int row, int style)
 {
-    QBrush back = messListWidget->item(row)->background();
     if(style == 1)
     {
-        messListWidget->item(row)->setBackground(Qt::red);
+        //QBrush back = QGuiApplication::palette().base();
+        //QColor backColor = back.color();
+        //backColor.setRgb(255 - backColor.red(),255 - backColor.green(),255 - backColor.blue());
+        messListWidget->item(row)->setBackground(QBrush(QColor(255,0,0)));
     }
     if(style == 0)
     {
@@ -729,15 +735,12 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
 
     if(uuid == globalChatUuid)
     {
-        globalChat.append(str % "\n");
-        if(globalChat.length() > QSTRING_HISTORY_LENGTH)
-            globalChat.remove(0, globalChat.length() - QSTRING_HISTORY_LENGTH);
+        globalChat.append(str);
     }
     else
     {
-        peerWorker->peerDetailsHash[uuid].textBox.append(str % "\n");
-        if(peerWorker->peerDetailsHash.value(uuid).textBox.length() > QSTRING_HISTORY_LENGTH)
-            peerWorker->peerDetailsHash[uuid].textBox.remove(0, peerWorker->peerDetailsHash[uuid].textBox.length() - QSTRING_HISTORY_LENGTH);
+        QString *heapStr = new QString(str.toUtf8());
+        peerWorker->peerDetailsHash[uuid].messages.append(heapStr);
     }
 
     if(messListWidget->currentItem() != NULL)

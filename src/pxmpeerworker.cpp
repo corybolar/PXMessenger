@@ -13,6 +13,8 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QString uuid, PX
     syncTimer->setInterval((rand() % 300000) + 900000);
     QObject::connect(syncTimer, SIGNAL(timeout()), this, SLOT(beginSync()));
     syncTimer->start();
+
+    QVector<QString> str;
 }
 PXMPeerWorker::~PXMPeerWorker()
 {
@@ -24,6 +26,13 @@ PXMPeerWorker::~PXMPeerWorker()
         syncer->wait(5000);
     }
     syncer->deleteLater();
+    for(auto &itr : peerDetailsHash)
+    {
+        for(auto &itr2 : itr.messages)
+        {
+            delete itr2;
+        }
+    }
 }
 
 void PXMPeerWorker::setLocalHostName(QString name)

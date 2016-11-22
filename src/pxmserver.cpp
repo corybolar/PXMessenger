@@ -253,7 +253,7 @@ QUuid PXMServer::unpackUUID(unsigned char *src)
     index += sizeof(uint16_t);
     uuid.data3 = ntohs(uuid.data3);
     memcpy(&(uuid.data4), src+index, 8);
-    index += 8;
+    //index += 8;
 
     return uuid;
 }
@@ -279,7 +279,8 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args
             perror("socket:");
         si_other.sin_port = htons(realServer->udpListenerPort);
 
-        char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.length() + 7] = {};
+        //char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.length() + 7] = {};
+        char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.length() + 7];
 
         strcpy(name, "/name:");
         snprintf(&name[6], sizeof(name), "%d", realServer->tcpListenerPort);

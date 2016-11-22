@@ -20,7 +20,7 @@ struct peerDetails{
     evutil_socket_t socketDescriptor = 0;
     sockaddr_in ipAddressRaw;
     QString hostname = "";
-    QString textBox = "";
+    QVector<QString*> messages;
     QUuid identifier;
     bufferevent *bev = nullptr;
 };

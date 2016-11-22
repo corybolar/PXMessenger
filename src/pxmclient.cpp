@@ -78,7 +78,8 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
         print = true;
     }
 
-    char full_mess[packetLen + 1] = {};
+    //char full_mess[packetLen + 1] = {};
+    char full_mess[packetLen + 1];
 
     packetLenNBO = htons(packetLen);
 
@@ -86,12 +87,13 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
     packUUID(full_mess, uuid ,0);
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH, type, strlen(type));
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
+    full_mess[packetLen] = 0;
 
     bytesSent = this->recursiveSend(socketfd, &packetLenNBO, sizeof(uint16_t), 0);
 
     if(bytesSent != sizeof(uint16_t))
     {
-        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
+        emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromUtf8(msg), print);
         return;
     }
 
@@ -101,7 +103,8 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
     {
         bytesSent = 0;
     }
-    emit resultOfTCPSend(bytesSent, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
+    if(*theiruuid != '\0')
+        emit resultOfTCPSend(bytesSent, QString::fromLatin1(theiruuid), QString::fromUtf8(msg), print);
     return;
 }
 void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)

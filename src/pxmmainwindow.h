@@ -27,6 +27,7 @@
 #include <QMessageBox>
 #include <QStringBuilder>
 #include <QDateTime>
+#include <QRgb>
 
 #include <sys/types.h>
 #include <ctime>
@@ -112,7 +113,7 @@ private:
     char *localHostname;
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
-    QString globalChat = "";
+    QStringList globalChat;
     QUuid globalChatUuid;
     bool globalChatAlerted = false;
 
