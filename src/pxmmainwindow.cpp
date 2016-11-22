@@ -784,13 +784,28 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
  */
 void PXMWindow::printToTextBrowserServerSlot(const QString str, QUuid uuid, evutil_socket_t socket, bool global)
 {
-    /*
-    if(peerWorker->peerDetailsHash[uuid].socketDescriptor != socket)
+    if(uuid != ourUUIDString)
     {
-        this->printToTextBrowser("Someone is trying to spoof this users connection, message rejected", uuid, true);
-        return;
+        if(peerWorker->peerDetailsHash.value(uuid).socketDescriptor != socket)
+        {
+            bool foundIt = false;
+            QUuid uuidSpoofer = "";
+            for(auto &itr : peerWorker->peerDetailsHash)
+            {
+                if(itr.socketDescriptor == socket)
+                {
+                    foundIt = true;
+                    uuidSpoofer = itr.identifier;
+                    break;
+                }
+            }
+            if(foundIt)
+                this->printToTextBrowser("This user is trying to spoof another users uuid!", uuidSpoofer, true);
+            else
+                this->printToTextBrowser("Someone is trying to spoof this users uuid!", uuid, true);
+        }
     }
-    */
+
     if(global)
     {
         uuid = globalChatUuid;
