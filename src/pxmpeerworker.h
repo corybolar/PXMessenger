@@ -43,6 +43,7 @@ public:
     QHash<QUuid,peerDetails>peerDetailsHash;
     void setLocalHostName(QString name);
     ~PXMPeerWorker();
+    static size_t packUuid(char *buf, QUuid *uuid);
 public slots:
     void setListenerPort(unsigned short port);
     void hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUuid);
@@ -66,7 +67,7 @@ private:
     PXMSync *syncer;
     void sendIdentityMsg(evutil_socket_t s);
 signals:
-    void printToTextBrowser(QString, QUuid, bool);
+    void printToTextBrowser(QString, QUuid, bool, bool);
     void updateListWidget(QUuid);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
     void sendMsgIps(evutil_socket_t, char *, size_t len, QString, QUuid, QString);

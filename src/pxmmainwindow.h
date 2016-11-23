@@ -251,7 +251,7 @@ private slots:
     void currentItemChanged(QListWidgetItem *item1);
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void printToTextBrowser(QString str, QUuid uuid, bool alert);
+    void printToTextBrowser(QString str, QUuid uuid, bool alert, bool formatAsMessage);
     void printToTextBrowserServerSlot(const QString str, QUuid uuid, int socket, bool global);
     void updateListWidget(QUuid uuid);
     void setItalicsOnItem(QUuid uuid, bool italics);

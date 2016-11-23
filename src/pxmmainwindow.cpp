@@ -77,6 +77,7 @@ PXMWindow::PXMWindow(initialSettings presets)
 }
 PXMWindow::~PXMWindow()
 {
+    midnightTimer->stop();
     for(auto &itr : peerWorker->peerDetailsHash)
     {
         if(itr.bev != nullptr)
@@ -96,8 +97,7 @@ PXMWindow::~PXMWindow()
     messClientThread->quit();
     messClientThread->wait(5000);
 
-    for(auto &itr : globalChat)
-        delete itr;
+    qDeleteAll(globalChat);
 
     delete [] localHostname;
 }
@@ -135,21 +135,9 @@ void PXMWindow::setupMenuBar()
 void PXMWindow::setupTooltips()
 {
 #ifndef QT_NO_TOOLTIP
-    messTextBrowser->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Messages</p></body></html>", 0));
-#endif // QT_NO_TOOLTIP
-#ifndef QT_NO_TOOLTIP
-    messLineEdit->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Hostname</p></body></html>", 0));
-#endif // QT_NO_TOOLTIP
-#ifndef QT_NO_TOOLTIP
     messSendButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Send a Message</p></body></html>", 0));
 #endif // QT_NO_TOOLTIP
     messSendButton->setText(QApplication::translate("PXMessenger", "Send", 0));
-#ifndef QT_NO_TOOLTIP
-    messListWidget->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Connected Peers</p></body></html>", 0));
-#endif // QT_NO_TOOLTIP
-#ifndef QT_NO_TOOLTIP
-    messTextEdit->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Enter message to send</p></body></html>", 0));
-#endif // QT_NO_TOOLTIP
 #ifndef QT_NO_TOOLTIP
     messQuitButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Quit PXMessenger</p></body></html>", 0));
 #endif // QT_NO_TOOLTIP
@@ -417,34 +405,34 @@ void PXMWindow::midnightTimerPersistent()
     QDateTime dt = QDateTime::currentDateTime();
     if(dt.time() <= QTime(0, (MIDNIGHT_TIMER_INTERVAL/60000), 0, 0))
     {
-        QString *str = new QString();
+        QString str = "";
         int len = dt.date().toString().length();
         for(int i = 0; i < len+50; i++)
         {
-            str->append('-');
+            str.append('-');
         }
-        str->append("\n");
-        str->append('|');
+        str.append("\n");
+        str.append('|');
         for(int i = 0; i < 24; i++)
         {
-            str->append(' ');
+            str.append(' ');
         }
-        str->append(dt.date().toString());
+        str.append(dt.date().toString());
         for(int i = 0; i < 24; i++)
         {
-            str->append(' ');
+            str.append(' ');
         }
-        str->append('|');
-        str->append("\n");
+        str.append('|');
+        str.append("\n");
         for(int i = 0; i < len+50; i++)
         {
-            str->append('-');
+            str.append('-');
         }
         for(auto &itr : peerWorker->peerDetailsHash)
         {
-            itr.messages.append(str);
+            printToTextBrowser(str, itr.identifier, false, false);
         }
-        globalChat.append(str);
+        printToTextBrowser(str, globalChatUuid, false, false);
     }
 }
 void PXMWindow::discoveryTimerPersistent()
@@ -496,7 +484,7 @@ void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
                 changeInConnection = " disconnected";
             else
                 changeInConnection = " reconnected";
-            this->printToTextBrowser(peerWorker->peerDetailsHash[uuid].hostname % changeInConnection, uuid, false);
+            this->printToTextBrowser(peerWorker->peerDetailsHash[uuid].hostname % changeInConnection, uuid, false, false);
             return;
         }
     }
@@ -587,12 +575,12 @@ void PXMWindow::quitButtonClicked()
 void PXMWindow::updateListWidget(QUuid uuid)
 {
     messListWidget->setUpdatesEnabled(false);
-    for(int i = 0; i < messListWidget->count() - 2; i++)
+    for(int i = 2; i < messListWidget->count(); i++)
     {
         if(messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid)
         {
-            QListWidgetItem *global = messListWidget->takeItem(0);
             messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
+            QListWidgetItem *global = messListWidget->takeItem(0);
             messListWidget->sortItems();
             messListWidget->insertItem(0, global);
 
@@ -648,7 +636,7 @@ void PXMWindow::sendButtonClicked()
 {
     if(messListWidget->selectedItems().count() == 0)
     {
-        this->printToTextBrowser("Choose a computer to message from the selection pane on the right", "", false);
+        this->printToTextBrowser("Choose a computer to message from the selection pane on the right", "", false, false);
         return;
     }
 
@@ -658,10 +646,9 @@ void PXMWindow::sendButtonClicked()
     {
         int index = messListWidget->currentRow();
         QUuid uuidOfSelectedItem = messListWidget->item(index)->data(Qt::UserRole).toString();
+
         if(uuidOfSelectedItem.isNull())
             return;
-
-        peerDetails destination = peerWorker->peerDetailsHash.value(uuidOfSelectedItem);
 
         if( ( uuidOfSelectedItem == globalChatUuid) )
         {
@@ -720,7 +707,7 @@ void PXMWindow::focusWindow()
  * @param peerindex			index of the peers_class->peers array for which the message was meant for
  * @param message			Bool for whether this message that is being printed should alert the listwidgetitem, play sound, and focus the application
  */
-void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
+void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert, bool formatAsMessage)
 {
     bool foundIt = false;
     int index = 0;
@@ -735,13 +722,12 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     if(!foundIt)
         return;
 
-    str = this->getFormattedTime() % str;
-
-    QString *heapStr = new QString(str.toUtf8());
+    if(formatAsMessage)
+        str = this->getFormattedTime() % str;
 
     if(uuid == globalChatUuid)
     {
-        globalChat.append(heapStr);
+        globalChat.append(new QString(str.toUtf8()));
         if(globalChat.length() > MESSAGE_HISTORY_LENGTH)
         {
             delete globalChat.takeFirst();
@@ -749,7 +735,7 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     }
     else
     {
-        peerWorker->peerDetailsHash[uuid].messages.append(heapStr);
+        peerWorker->peerDetailsHash[uuid].messages.append(new QString(str.toUtf8()));
         if(peerWorker->peerDetailsHash[uuid].messages.length() > MESSAGE_HISTORY_LENGTH)
         {
             delete peerWorker->peerDetailsHash[uuid].messages.takeFirst();
@@ -801,9 +787,9 @@ void PXMWindow::printToTextBrowserServerSlot(const QString str, QUuid uuid, evut
                 }
             }
             if(foundIt)
-                this->printToTextBrowser("This user is trying to spoof another users uuid!", uuidSpoofer, true);
+                this->printToTextBrowser("This user is trying to spoof another users uuid!", uuidSpoofer, true, false);
             else
-                this->printToTextBrowser("Someone is trying to spoof this users uuid!", uuid, true);
+                this->printToTextBrowser("Someone is trying to spoof this users uuid!", uuid, true, false);
         }
     }
 
@@ -816,5 +802,5 @@ void PXMWindow::printToTextBrowserServerSlot(const QString str, QUuid uuid, evut
         qDebug() << "Message from invalid uuid, rejection";
         return;
     }
-    this->printToTextBrowser(str, uuid, true);
+    this->printToTextBrowser(str, uuid, true, true);
 }

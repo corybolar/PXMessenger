@@ -17,19 +17,10 @@ void PXMServer::setLocalUUID(QString uuid)
 {
     localUUID = uuid;
 }
-/**
- * @brief				Start of thread, call the listener function which is an infinite loop
- */
 void PXMServer::run()
 {
     this->listener();
 }
-/**
- * @brief 				Accept a new TCP connection from the listener socket and let the GUI know.
- * @param s				Listener socket on from which we accept a new connection
- * @param their_addr
- * @return 				Return socket descriptor for new connection, -1 on error on linux, INVALID_SOCKET on Windows
- */
 void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
 {
     evutil_socket_t result;
@@ -86,10 +77,11 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     unsigned char bufUUID[PACKED_UUID_BYTE_LENGTH];
     if(bufferevent_read(bev, bufUUID, PACKED_UUID_BYTE_LENGTH) < PACKED_UUID_BYTE_LENGTH)
     {
+        int status = bufferevent_flush(bev, EV_READ, BEV_FINISHED);
         evutil_closesocket(socket);
         return;
     }
-    QUuid quuid = realServer->unpackUUID(bufUUID);
+    QUuid quuid = PXMServer::unpackUUID(bufUUID);
     bufLen -= PACKED_UUID_BYTE_LENGTH;
     if(quuid.isNull())
     {
@@ -137,6 +129,7 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     bufLen = ntohs(nboBufLen);
     if(bufLen <= PACKED_UUID_BYTE_LENGTH)
     {
+        int status = bufferevent_flush(bev, EV_READ, BEV_FLUSH);
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
         return;
     }
@@ -144,7 +137,7 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     unsigned char rawUUID[PACKED_UUID_BYTE_LENGTH];
     bufferevent_read(bev, rawUUID, PACKED_UUID_BYTE_LENGTH);
 
-    QUuid uuid = realServer->unpackUUID(rawUUID);
+    QUuid uuid = PXMServer::unpackUUID(rawUUID);
     if(uuid.isNull())
     {
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
@@ -258,11 +251,6 @@ QUuid PXMServer::unpackUUID(unsigned char *src)
     return uuid;
 }
 
-/**
- * @brief 				UDP packet recieved. Remember, these are connectionless
- * @param i				Socket descriptor to recieve UDP packet from
- * @return 				0 on success, 1 on error
- */
 void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args)
 {
     PXMServer *realServer = (PXMServer*)args;
@@ -374,8 +362,11 @@ evutil_socket_t PXMServer::setupTCPSocket()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    //getaddrinfo(NULL, ourListenerPort.toStdString().c_str(), &hints, &res);
-    getaddrinfo(NULL, QString::number(tcpListenerPort).toStdString().c_str(), &hints, &res);
+    char tcpPortChar[8];
+    memset(tcpPortChar, 0, 8);
+    sprintf(tcpPortChar, "%d", tcpListenerPort);
+
+    getaddrinfo(NULL, tcpPortChar, &hints, &res);
 
     if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
     {
@@ -403,25 +394,13 @@ evutil_socket_t PXMServer::setupTCPSocket()
     return socketTCP;
 }
 
-/**
- * @brief 				Main listener called from the run function.  Infinite while loop in here that is interuppted by
- *						the GUI thread upon shutdown.  Two listeners, one TCP/IP and one UDP, are created here and checked
- *						for new connections.  All new connections that come in here are listened to after they have had their
- *						descriptors added to the master FD set.
- * @return				Should never return, -1 means something terrible has happened
- */
 int PXMServer::listener()
 {
-    //Potential rewrite to change getaddrinfo to a manual setup of the socket structures.
-    //Changing to manual setup may improve load times on windows systems.  Locks us into
-    //ipv4 however.
     evutil_socket_t s_discover, s_listen;
     struct event *eventAccept;
     struct event *eventDiscover;
 
-
     base = event_base_new();
-
 
     qDebug() << "Using" << QString::fromUtf8(event_base_get_method(base)) << "as the libevent backend";
     if(!base)

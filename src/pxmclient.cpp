@@ -89,6 +89,8 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
     full_mess[packetLen] = 0;
 
+    //if(!strcmp(type, "/msg"))
+        //packetLenNBO = htons(15);
     bytesSent = this->recursiveSend(socketfd, &packetLenNBO, sizeof(uint16_t), 0);
 
     if(bytesSent != sizeof(uint16_t))

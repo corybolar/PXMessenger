@@ -28,10 +28,7 @@ PXMPeerWorker::~PXMPeerWorker()
     syncer->deleteLater();
     for(auto &itr : peerDetailsHash)
     {
-        for(auto &itr2 : itr.messages)
-        {
-            delete itr2;
-        }
+        qDeleteAll(itr.messages);
     }
 }
 
@@ -87,8 +84,8 @@ void PXMPeerWorker::hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUui
         uuid.data3 = ntohs(uuid.data3);
         memcpy(&(uuid.data4), ipHeapArray+index, 8);
         index += 8;
-        //qDebug() << inet_ntoa(addr.sin_addr);
-        //qDebug() << uuid;
+        qDebug() << inet_ntoa(addr.sin_addr);
+        qDebug() << uuid;
         attemptConnection(addr, uuid);
     }
 
@@ -156,7 +153,7 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s)
 void PXMPeerWorker::sendIps(evutil_socket_t i)
 {
     qDebug() << "Sending ips to" << i;
-    char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + 38)];
+    char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + PACKED_UUID_BYTE_LENGTH)];
     size_t index = 0;
     for(auto & itr : peerDetailsHash)
     {
@@ -166,6 +163,8 @@ void PXMPeerWorker::sendIps(evutil_socket_t i)
             index += sizeof(uint32_t);
             memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_port), sizeof(uint16_t));
             index += sizeof(uint16_t);
+            index += PXMPeerWorker::packUuid(msgRaw + index, &(itr.identifier));
+            /*
             uint32_t uuidSectionL = htonl((uint32_t)(itr.identifier.data1));
             memcpy(msgRaw + index, &(uuidSectionL), sizeof(uint32_t));
             index += sizeof(uint32_t);
@@ -178,10 +177,31 @@ void PXMPeerWorker::sendIps(evutil_socket_t i)
             unsigned char *uuidSectionC = itr.identifier.data4;
             memcpy(msgRaw + index, uuidSectionC, 8);
             index += 8;
+            */
         }
     }
     emit sendMsgIps(i, msgRaw, index, "/ip", localUUID, "");
 }
+size_t PXMPeerWorker::packUuid(char *buf, QUuid *uuid)
+{
+    int index = 0;
+
+    uint32_t uuidSectionL = htonl((uint32_t)(uuid->data1));
+    memcpy(buf + index, &(uuidSectionL), sizeof(uint32_t));
+    index += sizeof(uint32_t);
+    uint16_t uuidSectionS = htons((uint16_t)(uuid->data2));
+    memcpy(buf + index, &(uuidSectionS), sizeof(uint16_t));
+    index += sizeof(uint16_t);
+    uuidSectionS = htons((uint16_t)(uuid->data3));
+    memcpy(buf + index, &(uuidSectionS), sizeof(uint16_t));
+    index += sizeof(uint16_t);
+    unsigned char *uuidSectionC = uuid->data4;
+    memcpy(buf + index, uuidSectionC, 8);
+    index += 8;
+
+    return index;
+}
+
 void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result)
 {
     QUuid uuid;
@@ -199,7 +219,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(socket);
         bev = bufferevent_socket_new(realServer->base, socket, BEV_OPT_CLOSE_ON_FREE);
-        bufferevent_setcb(bev, realServer->tcpReadUUID, NULL, realServer->tcpError, (void*)realServer);
+        bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ);
         if(peerDetailsHash[uuid].bev != nullptr)
@@ -228,7 +248,7 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QString uuidString, QStr
             msg.append(QStringLiteral("\nThe previous message was only paritally sent.  This was very bad\nContact the administrator of this program immediately\nNumber of bytes sent: ") % QString::number(levelOfSuccess));
             qDebug() << "Partial Send";
         }
-        emit printToTextBrowser(msg, uuid, 0);
+        emit printToTextBrowser(msg, uuid, 0, true);
 
         return;
     }
