@@ -21,8 +21,8 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     QByteArray localMsg = msg.toLocal8Bit();
     switch(type) {
     case QtDebugMsg:
-        //fprintf(stderr, "%s\n", localMsg.constData());
-        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "%s\n", localMsg.constData());
+        //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         break;
     case QtWarningMsg:
         fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
@@ -50,7 +50,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         switch (type) {
         case QtDebugMsg:
             if(PXMDebugWindow::textEdit != 0)
-                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
+                PXMDebugWindow::textEdit->append(msg.toLocal8Bit());
             break;
         case QtWarningMsg:
             if(PXMDebugWindow::textEdit != 0)

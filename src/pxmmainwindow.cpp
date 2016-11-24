@@ -84,8 +84,6 @@ PXMWindow::PXMWindow(initialSettings presets)
 
     //QObject::connect(messServer, SIGNAL(debug(QString)),
     //                 PXMDebugWindow::textEdit, SLOT(append(QString)), Qt::QueuedConnection);
-    //QObject::connect(messClientThread, SIGNAL(debug(QString)),
-    //                 PXMDebugWindow::textEdit, SLOT(append(QString)), Qt::QueuedConnection);
 }
 PXMWindow::~PXMWindow()
 {
@@ -310,6 +308,8 @@ void PXMWindow::createMessClient()
     QObject::connect(this, &PXMWindow::sendUDP, messClient, &PXMClient::sendUDP);
     QObject::connect(messServer, &PXMServer::sendMsg, messClient, &PXMClient::sendMsgSlot);
     QObject::connect(messServer, &PXMServer::sendUDP, messClient, &PXMClient::sendUDP);
+    QObject::connect(messClient, SIGNAL(xdebug(QString)),
+                     debugWindow, SLOT(xdebug(QString)), Qt::QueuedConnection);
     messClientThread->start();
 }
 void PXMWindow::connectGuiSignalsAndSlots()
@@ -348,6 +348,9 @@ void PXMWindow::createMessServ()
     QObject::connect(messServer, &PXMServer::setPeerHostname, peerWorker, &PXMPeerWorker::setPeerHostname);
     QObject::connect(messServer, &PXMServer::setListenerPort, peerWorker, &PXMPeerWorker::setListenerPort);
     QObject::connect(messServer, &PXMServer::setListenerPort, this, &PXMWindow::setListenerPort);
+    QObject::connect(messServer, &PXMServer::libeventBackend, this, &PXMWindow::setlibeventBackend);
+    QObject::connect(messServer, SIGNAL(xdebug(QString)),
+                     debugWindow, SLOT(xdebug(QString)), Qt::QueuedConnection);
     messServer->start();
 }
 void PXMWindow::aboutActionSlot()
@@ -390,6 +393,10 @@ void PXMWindow::bloomActionsSlot()
         emit sendUDP("/discover", ourUDPListenerPort);
     }
 }
+void PXMWindow::setlibeventBackend(QString str)
+{
+    libeventBackend = str;
+}
 
 void PXMWindow::printInfoToDebug()
 {
@@ -401,7 +408,8 @@ void PXMWindow::printInfoToDebug()
     str.append("Version: " % qApp->applicationVersion() % "\n");
 
     str.append(QStringLiteral("---Network Info---\n"));
-    str.append(QStringLiteral("Multicast Address: ") % QString::fromUtf8(MULTICAST_ADDRESS) % "\n"
+    str.append(QStringLiteral("Libevent Backend: ") % libeventBackend % "\n"
+              % QStringLiteral("Multicast Address: ") % QString::fromUtf8(MULTICAST_ADDRESS) % "\n"
               % QStringLiteral("TCP Listener Port: ") % QString::number(ourTCPListenerPort) % "\n"
               % QStringLiteral("UDP Listener Port: ") % QString::number(ourUDPListenerPort) % "\n"
               % QStringLiteral("Our UUID: ") % ourUUIDString % "\n");
@@ -673,13 +681,13 @@ void PXMWindow::updateListWidget(QUuid uuid)
  */
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
-    messSystemTray->setContextMenu(NULL);
     messSystemTray->hide();
 
     MessIniReader iniReader;
     iniReader.setWindowSize(this->size());
     iniReader.setMute(muteCheckBox->isChecked());
     iniReader.setFocus(focusCheckBox->isChecked());
+    qDebug() << "closeEvent calling event->accept()";
     event->accept();
 }
 /**

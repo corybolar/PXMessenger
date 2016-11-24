@@ -104,6 +104,7 @@ private:
 signals:
     void resultOfConnectionAttempt(evutil_socket_t, bool);
     void resultOfTCPSend(evutil_socket_t, QString, QString, bool);
+    void xdebug(QString);
 };
 
 #endif // PXMCLIENT_H

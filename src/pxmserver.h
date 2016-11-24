@@ -84,6 +84,8 @@ signals:
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
     void sendUDP(const char*, unsigned short);
     void setListenerPort(unsigned short);
+    void xdebug(QString);
+    void libeventBackend(QString);
 };
 
 #endif // MESS_SERV_H

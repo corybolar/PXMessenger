@@ -24,11 +24,12 @@ PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
     gridLayout_2->addLayout(gridLayout, 0, 0, 1, 1);
 
     sb = PXMDebugWindow::textEdit->verticalScrollBar();
-    sb->setTracking(false);
+    sb->setTracking(true);
 
     this->setCentralWidget(centralwidget);
     this->resize(1000, 300);
     sb->setValue(sb->maximum());
+    QObject::connect(textEdit, SIGNAL(textChanged()), this, SLOT(textChanged()));
     QObject::connect(sb, SIGNAL(valueChanged(int)), this, SLOT(adjustScrollBar(int)));
     QObject::connect(sb, SIGNAL(rangeChanged(int,int)), this, SLOT(rangeChanged(int, int)));
 }
@@ -43,4 +44,13 @@ void PXMDebugWindow::rangeChanged(int i1, int i2)
 {
     if(this->atMaximum)
         sb->setValue(i2);
+}
+void PXMDebugWindow::xdebug(QString str)
+{
+    qDebug().noquote() << str;
+}
+void PXMDebugWindow::textChanged()
+{
+    if(PXMDebugWindow::textEdit->toPlainText().length() > DEBUG_WINDOW_HISTORY_LIMIT)
+        PXMDebugWindow::textEdit->setText(PXMDebugWindow::textEdit->toPlainText().right(DEBUG_WINDOW_HISTORY_LIMIT));
 }

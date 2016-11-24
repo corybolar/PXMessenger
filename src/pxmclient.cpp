@@ -15,18 +15,18 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     broadaddr.sin_port = htons(port);
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
-        qDebug() << "socket:" << strerror(errno);
+        xdebug("socket: " + QString::fromUtf8(strerror(errno)));
 
     len = strlen(msg);
 
     char loopback = 1;
     if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0)
-        qDebug() << "setsockopt:" << strerror(errno);
+        xdebug("setsockopt: " + QString::fromUtf8(strerror(errno)));
 
     for(int i = 0; i < 1; i++)
     {
         if(sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr)) != len+1)
-            qDebug() << "sendto:" << strerror(errno);
+            xdebug("sendto: " + QString::fromUtf8(strerror(errno)));
     }
     evutil_closesocket(socketfd2);
 }
@@ -41,7 +41,7 @@ int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
     int status;
     if( (status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr))) < 0 )
     {
-        qDebug() << "connect: " << strerror(errno);
+        xdebug("connect:  " + QString::fromUtf8(strerror(errno)));
         emit resultOfConnectionAttempt(socketfd, status);
         evutil_closesocket(socketfd);
         return 1;
@@ -156,14 +156,13 @@ int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int c
 
     if( (status <= 0) )
     {
-        perror("send:");
-        qDebug() << "send error was on socket " << socketfd;
+        xdebug("send on socket " + QString::number(socketfd) + ": " + QString::fromUtf8(strerror(errno)));
         return -1;
     }
 
     if( ( status != len ) && ( count < 10 ) )
     {
-        qDebug() << "We are partially sending this msg";
+        xdebug("We are partially sending this msg");
         int len2 = len - status;
         //uint8_t cast to avoid compiler warning, we want to advance the pointer the number of bytes in status
         msg = (uint8_t*)msg + status;

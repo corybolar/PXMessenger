@@ -106,6 +106,7 @@ private:
     QTimer *discoveryTimer;
     QTimer *midnightTimer;
     QString ourUUIDString;
+    QString libeventBackend;
     QFrame *fsep;
     PXMTextEdit *messTextEdit;
     PXMClient *messClient;
@@ -266,6 +267,7 @@ private slots:
     void setListenerPort(unsigned short port);
     void debugActionSlot();
     void printInfoToDebug();
+    void setlibeventBackend(QString);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
