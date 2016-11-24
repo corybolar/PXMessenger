@@ -30,6 +30,7 @@ PXMPeerWorker::~PXMPeerWorker()
     {
         qDeleteAll(itr.messages);
     }
+    qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
 
 void PXMPeerWorker::setLocalHostName(QString name)
@@ -84,8 +85,7 @@ void PXMPeerWorker::hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUui
         uuid.data3 = ntohs(uuid.data3);
         memcpy(&(uuid.data4), ipHeapArray+index, 8);
         index += 8;
-        qDebug() << inet_ntoa(addr.sin_addr);
-        qDebug() << uuid;
+        qDebug() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
         attemptConnection(addr, uuid);
     }
 

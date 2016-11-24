@@ -28,6 +28,8 @@
 #include <QStringBuilder>
 #include <QDateTime>
 #include <QRgb>
+#include <QApplication>
+#include <QLinkedList>
 
 #include <sys/types.h>
 #include <ctime>
@@ -47,6 +49,7 @@
 #include "pxmdefinitions.h"
 #include "pxmpeerworker.h"
 #include "pxmsettingsdialog.h"
+#include "pxmdebugwindow.h"
 
 #ifdef __unix__
 #include <sys/socket.h>
@@ -108,12 +111,13 @@ private:
     PXMClient *messClient;
     PXMServer *messServer;
     PXMPeerWorker *peerWorker;
+    PXMDebugWindow *debugWindow = nullptr;
     time_t messTime;
     struct tm *currentTime;
     char *localHostname;
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
-    QVector<QString*> globalChat;
+    QLinkedList<QString*> globalChat;
     QUuid globalChatUuid;
     bool globalChatAlerted = false;
 
@@ -260,6 +264,8 @@ private slots:
     void discoveryTimerSingleShot();
     void discoveryTimerPersistent();
     void setListenerPort(unsigned short port);
+    void debugActionSlot();
+    void printInfoToDebug();
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
     void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);

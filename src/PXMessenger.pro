@@ -37,7 +37,8 @@ SOURCES += \
     pxmtextedit.cpp \
     pxmserver.cpp \
     pxmmainwindow.cpp \
-    pxmessenger.cpp
+    pxmessenger.cpp \
+    pxmdebugwindow.cpp
 
 HEADERS += \
     pxmdefinitions.h \
@@ -48,7 +49,8 @@ HEADERS += \
     pxminireader.h \
     pxmtextedit.h \
     pxmserver.h \
-    pxmclient.h
+    pxmclient.h \
+    pxmdebugwindow.h
 
 DISTFILES +=
 

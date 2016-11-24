@@ -7,6 +7,7 @@
 #include <QUuid>
 #include <QString>
 #include <QSize>
+#include <QLinkedList>
 
 #define BACKLOG 20
 #define MULTICAST_ADDRESS "239.192.13.13"
@@ -20,7 +21,7 @@ struct peerDetails{
     evutil_socket_t socketDescriptor = 0;
     sockaddr_in ipAddressRaw;
     QString hostname = "";
-    QVector<QString*> messages;
+    QLinkedList<QString*> messages;
     QUuid identifier;
     bufferevent *bev = nullptr;
 };

@@ -15,16 +15,18 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     broadaddr.sin_port = htons(port);
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
-        perror("socket:");
+        qDebug() << "socket:" << strerror(errno);
 
     len = strlen(msg);
 
     char loopback = 1;
-    setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback));
+    if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0)
+        qDebug() << "setsockopt:" << strerror(errno);
 
     for(int i = 0; i < 1; i++)
     {
-        sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr));
+        if(sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr)) != len+1)
+            qDebug() << "sendto:" << strerror(errno);
     }
     evutil_closesocket(socketfd2);
 }
@@ -39,7 +41,7 @@ int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
     int status;
     if( (status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr))) < 0 )
     {
-        qDebug() << strerror(errno);
+        qDebug() << "connect: " << strerror(errno);
         emit resultOfConnectionAttempt(socketfd, status);
         evutil_closesocket(socketfd);
         return 1;

@@ -56,7 +56,7 @@ public:
     static void tcpError(bufferevent *buf, short error, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
-    static QUuid unpackUUID(unsigned char *src);
+    static void unpackUUID(unsigned char *src, QUuid *uuid);
 private:
     static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
     static void accept_new(evutil_socket_t socketfd, short event, void *arg);

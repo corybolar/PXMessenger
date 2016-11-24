@@ -7,6 +7,7 @@ PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udp
 }
 PXMServer::~PXMServer()
 {
+    qDebug() << "Shutdown of PXMServer Successful";
 }
 
 void PXMServer::setLocalHostname(QString hostname)
@@ -35,7 +36,7 @@ void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
     //qDebug() << FD_SETSIZE;
     if(result < 0)
     {
-        perror("accept");
+        qDebug() << "accept: " << strerror(errno);
     }
     else
     {
@@ -77,11 +78,12 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     unsigned char bufUUID[PACKED_UUID_BYTE_LENGTH];
     if(bufferevent_read(bev, bufUUID, PACKED_UUID_BYTE_LENGTH) < PACKED_UUID_BYTE_LENGTH)
     {
-        int status = bufferevent_flush(bev, EV_READ, BEV_FINISHED);
         evutil_closesocket(socket);
         return;
     }
-    QUuid quuid = PXMServer::unpackUUID(bufUUID);
+    //QUuid quuid = PXMServer::unpackUUID(bufUUID);
+    QUuid quuid;
+    PXMServer::unpackUUID(bufUUID, &quuid);
     bufLen -= PACKED_UUID_BYTE_LENGTH;
     if(quuid.isNull())
     {
@@ -110,6 +112,7 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
 
     if(evbuffer_get_length(bufferevent_get_input(bev)) <= sizeof(uint16_t))
     {
+        qDebug() << "Recieved bufferlength value";
         evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, sizeof(uint16_t));
         bufLen = ntohs(nboBufLen);
         if(bufLen == 0)
@@ -118,9 +121,11 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
             evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
             return;
         }
+        qDebug() << "Setting watermark to" << bufLen;
         bufferevent_setwatermark(bev, EV_READ, bufLen + sizeof(uint16_t), bufLen + sizeof(uint16_t));
         return;
     }
+    qDebug() << "Full packet received";
     bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
 
     evutil_socket_t i = bufferevent_getfd(bev);
@@ -129,7 +134,6 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     bufLen = ntohs(nboBufLen);
     if(bufLen <= PACKED_UUID_BYTE_LENGTH)
     {
-        int status = bufferevent_flush(bev, EV_READ, BEV_FLUSH);
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
         return;
     }
@@ -137,12 +141,15 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     unsigned char rawUUID[PACKED_UUID_BYTE_LENGTH];
     bufferevent_read(bev, rawUUID, PACKED_UUID_BYTE_LENGTH);
 
-    QUuid uuid = PXMServer::unpackUUID(rawUUID);
+    //QUuid uuid = PXMServer::unpackUUID(rawUUID);
+    QUuid uuid;
+    PXMServer::unpackUUID(rawUUID, &uuid);
     if(uuid.isNull())
     {
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
         return;
     }
+    qDebug() << "Sender Uuid for message" << uuid;
 
     bufLen -= PACKED_UUID_BYTE_LENGTH;
     char *buf = new char[bufLen + 1];
@@ -184,6 +191,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
         //buf is actually at buf[7] from its original location
 
         //The following signal is going to the main thread and will call the slot prints(QString, QString)
+        qDebug() << "/msg : " << QString::fromUtf8(buf+4, bufLen-4);
         emit messageRecieved(QString::fromUtf8(buf+4, bufLen-4), quuid, socket, false);
     }
     //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
@@ -193,6 +201,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
         //int count = 0;
         char *ipHeapArray = new char[bufLen-3];
         memcpy(ipHeapArray, buf+3, bufLen-3);
+        qDebug() << "/ip received";
         emit hostnameCheck(ipHeapArray, bufLen-3, quuid);
     }
     //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
@@ -200,6 +209,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     else if(!(strncmp(buf, "/request", 8)))
     {
         //The int here is the socketdescriptor we want to send our ip set too.
+        qDebug() << "/request received\0";
         emit sendIps(socket);
     }
     //These packets are messages sent to the global chat room
@@ -207,13 +217,14 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     else if(!(strncmp(buf, "/global", 7)))
     {
         //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
-        emit messageRecieved(QString::fromUtf8(buf+7, bufLen -7), quuid, socket, true);
+        qDebug() << "/global : " << QString::fromUtf8(buf+7, bufLen-7);
+        emit messageRecieved(QString::fromUtf8(buf+7, bufLen-7), quuid, socket, true);
     }
     //This packet is an updated hostname for the computer that sent it
     //These packets should come formatted like "/hostnameHostname1\0"
     else if(!(strncmp(buf, "/hostname", 9)))
     {
-        qDebug() << "/hostname recieved" << QString::number(socket);
+        qDebug() << "/hostname received" << QString::number(socket);
         //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
         emit setPeerHostname(QString::fromUtf8(buf+9, bufLen-9), quuid);
     }
@@ -221,7 +232,7 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     //These packets should come formatted like "/namerequest\0"
     else if(!(strncmp(buf, "/namerequest", 12)))
     {
-        qDebug() << "/namerequest recieved from " << QString::number(socket) << "\nsending hostname";
+        qDebug() << "/namerequest received from " << QString::number(socket) << "\nsending hostname";
         emit sendName(socket, quuid.toString(), localUUID);
     }
     else
@@ -232,23 +243,20 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
 
     return 0;
 }
-QUuid PXMServer::unpackUUID(unsigned char *src)
+void PXMServer::unpackUUID(unsigned char *src, QUuid *uuid)
 {
-    QUuid uuid;
     int index = 0;
-    memcpy(&(uuid.data1), src, sizeof(uint32_t));
+    memcpy(&(uuid->data1), src, sizeof(uint32_t));
     index += sizeof(uint32_t);
-    uuid.data1 = ntohl(uuid.data1);
-    memcpy(&(uuid.data2), src+index, sizeof(uint16_t));
+    uuid->data1 = ntohl(uuid->data1);
+    memcpy(&(uuid->data2), src+index, sizeof(uint16_t));
     index += sizeof(uint16_t);
-    uuid.data2 = ntohs(uuid.data2);
-    memcpy(&(uuid.data3), src+index, sizeof(uint16_t));
+    uuid->data2 = ntohs(uuid->data2);
+    memcpy(&(uuid->data3), src+index, sizeof(uint16_t));
     index += sizeof(uint16_t);
-    uuid.data3 = ntohs(uuid.data3);
-    memcpy(&(uuid.data4), src+index, 8);
+    uuid->data3 = ntohs(uuid->data3);
+    memcpy(&(uuid->data4), src+index, 8);
     //index += 8;
-
-    return uuid;
 }
 
 void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args)
@@ -264,7 +272,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args
     {
         evutil_socket_t replySocket;
         if ( (replySocket = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
-            perror("socket:");
+            qDebug() << "socket: " << strerror(errno);
         si_other.sin_port = htons(realServer->udpListenerPort);
 
         //char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.length() + 7] = {};
@@ -278,7 +286,8 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args
 
         for(int k = 0; k < 2; k++)
         {
-            sendto(replySocket, name, len+1, 0, (struct sockaddr *)&si_other, si_other_len);
+            if(sendto(replySocket, name, len+1, 0, (struct sockaddr *)&si_other, si_other_len) != len+1)
+                qDebug() << "sendto: " << strerror(errno);
         }
         evutil_closesocket(replySocket);
     }
@@ -307,7 +316,7 @@ int PXMServer::getPortNumber(evutil_socket_t socket)
     socklen_t needPortNumberLen = sizeof(needPortNumber);
     if(getsockname(socket, (struct sockaddr*)&needPortNumber, &needPortNumberLen) != 0)
     {
-        printf("getsockname: %s\n", strerror(errno));
+        qDebug() << "getsockname: " << strerror(errno);
         return -1;
     }
     return ntohs(needPortNumber.sin_port);
@@ -325,12 +334,13 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
     si_me.sin_port = htons(udpListenerPort);
     si_me.sin_addr.s_addr = INADDR_ANY;
 
-    setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int));
+    if(setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int)) < 0)
+        qDebug() << "setsockopt: " << strerror(errno);
     evutil_make_socket_nonblocking(socketUDP);
 
     if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
     {
-        perror("Binding datagram socket error");
+        qDebug() << "bind: " << strerror(errno);
         close(socketUDP);
         exit(1);
     }
@@ -345,7 +355,8 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 
     multicastGroup.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
     multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
-    setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup));
+    if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
+        qDebug() << "setsockopt: " << strerror(errno);
 
     //send our discover packet to find other computers
     emit sendUDP("/discover:", udpSocketNumber);
@@ -366,27 +377,20 @@ evutil_socket_t PXMServer::setupTCPSocket()
     memset(tcpPortChar, 0, 8);
     sprintf(tcpPortChar, "%d", tcpListenerPort);
 
-    getaddrinfo(NULL, tcpPortChar, &hints, &res);
-
+    if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
+        qDebug() << "getaddrinfo: " << strerror(errno);
     if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
-    {
-        perror("socket error: ");
-    }
+        qDebug() << "socket: " << strerror(errno);
     if(setsockopt(socketTCP, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int)) < 0)
-    {
-        perror("setsockopt error: ");
-    }
+        qDebug() << "setsockopt: " << strerror(errno);
 
     evutil_make_socket_nonblocking(socketTCP);
 
     if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
-    {
-        perror("bind error: ");
-    }
+        qDebug() << "bind: " << strerror(errno);
     if(listen(socketTCP, BACKLOG) < 0)
-    {
-        perror("listen error: ");
-    }
+        qDebug() << "listen: " << strerror(errno);
+
     qDebug() << "Port number for TCP/IP Listner" << getPortNumber(socketTCP);
 
     freeaddrinfo(res);

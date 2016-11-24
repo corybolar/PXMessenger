@@ -21,3 +21,12 @@ void PXMTextEdit::keyPressEvent(QKeyEvent* event)
         QTextEdit::keyPressEvent(event);
     }
 }
+void PXMTextEdit::focusInEvent(QFocusEvent *e)
+{
+    if(!(this->placeholderText().isEmpty()))
+        this->setPlaceholderText("");
+}
+void PXMTextEdit::focusOutEvent(QFocusEvent *e)
+{
+    this->setPlaceholderText("Enter a message to send!");
+}

@@ -13,6 +13,9 @@ public:
     void keyPressEvent(QKeyEvent *event);
 signals:
     void returnPressed();
+protected:
+    void focusOutEvent(QFocusEvent *e);
+    void focusInEvent(QFocusEvent *e);
 };
 
 #endif // MESS_TEXTEDIT_H

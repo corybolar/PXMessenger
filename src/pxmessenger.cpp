@@ -1,8 +1,5 @@
 #include <QApplication>
-#include <QUuid>
 #include <QDir>
-#include <QMessageBox>
-#include <QString>
 #include <QLockFile>
 #include <QFontDatabase>
 #include <pxminireader.h>
@@ -12,13 +9,71 @@
 #include <unistd.h>
 
 #include <pxmmainwindow.h>
+#include <pxmdebugwindow.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+QMutex m;
+void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray localMsg = msg.toLocal8Bit();
+    switch(type) {
+    case QtDebugMsg:
+        //fprintf(stderr, "%s\n", localMsg.constData());
+        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    case QtWarningMsg:
+        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    case QtCriticalMsg:
+        fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    case QtFatalMsg:
+        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        abort();
+    case QtInfoMsg:
+        fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    }
+    if(PXMDebugWindow::textEdit != 0)
+    {
+        m.lock();
+        QByteArray localMsg2;
+        QString padding = "                    ";
+        QString filename = QString::fromUtf8(context.file);
+        filename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
+        filename.append(":" + QByteArray::number(context.line));
+        filename.append(padding.right(25 - filename.length()));
+        localMsg2 = filename.toUtf8() + msg.toUtf8();
+        switch (type) {
+        case QtDebugMsg:
+            if(PXMDebugWindow::textEdit != 0)
+                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
+            break;
+        case QtWarningMsg:
+            if(PXMDebugWindow::textEdit != 0)
+                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
+            break;
+        case QtCriticalMsg:
+            if(PXMDebugWindow::textEdit != 0)
+                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
+            break;
+        case QtInfoMsg:
+            if(PXMDebugWindow::textEdit != 0)
+                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
+            break;
+        case QtFatalMsg:
+            abort();
+        }
+        m.unlock();
+    }
+}
+
 int main(int argc, char **argv)
 {
+    qInstallMessageHandler(debugMessageOutput);
     QApplication app (argc, argv);
 
 #ifdef _WIN32
@@ -30,10 +85,10 @@ int main(int argc, char **argv)
     }
 #endif
 
-    QCoreApplication::setApplicationName("PXMessenger");
-    QCoreApplication::setOrganizationName("PXMessenger");
-    QCoreApplication::setOrganizationDomain("PXMessenger");
-    QCoreApplication::setApplicationVersion("0.9");
+    QApplication::setApplicationName("PXMessenger");
+    QApplication::setOrganizationName("PXMessenger");
+    QApplication::setOrganizationDomain("PXMessenger");
+    QApplication::setApplicationVersion("0.9");
 
     MessIniReader iniReader;
     initialSettings presets;
@@ -76,7 +131,7 @@ int main(int argc, char **argv)
             QMessageBox msgBox;
             msgBox.setIcon(QMessageBox::Warning);
             msgBox.setText("You already have this app running."
-                            "\r\nOnly one instance is allowed.");
+                           "\r\nOnly one instance is allowed.");
             msgBox.exec();
             return 1;
         }
