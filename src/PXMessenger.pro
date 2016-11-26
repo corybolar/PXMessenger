@@ -21,12 +21,13 @@ LIBS += -lws2_32 \
 
 win32 {
 CONFIG += c++11 \
-        debug \
+		release \ 
+        debug 
 }
 unix {
 CONFIG += c++11 \
 		release \
-                debug
+        debug
 }
 QMAKE_CXXFLAGS += -Wall
 
