@@ -49,6 +49,18 @@ for more details).  This program can be run multiple times on the same computer
 and login.  The Global send item will send the message to all known peers.  It
 is essentially a global chat room.  
 
+######Settings
+
+The multicast group that PXMessenger uses is 239.192.13.13.  There is no option
+to change this at the current time, however it could be done in the future if
+there is a need.
+
+Adjustments can be made to the ports that are used for PXMessenger if firewall
+rules only allow specific ones.  By default, PXMessenger allows the operating
+system to choose the TCP port.  The UDP port defaults to 13649.  The UDP port
+must be the same for all connected computers however the TCP port can be
+whichever you prefer for each. 
+
 The "Bloom" setting should not be needed under normal circumstances and only
 resends the discovery packed to the multicast group.  This is useful if you
 believe that an exisiting group of computers have missed all discovery packets.
@@ -57,10 +69,12 @@ believe that an exisiting group of computers have missed all discovery packets.
 PXMessenger will minimize to a tray if the system supports one and will alert
 itself in the event of receiving a message.
 
+#####Notes
+
 Bugs are possible, please report them here under the issues tab and they will be
 responded to.
 
 Windows executable and setup included in the releases section
 
-Note: While this should theoretically work under Mac OSX, it has never been
+While this should theoretically work under Mac OSX, it has never been
 tested as I do not have access to a Mac.
