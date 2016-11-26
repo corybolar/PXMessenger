@@ -88,28 +88,14 @@ PXMWindow::PXMWindow(initialSettings presets)
 PXMWindow::~PXMWindow()
 {
     midnightTimer->stop();
-    for(auto &itr : peerWorker->peerDetailsHash)
-    {
-        if(itr.bev != nullptr)
-        {
-            bufferevent_free(itr.bev);
-        }
-        evutil_closesocket(itr.socketDescriptor);
-    }
+
     delete peerWorker;
     qDebug() << "Deletion of PXMPeerWorker Successful";
-    if(messServer != 0 && messServer->isRunning())
-    {
-        messServer->requestInterruption();
-        messServer->quit();
-        messServer->wait(5000);
-    }
+
     qDebug() << "Shutdown of PXMServerThread Successful";
     delete messClient;
     qDebug() << "Deletion of PXMClient Successful";
-    messClientThread->quit();
-    messClientThread->wait(5000);
-    qDebug() << "Shutdown of PXMClientThread Successful";
+
 
     qDeleteAll(globalChat);
 
@@ -402,34 +388,34 @@ void PXMWindow::printInfoToDebug()
 {
     int i = 0;
     QString str;
-    str.append("\n");
-    str.append("---Program Info---\n");
-    str.append("Program Name: " % qApp->applicationName() % "\n");
-    str.append("Version: " % qApp->applicationVersion() % "\n");
+    str.append(QStringLiteral("\n"));
+    str.append(QStringLiteral("---Program Info---\n"));
+    str.append(QStringLiteral("Program Name: ") % qApp->applicationName() % QStringLiteral("\n"));
+    str.append(QStringLiteral("Version: ") % qApp->applicationVersion() % QStringLiteral("\n"));
 
     str.append(QStringLiteral("---Network Info---\n"));
-    str.append(QStringLiteral("Libevent Backend: ") % libeventBackend % "\n"
-              % QStringLiteral("Multicast Address: ") % QString::fromUtf8(MULTICAST_ADDRESS) % "\n"
-              % QStringLiteral("TCP Listener Port: ") % QString::number(ourTCPListenerPort) % "\n"
-              % QStringLiteral("UDP Listener Port: ") % QString::number(ourUDPListenerPort) % "\n"
-              % QStringLiteral("Our UUID: ") % ourUUIDString % "\n");
-    str.append("---Peer Details---\n");
+    str.append(QStringLiteral("Libevent Backend: ") % libeventBackend % QStringLiteral("\n")
+              % QStringLiteral("Multicast Address: ") % QString::fromUtf8(MULTICAST_ADDRESS) % QStringLiteral("\n")
+              % QStringLiteral("TCP Listener Port: ") % QString::number(ourTCPListenerPort) % QStringLiteral("\n")
+              % QStringLiteral("UDP Listener Port: ") % QString::number(ourUDPListenerPort) % QStringLiteral("\n")
+              % QStringLiteral("Our UUID: ") % ourUUIDString % QStringLiteral("\n"));
+    str.append(QStringLiteral("---Peer Details---\n"));
     for(auto &itr : peerWorker->peerDetailsHash)
     {
         str.append(QStringLiteral("---Peer #") % QString::number(i) % "---\n");
-        str.append(QStringLiteral("Hostname: ") % itr.hostname % "\n");
-        str.append(QStringLiteral("UUID: ") % itr.identifier.toString() % "\n");
+        str.append(QStringLiteral("Hostname: ") % itr.hostname % QStringLiteral("\n"));
+        str.append(QStringLiteral("UUID: ") % itr.identifier.toString() % QStringLiteral("\n"));
         str.append(QStringLiteral("IP Address: ") % QString::fromLocal8Bit(inet_ntoa(itr.ipAddressRaw.sin_addr))
-                   % ":" % QString::number(ntohs(itr.ipAddressRaw.sin_port)) % "\n");
-        str.append(QStringLiteral("IsAuthenticated: ") % QString::fromLocal8Bit((itr.isAuthenticated? "true" : "false")) % "\n");
-        str.append(QStringLiteral("IsConnected: ") % QString::fromLocal8Bit((itr.isConnected ? "true" : "false")) % "\n");
-        str.append(QStringLiteral("SocketDescriptor: ") % QString::number(itr.socketDescriptor) % "\n");
-        str.append(QStringLiteral("History Length: ") % QString::number(itr.messages.count()) % "\n");
+                   % QStringLiteral(":") % QString::number(ntohs(itr.ipAddressRaw.sin_port)) % QStringLiteral("\n"));
+        str.append(QStringLiteral("IsAuthenticated: ") % QString::fromLocal8Bit((itr.isAuthenticated? "true" : "false")) % QStringLiteral("\n"));
+        str.append(QStringLiteral("IsConnected: ") % QString::fromLocal8Bit((itr.isConnected ? "true" : "false")) % QStringLiteral("\n"));
+        str.append(QStringLiteral("SocketDescriptor: ") % QString::number(itr.socketDescriptor) % QStringLiteral("\n"));
+        str.append(QStringLiteral("History Length: ") % QString::number(itr.messages.count()) % QStringLiteral("\n"));
         i++;
     }
-    str.append("-------------\n");
-    str.append("Total Peers: " % QString::number(peerWorker->peerDetailsHash.count()) % "\n");
-    str.append("-------------\n");
+    str.append(QStringLiteral("-------------\n"));
+    str.append(QStringLiteral("Total Peers: ") % QString::number(peerWorker->peerDetailsHash.count()) % QStringLiteral("\n"));
+    str.append(QStringLiteral("-------------\n"));
     qDebug().noquote() << str;
 }
 
@@ -681,12 +667,36 @@ void PXMWindow::updateListWidget(QUuid uuid)
  */
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
+    qDebug() << "starting closeEvent";
     messSystemTray->hide();
 
+    qDebug() << "systray hidden";
     MessIniReader iniReader;
+    qDebug() << "creating iniReader";
     iniReader.setWindowSize(this->size());
     iniReader.setMute(muteCheckBox->isChecked());
     iniReader.setFocus(focusCheckBox->isChecked());
+    qDebug() << "ini done";
+    for(auto &itr : peerWorker->peerDetailsHash)
+    {
+        if(itr.bev != nullptr)
+        {
+            bufferevent_free(itr.bev);
+        }
+        evutil_closesocket(itr.socketDescriptor);
+    }
+    qDebug() << "sockets closed";
+    if(messServer != 0 && messServer->isRunning())
+    {
+        messServer->requestInterruption();
+        messServer->wait(5000);
+    }
+    qDebug() << "Shutdown of PXMServer Successful";
+
+    messClientThread->quit();
+    messClientThread->wait(5000);
+    qDebug() << "Shutdown of PXMClientThread Successful";
+
     qDebug() << "closeEvent calling event->accept()";
     event->accept();
 }

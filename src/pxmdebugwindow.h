@@ -29,7 +29,7 @@ signals:
 public slots:
 private slots:
     void adjustScrollBar(int i);
-    void rangeChanged(int i1, int i2);
+    void rangeChanged(int, int i2);
     void xdebug(QString str);
     void textChanged();
 };

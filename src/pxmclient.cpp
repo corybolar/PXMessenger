@@ -30,12 +30,7 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     }
     evutil_closesocket(socketfd2);
 }
-/**
- * @brief 			This function connects a socket to a specific ip address.
- * @param socketfd	socket to connect on
- * @param ipaddr	ip address to connect socket to
- * @return			-1 on failure to connect, socket descriptor on success
- */
+
 int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
 {
     int status;
@@ -49,17 +44,7 @@ int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
     emit resultOfConnectionAttempt(socketfd, status);
     return 0;
 }
-/**
- *	@brief			This will send a message to the socket, should check beforehand to make sure its connected.
- * 					The size of the final message is sent in the first three characters
- *  @param socketfd the socket descriptor to send to, does not check if is connected or not
- *  @param msg 		message to send
- *  @param host 	hostname of current computer to display before msg
- *  @param type		type of message to be sending.  Valid types are /msg /hostname /request
- *   				/namerequest /ip
- *  @return 		number of bytes that were sent, should be equal to strlen(full_mess).
- *   				-5 if socket is not connected
- */
+
 void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuid, const char *theiruuid)
 {
     int bytesSent = 0;
@@ -80,19 +65,19 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
         print = true;
     }
 
-    //char full_mess[packetLen + 1] = {};
     char full_mess[packetLen + 1];
 
     packetLenNBO = htons(packetLen);
+    //packetLenNBO = htons(packetLen + 100);
 
-    //strcat(full_mess, uuid);
     packUUID(full_mess, uuid ,0);
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH, type, strlen(type));
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
     full_mess[packetLen] = 0;
 
-    //if(!strcmp(type, "/msg"))
-        //packetLenNBO = htons(15);
+    // if(!strcmp(type, "/msg"))
+    //    packetLenNBO = htons(1500);
+
     bytesSent = this->recursiveSend(socketfd, &packetLenNBO, sizeof(uint16_t), 0);
 
     if(bytesSent != sizeof(uint16_t))
@@ -103,7 +88,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
 
     bytesSent = this->recursiveSend(socketfd, full_mess, packetLen, 0);
 
-    if(bytesSent >= static_cast<int>(packetLen))
+    if(bytesSent >= packetLen)
     {
         bytesSent = 0;
     }
@@ -137,14 +122,6 @@ void PXMClient::sendIpsSlot(evutil_socket_t s, const char *msg, size_t len, QStr
     delete [] msg;
 }
 
-/**
- * @brief 			Recursively sends all data in case the kernel fails to do so in one pass
- * @param socketfd	Socket to send to
- * @param msg		final formatted message to send
- * @param len		length of message to send
- * @param count		Only attempt to resend 5 times so as not to hang the program if something goes wrong
- * @return 			-1 on error, total bytes sent otherwise
- */
 int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count)
 {
     int status2 = 0;

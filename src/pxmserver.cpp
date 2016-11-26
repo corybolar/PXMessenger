@@ -1,5 +1,6 @@
 #include <pxmserver.h>
 
+struct event_base* PXMServer::base;
 PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort) : QThread(parent)
 {
     tcpListenerPort = tcpPort;
@@ -7,7 +8,6 @@ PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udp
 }
 PXMServer::~PXMServer()
 {
-    xdebug("Shutdown of PXMServer Successful");
 }
 
 void PXMServer::setLocalHostname(QString hostname)
@@ -18,17 +18,12 @@ void PXMServer::setLocalUUID(QString uuid)
 {
     localUUID = uuid;
 }
-void PXMServer::run()
-{
-    this->listener();
-}
-void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
+void PXMServer::accept_new(evutil_socket_t s, short, void *arg)
 {
     evutil_socket_t result;
 
     PXMServer *realServer = static_cast<PXMServer*>(arg);
 
-    struct event_base *base = realServer->base;
     struct sockaddr_in ss;
     socklen_t addr_size = sizeof(ss);
 
@@ -42,9 +37,9 @@ void PXMServer::accept_new(evutil_socket_t s, short event, void *arg)
     {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(result);
-        bev = bufferevent_socket_new(base, result, BEV_OPT_CLOSE_ON_FREE );
-        bufferevent_setcb(bev, tcpReadUUID, NULL, tcpError, (void*)realServer);
-        bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
+        bev = bufferevent_socket_new(PXMServer::base, result, BEV_OPT_CLOSE_ON_FREE );
+        bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
+        bufferevent_setwatermark(bev, EV_READ, 2, sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ);
         realServer->newConnectionRecieved(result);
     }
@@ -55,7 +50,7 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     uint16_t nboBufLen;
     uint16_t bufLen;
 
-    if(evbuffer_get_length(bufferevent_get_input(bev)) <= sizeof(uint16_t))
+    if(evbuffer_get_length(bufferevent_get_input(bev)) == sizeof(uint16_t))
     {
         evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, sizeof(uint16_t));
         bufLen = ntohs(nboBufLen);
@@ -71,8 +66,6 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     bufferevent_read(bev, &nboBufLen, sizeof(uint16_t));
 
     bufLen = ntohs(nboBufLen);
-    bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
-    bufferevent_setcb(bev, realServer->tcpRead, NULL, realServer->tcpError, (void*)realServer);
     evutil_socket_t socket = bufferevent_getfd(bev);
 
     unsigned char bufUUID[PACKED_UUID_BYTE_LENGTH];
@@ -81,9 +74,7 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
         evutil_closesocket(socket);
         return;
     }
-    //QUuid quuid = PXMServer::unpackUUID(bufUUID);
-    QUuid quuid;
-    PXMServer::unpackUUID(bufUUID, &quuid);
+    QUuid quuid = PXMServer::unpackUUID(bufUUID);
     bufLen -= PACKED_UUID_BYTE_LENGTH;
     if(quuid.isNull())
     {
@@ -98,6 +89,8 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     {
         QStringList hpsplit = (QString::fromUtf8(buf+5, bufLen-5)).split(":");
         realServer->recievedUUIDForConnection(hpsplit[0], hpsplit[1], socket, quuid, bev);
+        bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
+        bufferevent_setcb(bev, PXMServer::tcpRead, NULL, PXMServer::tcpError, (void*)realServer);
     }
     else
     {
@@ -109,24 +102,34 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     PXMServer *realServer = static_cast<PXMServer*>(arg);
     uint16_t nboBufLen;
     uint16_t bufLen;
-
+    evbuffer *input = bufferevent_get_input(bev);
+    if(evbuffer_get_length(input) == 1)
+    {
+        //timeval readTimeout = {1,0};
+        realServer->xdebug("Setting timeout, 1 byte recieved");
+        bufferevent_set_timeouts(bev, &readTimeout, NULL);
+        return;
+    }
     if(evbuffer_get_length(bufferevent_get_input(bev)) <= sizeof(uint16_t))
     {
         realServer->xdebug("Recieved bufferlength value");
-        evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, sizeof(uint16_t));
+        evbuffer_copyout(input, &nboBufLen, sizeof(uint16_t));
         bufLen = ntohs(nboBufLen);
         if(bufLen == 0)
         {
             realServer->xdebug("Bad buffer length, draining...");
-            evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
+            evbuffer_drain(input, UINT16_MAX);
             return;
         }
         realServer->xdebug("Setting watermark to " + QString::number(bufLen));
         bufferevent_setwatermark(bev, EV_READ, bufLen + sizeof(uint16_t), bufLen + sizeof(uint16_t));
+        //timeval readTimeout = {1,0};
+        realServer->xdebug("Setting timeout after length");
+        bufferevent_set_timeouts(bev, &readTimeout, NULL);
         return;
     }
     realServer->xdebug("Full packet received");
-    bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
+    bufferevent_setwatermark(bev, EV_READ, 1, sizeof(uint16_t));
 
     evutil_socket_t i = bufferevent_getfd(bev);
     bufferevent_read(bev, &nboBufLen, 2);
@@ -141,9 +144,7 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     unsigned char rawUUID[PACKED_UUID_BYTE_LENGTH];
     bufferevent_read(bev, rawUUID, PACKED_UUID_BYTE_LENGTH);
 
-    //QUuid uuid = PXMServer::unpackUUID(rawUUID);
-    QUuid uuid;
-    PXMServer::unpackUUID(rawUUID, &uuid);
+    QUuid uuid = PXMServer::unpackUUID(rawUUID);
     if(uuid.isNull())
     {
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
@@ -158,26 +159,42 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
 
     realServer->singleMessageIterator(i, buf, bufLen, uuid);
 
+    timeval readTimeoutReset = {3600, 0};
+    bufferevent_set_timeouts(bev, &readTimeoutReset, NULL);
     delete [] buf;
 }
 
-void PXMServer::tcpError(struct bufferevent *buf, short error, void *arg)
+void PXMServer::tcpError(struct bufferevent *bev, short error, void *arg)
 {
     PXMServer *realServer = static_cast<PXMServer*>(arg);
-    evutil_socket_t i = bufferevent_getfd(buf);
+    evutil_socket_t i = bufferevent_getfd(bev);
     if (error & BEV_EVENT_EOF)
     {
         realServer->peerQuit(i);
-        bufferevent_free(buf);
+        bufferevent_free(bev);
     }
     else if (error & BEV_EVENT_ERROR)
     {
         realServer->peerQuit(i);
-        bufferevent_free(buf);
+        bufferevent_free(bev);
     }
     else if (error & BEV_EVENT_TIMEOUT)
     {
-
+        realServer->xdebug("Timeout triggered");
+        bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
+        bufferevent_set_timeouts(bev, NULL, NULL);
+        bufferevent_enable(bev, EV_READ);
+        evbuffer *input = bufferevent_get_input(bev);
+        int len = evbuffer_get_length(input);
+        realServer->xdebug("Length: " + QString::number(len));
+        if(len > 0)
+        {
+            realServer->xdebug("Draining...");
+            evbuffer_drain(input, UINT16_MAX);
+            len = evbuffer_get_length(input);
+            realServer->xdebug("Length: " + QString::number(len));
+        }
+        //bufferevent_setcb(bev, tcpRead, NULL, tcpError, arg);
     }
 }
 int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t bufLen, QUuid quuid)
@@ -185,20 +202,12 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     //These packets should be formatted like "/msghostname: msg\0"
     if( !( strncmp(buf, "/msg", 4) ) )
     {
-        //Copy the string in buf starting at buf[4] until we reach the length of the message
-        //We dont want to keep the "/msg" substring, hence the +/- 4 here.
-        //Remember, we added 3 to buf above to ignore the size of the message
-        //buf is actually at buf[7] from its original location
-
-        //The following signal is going to the main thread and will call the slot prints(QString, QString)
         xdebug("/msg : " + QString::fromUtf8(&buf[4], bufLen-4));
         emit messageRecieved(QString::fromUtf8(&buf[4], bufLen-4), quuid, socket, false);
     }
     //These packets should come formatted like "/ip:hostname@192.168.1.1:hostname2@192.168.1.2\0"
     else if( !( strncmp(buf, "/ip", 3) ) )
     {
-        //xdebug("/ip recieved from " << QString::number(i);
-        //int count = 0;
         char *ipHeapArray = new char[bufLen-3];
         memcpy(ipHeapArray, &buf[3], bufLen-3);
         xdebug("/ip received");
@@ -208,7 +217,6 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     //These packets should come formatted like "/request\0"
     else if(!(strncmp(buf, "/request", 8)))
     {
-        //The int here is the socketdescriptor we want to send our ip set too.
         xdebug("/request received");
         emit sendIps(socket);
     }
@@ -216,7 +224,6 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     //These packets should come formatted like "/globalhostname: msg\0"
     else if(!(strncmp(buf, "/global", 7)))
     {
-        //bufLen-6 instead of 7 because we need a trailing NULL character for QString conversion
         xdebug("/global : " + QString::fromUtf8(&buf[7], bufLen-7));
         emit messageRecieved(QString::fromUtf8(&buf[7], bufLen-7), quuid, socket, true);
     }
@@ -225,7 +232,6 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
     else if(!(strncmp(buf, "/hostname", 9)))
     {
         xdebug("/hostname received " + QString::number(socket));
-        //bufLen-8 instead of 9 because we need a trailing NULL character for QString conversion
         emit setPeerHostname(QString::fromUtf8(&buf[9], bufLen-9), quuid);
     }
     //This packet is asking us to communicate an updated hostname to the sender
@@ -243,25 +249,28 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
 
     return 0;
 }
-void PXMServer::unpackUUID(unsigned char *src, QUuid *uuid)
+QUuid PXMServer::unpackUUID(unsigned char *src)
 {
+    QUuid uuid;
     int index = 0;
-    memcpy(&(uuid->data1), src, sizeof(uint32_t));
+    memcpy(&(uuid.data1), src, sizeof(uint32_t));
     index += sizeof(uint32_t);
-    uuid->data1 = ntohl(uuid->data1);
-    memcpy(&(uuid->data2), src+index, sizeof(uint16_t));
+    uuid.data1 = ntohl(uuid.data1);
+    memcpy(&(uuid.data2), src+index, sizeof(uint16_t));
     index += sizeof(uint16_t);
-    uuid->data2 = ntohs(uuid->data2);
-    memcpy(&(uuid->data3), src+index, sizeof(uint16_t));
+    uuid.data2 = ntohs(uuid.data2);
+    memcpy(&(uuid.data3), src+index, sizeof(uint16_t));
     index += sizeof(uint16_t);
-    uuid->data3 = ntohs(uuid->data3);
-    memcpy(&(uuid->data4), src+index, 8);
+    uuid.data3 = ntohs(uuid.data3);
+    memcpy(&(uuid.data4), src+index, 8);
     //index += 8;
+
+    return uuid;
 }
 
-void PXMServer::udpRecieve(evutil_socket_t socketfd, short int event, void *args)
+void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 {
-    PXMServer *realServer = (PXMServer*)args;
+    PXMServer *realServer = static_cast<PXMServer*>(args);
     sockaddr_in si_other;
     socklen_t si_other_len = sizeof(sockaddr);
     char buf[100] = {};
@@ -396,19 +405,28 @@ evutil_socket_t PXMServer::setupTCPSocket()
 
     return socketTCP;
 }
+void PXMServer::stopLoop(evutil_socket_t, short, void *)
+{
+    if(QThread::currentThread()->isInterruptionRequested())
+    {
+        event_base_loopexit(PXMServer::base, NULL);
+    }
+}
 
-int PXMServer::listener()
+void PXMServer::run()
 {
     evutil_socket_t s_discover, s_listen;
     struct event *eventAccept;
     struct event *eventDiscover;
+    struct event *eventStopLoop;
 
     base = event_base_new();
 
+    if(!base)
+        return;
+
     xdebug("Using " + QString::fromUtf8(event_base_get_method(base)) + " as the libevent backend");
     emit libeventBackend(QString::fromUtf8(event_base_get_method(base)));
-    if(!base)
-        return -1;
 
     //TCP STUFF
     s_listen = setupTCPSocket();
@@ -424,21 +442,19 @@ int PXMServer::listener()
 
     event_add(eventAccept, NULL);
 
-    struct timeval halfSec;
-    halfSec.tv_sec = 0;
-    halfSec.tv_usec = 500000;
+    struct timeval t1 = {0,500000};
 
-    while(!this->isInterruptionRequested())
-    {
-        event_base_loopexit(base, &halfSec);
+    eventStopLoop = event_new(base, 0, EV_PERSIST, stopLoop, NULL);
+    event_add(eventStopLoop, &t1);
 
-        event_base_dispatch(base);
-    }
+    event_base_dispatch(PXMServer::base);
 
+    xdebug("Freeing events...");
     event_free(eventAccept);
     event_free(eventDiscover);
+    event_free(eventStopLoop);
 
     event_base_free(base);
 
-    return 0;
+    return;
 }

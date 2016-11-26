@@ -60,6 +60,7 @@ void PXMPeerWorker::hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUui
 {
     if(senderUuid != waitingOnIpsFrom)
     {
+        delete [] ipHeapArray;
         return;
     }
     qDebug() << "Recieved connection list from" << peerDetailsHash[senderUuid].socketDescriptor;
@@ -164,20 +165,6 @@ void PXMPeerWorker::sendIps(evutil_socket_t i)
             memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_port), sizeof(uint16_t));
             index += sizeof(uint16_t);
             index += PXMPeerWorker::packUuid(msgRaw + index, &(itr.identifier));
-            /*
-            uint32_t uuidSectionL = htonl((uint32_t)(itr.identifier.data1));
-            memcpy(msgRaw + index, &(uuidSectionL), sizeof(uint32_t));
-            index += sizeof(uint32_t);
-            uint16_t uuidSectionS = htons((uint16_t)(itr.identifier.data2));
-            memcpy(msgRaw + index, &(uuidSectionS), sizeof(uint16_t));
-            index += sizeof(uint16_t);
-            uuidSectionS = htons((uint16_t)(itr.identifier.data3));
-            memcpy(msgRaw + index, &(uuidSectionS), sizeof(uint16_t));
-            index += sizeof(uint16_t);
-            unsigned char *uuidSectionC = itr.identifier.data4;
-            memcpy(msgRaw + index, uuidSectionC, 8);
-            index += 8;
-            */
         }
     }
     emit sendMsgIps(i, msgRaw, index, "/ip", localUUID, "");
@@ -218,7 +205,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
     {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(socket);
-        bev = bufferevent_socket_new(realServer->base, socket, BEV_OPT_CLOSE_ON_FREE);
+        bev = bufferevent_socket_new(PXMServer::base, socket, BEV_OPT_CLOSE_ON_FREE);
         bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ);

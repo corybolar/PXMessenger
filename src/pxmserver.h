@@ -41,25 +41,27 @@
 #include <ws2tcpip.h>
 #endif
 
+const timeval readTimeout {1, 0};
+
 class PXMServer : public QThread
 {
     Q_OBJECT
 
 public:
     PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort);
-    int listener();
     void run();
     void setLocalHostname(QString hostname);
     void setLocalUUID(QString uuid);
     ~PXMServer();
-    struct event_base *base;
-    static void tcpError(bufferevent *buf, short error, void *arg);
-    static void tcpRead(bufferevent *bev, void *arg);
+    static void tcpError(bufferevent *bev, short error, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
-    static void unpackUUID(unsigned char *src, QUuid *uuid);
+    static QUuid unpackUUID(unsigned char *src);
+    static struct event_base *base;
 private:
-    static void udpRecieve(evutil_socket_t socketfd, short event, void *args);
-    static void accept_new(evutil_socket_t socketfd, short event, void *arg);
+    static void udpRecieve(evutil_socket_t socketfd, short, void *args);
+    static void accept_new(evutil_socket_t socketfd, short, void *arg);
+    static void tcpRead(bufferevent *bev, void *arg);
+    static void stopLoop(int, short, void*);
     QString localHostname;
     QString localUUID;
     unsigned short tcpListenerPort;

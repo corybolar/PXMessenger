@@ -14,8 +14,8 @@ public:
 signals:
     void returnPressed();
 protected:
-    void focusOutEvent(QFocusEvent *e);
-    void focusInEvent(QFocusEvent *e);
+    void focusOutEvent(QFocusEvent);
+    void focusInEvent(QFocusEvent);
 };
 
 #endif // MESS_TEXTEDIT_H

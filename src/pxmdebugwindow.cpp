@@ -40,7 +40,7 @@ void PXMDebugWindow::adjustScrollBar(int i)
     else
         this->atMaximum = false;
 }
-void PXMDebugWindow::rangeChanged(int i1, int i2)
+void PXMDebugWindow::rangeChanged(int, int i2)
 {
     if(this->atMaximum)
         sb->setValue(i2);
