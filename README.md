@@ -49,7 +49,7 @@ for more details).  This program can be run multiple times on the same computer
 and login.  The Global send item will send the message to all known peers.  It
 is essentially a global chat room.  
 
-######Settings
+#####Settings
 
 The multicast group that PXMessenger uses is 239.192.13.13.  There is no option
 to change this at the current time, however it could be done in the future if
