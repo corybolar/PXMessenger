@@ -1,7 +1,6 @@
 # PXMessenger
 =============
 ###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
-###Now with comments!
 
 
 ####Dependencies:
@@ -11,6 +10,8 @@ qt5
 qtmultimedia
 
 gcc
+
+libevent >= 2.0.22
 
 
 ####BUILD INSTRUCTIONS
@@ -25,6 +26,15 @@ make
 
 ../PXMessenger
 
+If compiling on Windows, the .pro file will have to be edited to point to your
+installation of libevent.  Specifically the lines
+
+win32: LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
+
+INCLUDEPATH += $$PWD/../../libevent-2.0.22-stable/include
+
+DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
+
 ####USAGE
 
 PXMessenger is a cross platform instant messaging client that does not need a
@@ -36,12 +46,18 @@ for more details).  This program can be run multiple times on the same computer
 and login.  The Global send item will send the message to all known peers.  It
 is essentially a global chat room.  
 
+The "Bloom" setting should not be needed under normal circumstances and only
+resends the discovery packed to the multicast group.  This is useful if you
+believe that an exisiting group of computers have missed all discovery packets.
+(very rare)
+
 PXMessenger will minimize to a tray if the system supports one and will alert
 itself in the event of receiving a message.
 
 Bugs are possible, please report them here under the issues tab and they will be
 responded to.
 
-##UNDER HEAVY DEVELOPMENT
+Windows executable and setup included in the releases section
 
-Windows executable included in the releases section
+Note: While this should theoretically work under Mac OSX, it has never been
+tested as I do not have access to a Mac.
