@@ -281,5 +281,4 @@ void PXMPeerWorker::authenticationRecieved(QString hname, QString port, evutil_s
 
     emit updateListWidget(uuid);
     emit requestIps(s, uuid);
-    emit setItalicsOnItem(uuid, 0);
 }

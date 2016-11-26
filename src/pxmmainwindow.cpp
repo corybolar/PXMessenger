@@ -640,11 +640,15 @@ void PXMWindow::updateListWidget(QUuid uuid)
     {
         if(messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid)
         {
-            messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
-            QListWidgetItem *global = messListWidget->takeItem(0);
-            messListWidget->sortItems();
-            messListWidget->insertItem(0, global);
-
+            if(messListWidget->item(i)->text() != peerWorker->peerDetailsHash.value(uuid).hostname)
+            {
+                printToTextBrowser(messListWidget->item(i)->text() % " has changed their name to " % peerWorker->peerDetailsHash.value(uuid).hostname, uuid, false, false);
+                messListWidget->item(i)->setText(peerWorker->peerDetailsHash.value(uuid).hostname);
+                QListWidgetItem *global = messListWidget->takeItem(0);
+                messListWidget->sortItems();
+                messListWidget->insertItem(0, global);
+                setItalicsOnItem(uuid, 0);
+            }
             messListWidget->setUpdatesEnabled(true);
             return;
         }
