@@ -9,10 +9,11 @@ QT = core gui widgets multimedia
 
 unix: LIBS += -levent
 
-win32: LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
+win32 { LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
 
 INCLUDEPATH += $$PWD/../../libevent-2.0.22-stable/include
 DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
+}
 
 win32 {
 LIBS += -lws2_32 \

@@ -2,6 +2,7 @@
 =============
 ###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
 
+![alt text](http://imgur.com/a/UsJeb "PXMessenger")
 
 ####Dependencies:
 
@@ -30,11 +31,11 @@ If compiling on Windows, the .pro file will have to be edited to point to your
 installation of libevent.  Specifically the lines
 
 ```
-win32: LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
+win32 { LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
 
 INCLUDEPATH += $$PWD/../../libevent-2.0.22-stable/include
-
 DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
+}
 ```
 
 ####USAGE
