@@ -51,7 +51,12 @@
 #include "pxmsettingsdialog.h"
 #include "pxmdebugwindow.h"
 
-#ifdef __unix__
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <lmcons.h>
+#else
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -59,13 +64,6 @@
 #include <netinet/in.h>
 #include <resolv.h>
 #include <pwd.h>
-#endif
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#include <lmcons.h>
 #endif
 
 class PXMWindow : public QMainWindow
@@ -113,9 +111,10 @@ private:
     PXMServer *messServer;
     PXMPeerWorker *peerWorker;
     PXMDebugWindow *debugWindow = nullptr;
+    bufferevent *closeBev;
     time_t messTime;
     struct tm *currentTime;
-    char *localHostname;
+    QString localHostname = "";
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
     QLinkedList<QString*> globalChat;
@@ -147,7 +146,7 @@ private:
      * Sends a message with a type /global to all connected peers
      * \param msg Message to send
      */
-    void globalSend(QString msg);
+    void globalSend(QByteArray msg);
     /*!
      * \brief focusWindow
      *
@@ -257,7 +256,7 @@ private slots:
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     void printToTextBrowser(QString str, QUuid uuid, bool alert, bool formatAsMessage);
-    void printToTextBrowserServerSlot(const QString str, QUuid uuid, int socket, bool global);
+    void printToTextBrowserServerSlot(QString msg, QUuid uuid, int socket, bool global);
     void updateListWidget(QUuid uuid);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
@@ -268,9 +267,10 @@ private slots:
     void debugActionSlot();
     void printInfoToDebug();
     void setlibeventBackend(QString);
+    void setCloseBufferevent(void *bev);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
-    void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
+    void sendMsg(evutil_socket_t, QByteArray, QByteArray, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
 };

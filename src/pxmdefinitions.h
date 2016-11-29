@@ -10,10 +10,10 @@
 #include <QLinkedList>
 
 #define BACKLOG 20
-#define MULTICAST_ADDRESS "239.192.13.13"
+#define MULTICAST_ADDRESS "239.192.14.14"
 #define PACKED_UUID_BYTE_LENGTH 16
 #define MESSAGE_HISTORY_LENGTH 1000
-#define MIDNIGHT_TIMER_INTERVAL 60000
+#define MIDNIGHT_TIMER_INTERVAL_MINUTES 1
 
 struct peerDetails{
     bool isConnected = false;

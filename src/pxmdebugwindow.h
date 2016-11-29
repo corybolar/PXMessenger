@@ -10,12 +10,12 @@
 #include <QScrollBar>
 #include <QDebug>
 
-#define DEBUG_WINDOW_HISTORY_LIMIT 50000
+#define DEBUG_WINDOW_HISTORY_LIMIT 5000
 
 class PXMDebugWindow : public QMainWindow
 {
     Q_OBJECT
-    bool atMaximum;
+    bool atMaximum = false;
 public:
     explicit PXMDebugWindow(QWidget *parent = 0);
     QWidget *centralwidget;
@@ -23,7 +23,7 @@ public:
     QGridLayout *gridLayout_2;
     QPushButton *pushButton;
     QScrollBar *sb;
-    static QTextBrowser *textEdit;
+    static QPlainTextEdit *textEdit;
 signals:
 
 public slots:
@@ -31,7 +31,6 @@ private slots:
     void adjustScrollBar(int i);
     void rangeChanged(int, int i2);
     void xdebug(QString str);
-    void textChanged();
 };
 
 #endif // PXMDEBUGWINDOW_H

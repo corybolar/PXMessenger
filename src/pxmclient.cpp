@@ -2,6 +2,7 @@
 
 PXMClient::PXMClient()
 {
+    this->setObjectName("PXMClient");
 }
 void PXMClient::sendUDP(const char* msg, unsigned short port)
 {
@@ -26,29 +27,43 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     for(int i = 0; i < 1; i++)
     {
         if(sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr)) != len+1)
+        {
             xdebug("sendto: " + QString::fromUtf8(strerror(errno)));
+            break;
+        }
     }
     evutil_closesocket(socketfd2);
 }
-
-int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr)
+void PXMClient::connectCallBack(struct bufferevent *bev, short event, void *arg)
 {
+    PXMClient *realClient = static_cast<PXMClient*>(arg);
+    realClient->xdebug(QString::number(bufferevent_getfd(bev)));
+    if(event & BEV_EVENT_CONNECTED)
+        realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), true, (void*)(bev));
+    else
+        realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, (void*)(bev));
+}
+
+int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr, void *bevptr)
+{
+    bufferevent *bev = static_cast<bufferevent*>(bevptr);
     int status;
+    bufferevent_setcb(bev, NULL, NULL, PXMClient::connectCallBack, (void*)this);
+    timeval timeout = {5,0};
+    bufferevent_set_timeouts(bev, &timeout, &timeout);
     if( (status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr))) < 0 )
     {
+        bufferevent_socket_connect(bev, NULL, 0);
         xdebug("connect:  " + QString::fromUtf8(strerror(errno)));
-        emit resultOfConnectionAttempt(socketfd, status);
-        evutil_closesocket(socketfd);
         return 1;
     }
-    emit resultOfConnectionAttempt(socketfd, status);
     return 0;
 }
 
-void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuid, const char *theiruuid)
+void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver)
 {
     int bytesSent = 0;
-    uint16_t packetLen;
+    int packetLen;
     uint16_t packetLenNBO;
     bool print = false;
 
@@ -56,7 +71,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
 
     if(msgLen > 65400)
     {
-        emit resultOfTCPSend(-1, QString::fromUtf8(theiruuid), QString::fromUtf8(msg), print);
+        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print);
     }
     packetLen = PACKED_UUID_BYTE_LENGTH + strlen(type) + msgLen;
 
@@ -70,7 +85,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
     packetLenNBO = htons(packetLen);
     //packetLenNBO = htons(packetLen + 100);
 
-    packUUID(full_mess, uuid ,0);
+    packUuid(full_mess, &uuidSender);
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH, type, strlen(type));
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
     full_mess[packetLen] = 0;
@@ -82,7 +97,7 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
 
     if(bytesSent != sizeof(uint16_t))
     {
-        emit resultOfTCPSend(-1, QString::fromLatin1(theiruuid), QString::fromUtf8(msg), print);
+        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print);
         return;
     }
 
@@ -92,33 +107,37 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
     {
         bytesSent = 0;
     }
-    if(*theiruuid != '\0')
-        emit resultOfTCPSend(bytesSent, QString::fromLatin1(theiruuid), QString::fromUtf8(msg), print);
+    if(!uuidReceiver.isNull())
+        emit resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print);
     return;
 }
-void PXMClient::sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid)
+void PXMClient::sendMsgSlot(evutil_socket_t s, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid)
 {
-    QByteArray msgB = msg.toUtf8();
-    this->sendMsg(s, msgB, msgB.length(), type.toLocal8Bit().constData(), uuid, theiruuid.toLocal8Bit().constData());
+    this->sendMsg(s, msg.constData(), msg.length(), type.constData(), uuid, theiruuid);
 }
-void PXMClient::packUUID(char *dest, QUuid uuid, size_t index)
+size_t PXMClient::packUuid(char *buf, QUuid *uuid)
 {
-    uint32_t uuidSectionL = htonl((uint32_t)(uuid.data1));
-    memcpy(dest + index, &(uuidSectionL), sizeof(uint32_t));
+    int index = 0;
+
+    uint32_t uuidSectionL = htonl((uint32_t)(uuid->data1));
+    memcpy(buf + index, &(uuidSectionL), sizeof(uint32_t));
     index += sizeof(uint32_t);
-    uint16_t uuidSectionS = htons((uint16_t)(uuid.data2));
-    memcpy(dest + index, &(uuidSectionS), sizeof(uint16_t));
+    uint16_t uuidSectionS = htons((uint16_t)(uuid->data2));
+    memcpy(buf + index, &(uuidSectionS), sizeof(uint16_t));
     index += sizeof(uint16_t);
-    uuidSectionS = htons((uint16_t)(uuid.data3));
-    memcpy(dest + index, &(uuidSectionS), sizeof(uint16_t));
+    uuidSectionS = htons((uint16_t)(uuid->data3));
+    memcpy(buf + index, &(uuidSectionS), sizeof(uint16_t));
     index += sizeof(uint16_t);
-    memcpy(dest + index, &(uuid.data4), 8);
-    return;
+    unsigned char *uuidSectionC = uuid->data4;
+    memcpy(buf + index, uuidSectionC, 8);
+    index += 8;
+
+    return index;
 }
 
-void PXMClient::sendIpsSlot(evutil_socket_t s, const char *msg, size_t len, QString type, QUuid uuid, QString theiruuid)
+void PXMClient::sendIpsSlot(evutil_socket_t s, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid)
 {
-    this->sendMsg(s, msg, len, type.toLocal8Bit().constData(), uuid, theiruuid.toLocal8Bit().constData());
+    this->sendMsg(s, msg, len, type, uuid, theiruuid);
     delete [] msg;
 }
 
@@ -142,7 +161,7 @@ int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int c
         xdebug("We are partially sending this msg");
         int len2 = len - status;
         //uint8_t cast to avoid compiler warning, we want to advance the pointer the number of bytes in status
-        msg = (uint8_t*)msg + status;
+        msg = (void*)((uint8_t*)msg + status);
         count++;
 
         status2 = recursiveSend(socketfd, msg, len2, count);

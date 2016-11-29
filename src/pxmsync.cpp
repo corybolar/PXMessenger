@@ -1,28 +1,34 @@
 #include "pxmsync.h"
 
-PXMSync::PXMSync(QObject *parent) : QThread(parent)
+PXMSync::PXMSync(QObject *parent) : QObject(parent)
 {
 
 }
-void PXMSync::run()
+
+void PXMSync::syncNext()
 {
-    for(auto &itr : peerDetailsHash)
+    while(hashIterator != syncHash->end() && !(hashIterator.value().isAuthenticated))
     {
-        if(itr.isConnected == false)
-            continue;
-        moveOnPlease = false;
-        qDebug() << "requesting Ips from" << itr.hostname;
-        emit requestIps(itr.socketDescriptor, itr.identifier);
-        int count = 0;
-        while(!moveOnPlease && (count < 5) && !(this->isInterruptionRequested()) )
-        {
-            count++;
-            this->usleep(500000);
-        }
+        hashIterator++;
     }
+    if(hashIterator == syncHash->end())
+    {
+        emit syncComplete();
+        return;
+    }
+    else
+    {
+        emit requestIps(hashIterator.value().socketDescriptor, hashIterator.value().identifier);
+    }
+    hashIterator++;
 }
 
-void PXMSync::setHash(QHash<QUuid, peerDetails> hash)
+void PXMSync::setsyncHash(QHash<QUuid, peerDetails> *hash)
 {
-   this->peerDetailsHash = hash;
+   syncHash = hash;
+   hashIterator = QHash<QUuid, peerDetails>::iterator();
+}
+void PXMSync::setIteratorToStart()
+{
+    hashIterator = syncHash->begin();
 }

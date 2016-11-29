@@ -7,7 +7,7 @@ QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
 
-unix: LIBS += -levent
+unix: LIBS += -levent -levent_pthreads
 
 win32 { LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
 

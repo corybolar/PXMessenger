@@ -19,10 +19,10 @@
 
 #include <pxminireader.h>
 
-#ifdef __unix__
-#include <pwd.h>
-#elif _WIN32
+#ifdef _WIN32
 #include <lmcons.h>
+#else
+#include <pwd.h>
 #endif
 
 QT_BEGIN_NAMESPACE

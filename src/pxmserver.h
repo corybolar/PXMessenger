@@ -26,7 +26,10 @@
 
 #include "pxmdefinitions.h"
 
-#ifdef __unix__
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -34,11 +37,6 @@
 #include <sys/select.h>
 #include <ctime>
 #include <fcntl.h>
-#endif
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #endif
 
 const timeval readTimeout {1, 0};
@@ -49,7 +47,7 @@ class PXMServer : public QThread
 
 public:
     PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort);
-    void run();
+    void run() Q_DECL_OVERRIDE;
     void setLocalHostname(QString hostname);
     void setLocalUUID(QString uuid);
     ~PXMServer();
@@ -62,6 +60,7 @@ private:
     static void accept_new(evutil_socket_t socketfd, short, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
     static void stopLoop(int, short, void*);
+    static void stopLoopBufferevent(bufferevent *bev, void *);
     QString localHostname;
     QString localUUID;
     unsigned short tcpListenerPort;
@@ -72,22 +71,20 @@ private:
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 signals:
-    void messageRecieved(const QString, QUuid, evutil_socket_t, bool);
-    void newConnectionRecieved(evutil_socket_t);
-    void recievedUUIDForConnection(QString, QString, evutil_socket_t, QUuid, void*);
-    void peerQuit(evutil_socket_t);
+    void messageRecieved(QString, QUuid, evutil_socket_t, bool);
+    void newTCPConnection(evutil_socket_t);
+    void authenticationReceived(QString, unsigned short, evutil_socket_t, QUuid, void*);
+    void peerQuit(evutil_socket_t, void*);
     void attemptConnection(sockaddr_in, QUuid);
-    void potentialReconnect(QString);
-    void exitRecieved(QString);
     void sendIps(evutil_socket_t);
     void sendName(evutil_socket_t, QString, QString);
     void hostnameCheck(char*, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
-    void sendMsg(evutil_socket_t, QString, QString, QUuid, QString);
     void sendUDP(const char*, unsigned short);
     void setListenerPort(unsigned short);
     void xdebug(QString);
     void libeventBackend(QString);
+    void setCloseBufferevent(void*);
 };
 
 #endif // MESS_SERV_H

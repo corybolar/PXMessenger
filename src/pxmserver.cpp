@@ -5,6 +5,7 @@ PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udp
 {
     tcpListenerPort = tcpPort;
     udpListenerPort = udpPort;
+    this->setObjectName("PXMServer");
 }
 PXMServer::~PXMServer()
 {
@@ -37,11 +38,11 @@ void PXMServer::accept_new(evutil_socket_t s, short, void *arg)
     {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(result);
-        bev = bufferevent_socket_new(PXMServer::base, result, BEV_OPT_CLOSE_ON_FREE );
+        bev = bufferevent_socket_new(PXMServer::base, result, 0);
         bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, 2, sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ);
-        realServer->newConnectionRecieved(result);
+        realServer->newTCPConnection(result);
     }
 }
 void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
@@ -71,24 +72,34 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     unsigned char bufUUID[PACKED_UUID_BYTE_LENGTH];
     if(bufferevent_read(bev, bufUUID, PACKED_UUID_BYTE_LENGTH) < PACKED_UUID_BYTE_LENGTH)
     {
-        evutil_closesocket(socket);
+        bufferevent_disable(bev, EV_READ|EV_WRITE);
+        realServer->peerQuit(socket, (void*)bev);
         return;
     }
     QUuid quuid = PXMServer::unpackUUID(bufUUID);
     bufLen -= PACKED_UUID_BYTE_LENGTH;
     if(quuid.isNull())
     {
-        evutil_closesocket(socket);
+        bufferevent_disable(bev, EV_READ|EV_WRITE);
+        realServer->peerQuit(socket, (void*)bev);
         return;
     }
 
     char buf[bufLen + 1];
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
+    realServer->xdebug(QString::fromUtf8(buf));
     if(!strncmp(buf, "/uuid", 5))
     {
-        QStringList hpsplit = (QString::fromUtf8(buf+5, bufLen-5)).split(":");
-        realServer->recievedUUIDForConnection(hpsplit[0], hpsplit[1], socket, quuid, bev);
+        QStringList hpsplit = (QString::fromUtf8(buf+5, bufLen-5)).split("::::");
+        unsigned short port = hpsplit[1].toUShort();
+        if(port == 0)
+        {
+            bufferevent_disable(bev, EV_READ|EV_WRITE);
+            realServer->peerQuit(socket, (void*)bev);
+            return;
+        }
+        realServer->authenticationReceived(hpsplit[0], port, socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
         bufferevent_setcb(bev, PXMServer::tcpRead, NULL, PXMServer::tcpError, (void*)realServer);
     }
@@ -105,7 +116,6 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     evbuffer *input = bufferevent_get_input(bev);
     if(evbuffer_get_length(input) == 1)
     {
-        //timeval readTimeout = {1,0};
         realServer->xdebug("Setting timeout, 1 byte recieved");
         bufferevent_set_timeouts(bev, &readTimeout, NULL);
         return;
@@ -170,19 +180,20 @@ void PXMServer::tcpError(struct bufferevent *bev, short error, void *arg)
     evutil_socket_t i = bufferevent_getfd(bev);
     if (error & BEV_EVENT_EOF)
     {
-        realServer->peerQuit(i);
-        bufferevent_free(bev);
+        bufferevent_disable(bev, EV_READ|EV_WRITE);
+        realServer->peerQuit(i, (void*)bev);
     }
     else if (error & BEV_EVENT_ERROR)
     {
-        realServer->peerQuit(i);
-        bufferevent_free(bev);
+        bufferevent_disable(bev, EV_READ|EV_WRITE);
+        realServer->peerQuit(i, (void*)bev);
     }
     else if (error & BEV_EVENT_TIMEOUT)
     {
         realServer->xdebug("Timeout triggered");
-        bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
-        bufferevent_set_timeouts(bev, NULL, NULL);
+        bufferevent_setwatermark(bev, EV_READ, 1, sizeof(uint16_t));
+        timeval readTimeoutReset = {3600, 0};
+        bufferevent_set_timeouts(bev, &readTimeoutReset, NULL);
         bufferevent_enable(bev, EV_READ);
         evbuffer *input = bufferevent_get_input(bev);
         int len = evbuffer_get_length(input);
@@ -194,7 +205,6 @@ void PXMServer::tcpError(struct bufferevent *bev, short error, void *arg)
             len = evbuffer_get_length(input);
             realServer->xdebug("Length: " + QString::number(len));
         }
-        //bufferevent_setcb(bev, tcpRead, NULL, tcpError, arg);
     }
 }
 int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t bufLen, QUuid quuid)
@@ -252,17 +262,14 @@ int PXMServer::singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t
 QUuid PXMServer::unpackUUID(unsigned char *src)
 {
     QUuid uuid;
-    int index = 0;
-    memcpy(&(uuid.data1), src, sizeof(uint32_t));
+    size_t index = 0;
+    uuid.data1 = ntohl(*((uint32_t*)(src)) );
     index += sizeof(uint32_t);
-    uuid.data1 = ntohl(uuid.data1);
-    memcpy(&(uuid.data2), src+index, sizeof(uint16_t));
+    uuid.data2 = ntohs(*((uint16_t*)(src+index)) );
     index += sizeof(uint16_t);
-    uuid.data2 = ntohs(uuid.data2);
-    memcpy(&(uuid.data3), src+index, sizeof(uint16_t));
+    uuid.data3 = ntohs(*((uint16_t*)(src+index)) );
     index += sizeof(uint16_t);
-    uuid.data3 = ntohs(uuid.data3);
-    memcpy(&(uuid.data4), src+index, 8);
+    memcpy(&(uuid.data4), src + index, 8);
     //index += 8;
 
     return uuid;
@@ -344,6 +351,7 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 
     if(setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int)) < 0)
         xdebug("setsockopt: " + QString::fromUtf8(strerror(errno)));
+
     evutil_make_socket_nonblocking(socketUDP);
 
     if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
@@ -381,8 +389,8 @@ evutil_socket_t PXMServer::setupTCPSocket()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    char tcpPortChar[8];
-    memset(tcpPortChar, 0, 8);
+    char tcpPortChar[6];
+    memset(tcpPortChar, 0, 6);
     sprintf(tcpPortChar, "%d", tcpListenerPort);
 
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
@@ -409,16 +417,28 @@ void PXMServer::stopLoop(evutil_socket_t, short, void *)
 {
     if(QThread::currentThread()->isInterruptionRequested())
     {
-        event_base_loopexit(PXMServer::base, NULL);
+        //event_base_loopexit(PXMServer::base, NULL);
     }
+}
+void PXMServer::stopLoopBufferevent(bufferevent* bev, void*)
+{
+    char readBev[4] = {};
+    bufferevent_read(bev, readBev, 4);
+    if(!strncmp(readBev, "exit", 4))
+        event_base_loopexit(PXMServer::base, NULL);
+    else
+        bufferevent_flush(bev, EV_READ, BEV_FLUSH);
 }
 
 void PXMServer::run()
 {
     evutil_socket_t s_discover, s_listen;
-    struct event *eventAccept;
-    struct event *eventDiscover;
-    struct event *eventStopLoop;
+    struct event *eventAccept, *eventDiscover;
+#ifdef _WIN32
+    evthread_use_windows_threads();
+#else
+    evthread_use_pthreads();
+#endif
 
     base = event_base_new();
 
@@ -442,19 +462,33 @@ void PXMServer::run()
 
     event_add(eventAccept, NULL);
 
-    struct timeval t1 = {0,500000};
+    //struct timeval halfSecond = {0,500000};
 
-    eventStopLoop = event_new(base, 0, EV_PERSIST, stopLoop, NULL);
-    event_add(eventStopLoop, &t1);
+    //eventStopLoop = event_new(base, 0, EV_PERSIST, stopLoop, NULL);
+    //event_add(eventStopLoop, &halfSecond);
+
+    struct bufferevent *closePair[2];
+    bufferevent_pair_new(base, BEV_OPT_THREADSAFE, closePair);
+    //bufferevent_pair_new(base, 0, closePair);
+    bufferevent_setcb(closePair[0], PXMServer::stopLoopBufferevent, NULL, NULL, NULL);
+    bufferevent_enable(closePair[0], EV_READ);
+    bufferevent_enable(closePair[1], EV_WRITE);
+
+    emit setCloseBufferevent((void*)closePair[1]);
 
     event_base_dispatch(PXMServer::base);
 
     xdebug("Freeing events...");
     event_free(eventAccept);
     event_free(eventDiscover);
-    event_free(eventStopLoop);
+    //event_free(eventStopLoop);
+
+    bufferevent_free(closePair[1]);
+    bufferevent_free(closePair[0]);
 
     event_base_free(base);
+
+    xdebug("Events free");
 
     return;
 }

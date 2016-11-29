@@ -40,6 +40,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     if(PXMDebugWindow::textEdit != 0)
     {
         m.lock();
+        /*
         QByteArray localMsg2;
         QString padding = "                    ";
         QString filename = QString::fromUtf8(context.file);
@@ -47,22 +48,17 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         filename.append(":" + QByteArray::number(context.line));
         filename.append(padding.right(25 - filename.length()));
         localMsg2 = filename.toUtf8() + msg.toUtf8();
+        */
         switch (type) {
         case QtDebugMsg:
             if(PXMDebugWindow::textEdit != 0)
-                PXMDebugWindow::textEdit->append(msg.toLocal8Bit());
+                PXMDebugWindow::textEdit->appendPlainText(msg.toLocal8Bit());
             break;
         case QtWarningMsg:
-            if(PXMDebugWindow::textEdit != 0)
-                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
             break;
         case QtCriticalMsg:
-            if(PXMDebugWindow::textEdit != 0)
-                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
             break;
         case QtInfoMsg:
-            if(PXMDebugWindow::textEdit != 0)
-                PXMDebugWindow::textEdit->append(QString::fromUtf8(localMsg2));
             break;
         case QtFatalMsg:
             abort();
@@ -101,11 +97,7 @@ int main(int argc, char **argv)
         app.setFont(font);
     }
 
-#ifdef __unix__
-    struct passwd *user;
-    user = getpwuid(getuid());
-    strcpy(localHostname, user->pw_name);
-#elif _WIN32
+#ifdef _WIN32
     char user[UNLEN+1];
     TCHAR t_user[UNLEN+1];
     DWORD user_size = UNLEN+1;
@@ -114,6 +106,10 @@ int main(int argc, char **argv)
         wcstombs(user, t_user, UNLEN+1);
         strcpy(localHostname, user);
     }
+#else
+    struct passwd *user;
+    user = getpwuid(getuid());
+    strcpy(localHostname, user->pw_name);
 #endif
 
     QString tmpDir = QDir::tempPath();

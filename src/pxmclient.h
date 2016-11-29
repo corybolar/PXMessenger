@@ -16,16 +16,14 @@
 
 #include "pxmdefinitions.h"
 
-#ifdef __unix__
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#endif
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #endif
 
 class PXMClient : public QObject
@@ -33,15 +31,7 @@ class PXMClient : public QObject
     Q_OBJECT
 public:
     PXMClient();
-    /*!
-     * \brief setlocalUUID
-     *
-     * Inform this class of the uuid for our host, retrieved from the ini file.
-     * Should not change.  OBSOLETE
-     * \param uuid
-     */
-    void setlocalUUID(QString uuid);
-    void packUUID(char *dest, QUuid uuid, size_t index);
+    static size_t packUuid(char *buf, QUuid *uuid);
 public slots:
     /*!
      * \brief sendMsg
@@ -55,14 +45,15 @@ public slots:
      * done by the recursiveSend() function to ensure partial sends are resent.
      * \param socketfd Socket descriptor to send on
      * \param msg message to send.
+     * \param msgLen size of msg array
      * \param type type of packet to send.  Current types are "/msg", "/uuid"
      * 				"/request", "/ip".  See PXMServer for more details.
-     * \param uuid Our UUID to send out.
-     * \param theiruuid The recipients uuid used for our own recording purposes
+     * \param uuidSender Our UUID to send out.
+     * \param uuidReceiver The recipients uuid used for our own recording purposes
      * \return emits a resultsOfTCPSend()
      * \see man send
      */
-    void sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuid, const char *theiruuid);
+    void sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver);
     /*!
      * \brief sendMsgSlot
      *
@@ -75,7 +66,7 @@ public slots:
      * 			included in packet
      * \see sendMsg()
      */
-    void sendMsgSlot(evutil_socket_t s, QString msg, QString type, QUuid uuid, QString theiruuid);
+    void sendMsgSlot(evutil_socket_t s, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid);
     /*!
      * \brief sendUDP
      *
@@ -83,7 +74,7 @@ public slots:
      * Important:These messages are currently send twice to improves odds that
      * one of them gets their.
      * \param msg Message to send
-     * \param port port to send to in the multicast group
+     * \param port Port to send to in the multicast group
      */
     void sendUDP(const char *msg, unsigned short port);
     /*!
@@ -91,19 +82,20 @@ public slots:
      *
      * Establish connection to peer.
      * \param socketfd Socket to connect on
-     * \param ipaddr IP address to connect to
-     * \param service port number to connect to
+     * \param socketAddr sockaddr_in structure containing port and ip to connect
+     * 			to
      * \return emits resultOfConnectionAttempt() with the socket number and a
      * 			bool variable containing the result.
      * \see man connect
      */
-    int connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr);
-    void sendIpsSlot(int s, const char *msg, size_t len, QString type, QUuid uuid, QString theiruuid);
+    int connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr, void *bevptr);
+    void sendIpsSlot(int s, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid);
 private:
     int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
+    static void connectCallBack(bufferevent *bev, short event, void *arg);
 signals:
-    void resultOfConnectionAttempt(evutil_socket_t, bool);
-    void resultOfTCPSend(unsigned int, QString, QString, bool);
+    void resultOfConnectionAttempt(evutil_socket_t, bool, void*);
+    void resultOfTCPSend(unsigned int, QUuid, QString, bool);
     void xdebug(QString);
 };
 
