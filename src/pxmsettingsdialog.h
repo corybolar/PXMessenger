@@ -35,11 +35,7 @@ private slots:
         if(button == buttonBox->button(QDialogButtonBox::RestoreDefaults))
         {
             char localHostname[256] = {};
-#ifdef __unix__
-            struct passwd *user;
-            user = getpwuid(getuid());
-            strcpy(localHostname, user->pw_name);
-#elif _WIN32
+#ifdef _WIN32
             char user[UNLEN+1];
             TCHAR t_user[UNLEN+1];
             DWORD user_size = UNLEN+1;
@@ -48,6 +44,10 @@ private slots:
                 wcstombs(user, t_user, UNLEN+1);
                 strcpy(localHostname, user);
             }
+#else
+            struct passwd *user;
+            user = getpwuid(getuid());
+            strcpy(localHostname, user->pw_name);
 #endif
             spinBox->setValue(0);
             spinBox_2->setValue(13649);
@@ -119,7 +119,6 @@ public:
     {
         if (this->objectName().isEmpty())
             this->setObjectName(QStringLiteral("Settings"));
-        //this->resize(366, 181);
         this->setMinimumSize(QSize(420, 181));
         this->setMaximumSize(QSize(800, 300));
         this->setLayoutDirection(Qt::LeftToRight);
@@ -213,7 +212,7 @@ public:
         QObject::connect(spinBox_3, signal, this, &PXMSettingsDialog::valueChanged);
 
         //QMetaObject::connectSlotsByName(this);
-    } // setupUi
+    }
 
     void retranslateUi()
     {
@@ -225,7 +224,7 @@ public:
         label_4->setText(QApplication::translate("Settings", "Preferred UDP Listener port", 0));
         label_5->setText(QApplication::translate("Settings", "Font Family", 0));
         label_6->setText(QApplication::translate("Settings", "Font Size", 0));
-    } // retranslateUi
+    }
 
     void readIni()
     {

@@ -88,7 +88,7 @@ public slots:
      * 			bool variable containing the result.
      * \see man connect
      */
-    int connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr, void *bevptr);
+    void connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bevptr);
     void sendIpsSlot(int s, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid);
 private:
     int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);

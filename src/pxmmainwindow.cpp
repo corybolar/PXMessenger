@@ -653,7 +653,6 @@ void PXMWindow::updateListWidget(QUuid uuid)
     messListWidget->insertItem(0, global);
 
     messListWidget->setUpdatesEnabled(true);
-    qDebug() << "Number of peers in the hash" << peerWorker->peerDetailsHash.size();
 }
 void PXMWindow::closeEvent(QCloseEvent *event)
 {

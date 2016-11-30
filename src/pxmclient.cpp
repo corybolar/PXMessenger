@@ -44,20 +44,16 @@ void PXMClient::connectCallBack(struct bufferevent *bev, short event, void *arg)
         realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, (void*)(bev));
 }
 
-int PXMClient::connectToPeer(evutil_socket_t socketfd, sockaddr_in socketAddr, void *bevptr)
+void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bevptr)
 {
     bufferevent *bev = static_cast<bufferevent*>(bevptr);
-    int status;
     bufferevent_setcb(bev, NULL, NULL, PXMClient::connectCallBack, (void*)this);
     timeval timeout = {5,0};
     bufferevent_set_timeouts(bev, &timeout, &timeout);
-    if( (status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr))) < 0 )
-    {
-        bufferevent_socket_connect(bev, NULL, 0);
-        xdebug("connect:  " + QString::fromUtf8(strerror(errno)));
-        return 1;
-    }
-    return 0;
+    bufferevent_socket_connect(bev, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
+    //status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
+    //bufferevent_socket_connect(bev, NULL, 0);
+    //xdebug("connect:  " + QString::fromUtf8(strerror(errno)));
 }
 
 void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver)
