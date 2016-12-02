@@ -59,7 +59,6 @@ public:
     static void udpRecieve(evutil_socket_t socketfd, short, void *args);
     static void stopLoopBufferevent(bufferevent *bev, void *);
     static struct event_base *base;
-    static void tcpWrite(bufferevent *bev, void *arg);
 private:
     QString localHostname;
     QString localUUID;

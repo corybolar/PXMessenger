@@ -68,7 +68,6 @@ private:
     PXMSync *syncer;
     void sendIdentityMsg(bufferevent *bev);
 signals:
-signals:
     void printToTextBrowser(QString, QUuid, bool, bool);
     void updateListWidget(QUuid);
     void sendMsg(bufferevent*, QByteArray, QByteArray, QUuid, QUuid);

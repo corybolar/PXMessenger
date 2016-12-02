@@ -1,6 +1,6 @@
 #include <pxmserver.h>
 
-struct event_base* PXMServer::base;
+struct event_base* PXMServer::base = nullptr;
 PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort) : QThread(parent)
 {
     //Init
@@ -174,10 +174,6 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     timeval readTimeoutReset = {3600, 0};
     bufferevent_set_timeouts(bev, &readTimeoutReset, NULL);
     delete [] buf;
-}
-void PXMServer::tcpWrite(struct bufferevent *bev, void *arg)
-{
-    qDebug() << "Hello from tcpWrite!";
 }
 
 void PXMServer::tcpError(struct bufferevent *bev, short error, void *arg)

@@ -23,13 +23,11 @@
 #include <QMainWindow>
 #include <QGridLayout>
 #include <QMenuBar>
-#include <QStatusBar>
 #include <QMessageBox>
 #include <QStringBuilder>
 #include <QDateTime>
 #include <QRgb>
 #include <QApplication>
-#include <QLinkedList>
 
 #include <sys/types.h>
 #include <ctime>

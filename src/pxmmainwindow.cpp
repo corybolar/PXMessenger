@@ -739,9 +739,6 @@ void PXMWindow::changeListColor(int row, int style)
     }
     return;
 }
-/**
- * @brief 				Called when we want to modify the focus or visibility of our program (ie. we get a message)
- */
 void PXMWindow::focusWindow()
 {
     if(!(muteCheckBox->isChecked()))
@@ -759,12 +756,6 @@ void PXMWindow::focusWindow()
         this->setWindowState(Qt::WindowActive);
     }
 }
-/**
- * @brief 					This will print new messages to the appropriate QString and call the focus function if its necessary
- * @param str				Message to print
- * @param peerindex			index of the peers_class->peers array for which the message was meant for
- * @param message			Bool for whether this message that is being printed should alert the listwidgetitem, play sound, and focus the application
- */
 void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert, bool formatAsMessage)
 {
     bool foundIt = false;
@@ -819,13 +810,6 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert, bool for
     }
     return;
 }
-/**
- * @brief 					This is the slot for a SIGNAL from the mess_serv class when it has recieved a message that it needs to print
- * 							basically this only finds which peer the message is meant for or it if it was mean to be global
- * @param str				The message to print
- * @param ipstr				The ip address of the peer this message has come from
- * @param global			Whether this message should be displayed in the global textbox
- */
 void PXMWindow::printToTextBrowserServerSlot(QString msg, QUuid uuid, bufferevent* bev, bool global)
 {
     if(uuid != ourUUIDString)
