@@ -154,7 +154,6 @@ void PXMPeerWorker::attemptConnection(sockaddr_in addr, QUuid uuid)
     evutil_socket_t s = socket(AF_INET, SOCK_STREAM, 0);
     evutil_make_socket_nonblocking(s);
     struct bufferevent *bev = bufferevent_socket_new(PXMServer::base, s, BEV_OPT_THREADSAFE);
-    //<struct bufferevent> bev= bufferevent_socket_new(PXMServer::base, s, BEV_OPT_THREADSAFE);
 
     peerDetailsHash[uuid].identifier = uuid;
     peerDetailsHash[uuid].socketDescriptor = s;
@@ -282,7 +281,6 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
         if(levelOfSuccess < 0)
         {
             msg = QStringLiteral("Message was not sent successfully, Broken Pipe.  Peer is disconnected");
-            //peerQuit(peerDetailsHash.value(uuid).socketDescriptor, peerDetailsHash.value(uuid).bev);
         }
         else if(levelOfSuccess > 0)
         {
@@ -296,8 +294,6 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
 
         return;
     }
-    //if(levelOfSuccess<0)
-        //peerQuit(peerDetailsHash.value(uuid).socketDescriptor, peerDetailsHash.value(uuid).bev);
 }
 void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, bufferevent *bev)
 {

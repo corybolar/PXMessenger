@@ -83,7 +83,6 @@ signals:
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPort(unsigned short);
-    void xdebug(QString);
     void libeventBackend(QString);
     void setCloseBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);

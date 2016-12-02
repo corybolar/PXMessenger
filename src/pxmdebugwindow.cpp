@@ -15,6 +15,7 @@ PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
     textEdit->setObjectName(QStringLiteral("plainTextEdit"));
     textEdit->setReadOnly(true);
     textEdit->setMaximumBlockCount(DEBUG_WINDOW_HISTORY_LIMIT);
+    LoggerSingleton::getInstance()->setTextEdit(textEdit);
     pushButton = new QPushButton(centralwidget);
     pushButton->setText("Print Info");
     pushButton->setMaximumSize(QSize(250, 16777215));
@@ -46,7 +47,8 @@ void PXMDebugWindow::rangeChanged(int, int i2)
     if(this->atMaximum)
 	sb->setValue(i2);
 }
-void PXMDebugWindow::xdebug(QString str)
+/*void PXMDebugWindow::xdebug(QString str)
 {
     qDebug().noquote() << str;
 }
+*/

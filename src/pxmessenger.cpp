@@ -15,13 +15,22 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-QMutex m;
+int AppendTextEvent::type = QEvent::registerEventType();
+LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
+
 void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QByteArray localMsg = msg.toLocal8Bit();
+    QByteArray localMsg2;
+    QString padding = "                    ";
+    QString filename = QString::fromUtf8(context.file);
+    filename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
+    filename.append(":" + QByteArray::number(context.line));
+    filename.append(padding.right(DEBUG_PADDING - filename.length()));
+    localMsg2 = filename.toUtf8() + msg.toUtf8();
     switch(type) {
     case QtDebugMsg:
-        fprintf(stderr, "%s\n", localMsg.constData());
+        fprintf(stderr, "%s\n", localMsg2.constData());
         //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         break;
     case QtWarningMsg:
@@ -39,31 +48,8 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     }
     if(PXMDebugWindow::textEdit != 0)
     {
-        m.lock();
-        /*
-        QByteArray localMsg2;
-        QString padding = "                    ";
-        QString filename = QString::fromUtf8(context.file);
-        filename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
-        filename.append(":" + QByteArray::number(context.line));
-        filename.append(padding.right(25 - filename.length()));
-        localMsg2 = filename.toUtf8() + msg.toUtf8();
-        */
-        switch (type) {
-        case QtDebugMsg:
-            if(PXMDebugWindow::textEdit != 0)
-                PXMDebugWindow::textEdit->appendPlainText(msg.toLocal8Bit());
-            break;
-        case QtWarningMsg:
-            break;
-        case QtCriticalMsg:
-            break;
-        case QtInfoMsg:
-            break;
-        case QtFatalMsg:
-            abort();
-        }
-        m.unlock();
+        LoggerSingleton *logger = LoggerSingleton::getInstance();
+        qApp->postEvent(logger, new AppendTextEvent(localMsg2), Qt::LowEventPriority);
     }
 }
 

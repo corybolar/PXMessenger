@@ -16,19 +16,19 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     broadaddr.sin_port = htons(port);
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
-        xdebug("socket: " + QString::fromUtf8(strerror(errno)));
+        qDebug() << "socket: " + QString::fromUtf8(strerror(errno));
 
     len = strlen(msg);
 
     char loopback = 1;
     if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0)
-        xdebug("setsockopt: " + QString::fromUtf8(strerror(errno)));
+        qDebug() << "setsockopt: " + QString::fromUtf8(strerror(errno));
 
     for(int i = 0; i < 1; i++)
     {
         if(sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr)) != len+1)
         {
-            xdebug("sendto: " + QString::fromUtf8(strerror(errno)));
+            qDebug() << "sendto: " + QString::fromUtf8(strerror(errno));
             break;
         }
     }
@@ -37,7 +37,7 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
 void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
 {
     PXMClient *realClient = static_cast<PXMClient*>(arg);
-    realClient->xdebug(QString::number(bufferevent_getfd(bev)));
+    qDebug() << QString::number(bufferevent_getfd(bev));
     if(event & BEV_EVENT_CONNECTED)
         realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev);
     else
@@ -51,9 +51,6 @@ void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bev
     timeval timeout = {5,0};
     bufferevent_set_timeouts(bev, &timeout, &timeout);
     bufferevent_socket_connect(bev, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
-    //status = ::connect(socketfd, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
-    //bufferevent_socket_connect(bev, NULL, 0);
-    //xdebug("connect:  " + QString::fromUtf8(strerror(errno)));
 }
 
 
@@ -63,8 +60,6 @@ void PXMClient::sendMsg(bufferevent *bev, const char *msg, size_t msgLen, const 
     int packetLen;
     uint16_t packetLenNBO;
     bool print = false;
-
-    //Combine strings into final message (host): (msg)\0
 
     if(msgLen > 65400)
     {
@@ -104,14 +99,10 @@ void PXMClient::sendMsg(bufferevent *bev, const char *msg, size_t msgLen, const 
         emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print);
         return;
     }
-    bytesSent = bufferevent_write(bev, &packetLenNBO, sizeof(uint16_t));
+    bufferevent_write(bev, &packetLenNBO, sizeof(uint16_t));
 
     bytesSent = bufferevent_write(bev, full_mess, packetLen);
 
-    if(bytesSent >= packetLen)
-    {
-        bytesSent = 0;
-    }
     if(!uuidReceiver.isNull())
     {
         emit resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print);
@@ -159,13 +150,13 @@ int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int c
 
     if( (status <= 0) )
     {
-        xdebug("send on socket " + QString::number(socketfd) + ": " + QString::fromUtf8(strerror(errno)));
+        qDebug() << "send on socket " + QString::number(socketfd) + ": " + QString::fromUtf8(strerror(errno));
         return -1;
     }
 
     if( ( status != len ) && ( count < 10 ) )
     {
-        xdebug("We are partially sending this msg");
+        qDebug() << "We are partially sending this msg";
         int len2 = len - status;
         //uint8_t cast to avoid compiler warning, we want to advance the pointer the number of bytes in status
         msg = (void*)((uint8_t*)msg + status);

@@ -98,7 +98,6 @@ private:
 signals:
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*);
     void resultOfTCPSend(unsigned int, QUuid, QString, bool);
-    void xdebug(QString);
 };
 
 #endif // PXMCLIENT_H

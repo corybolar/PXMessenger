@@ -30,7 +30,51 @@ public slots:
 private slots:
     void adjustScrollBar(int i);
     void rangeChanged(int, int i2);
-    void xdebug(QString str);
+};
+
+class AppendTextEvent : public QEvent {
+public:
+    AppendTextEvent(QString text) : QEvent((Type)type),text(text) {}
+    QString getText(){
+        return text;
+    }
+private:
+    static int type;
+    QString text;
+};
+
+class LoggerSingleton : public QObject
+{
+public:
+    static LoggerSingleton* getInstance() {
+        if(!loggerInstance)
+        {
+            loggerInstance = new LoggerSingleton;
+        }
+
+        return loggerInstance;
+    }
+    void setTextEdit(QPlainTextEdit *textEdit){
+            logTextEdit = textEdit;
+    }
+private:
+    LoggerSingleton() : QObject() {}
+    //LoggerSingleton(LoggerSingleton const&){}
+    //LoggerSingleton& operator=(LoggerSingleton const&){}
+    static LoggerSingleton* loggerInstance;
+protected:
+    virtual void customEvent(QEvent *event){
+        AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
+        if(text)
+        {
+            logTextEdit->appendPlainText(text->getText());
+        }
+        event->accept();
+    }
+    QPlainTextEdit *logTextEdit = 0;
+signals:
+
+public slots:
 };
 
 #endif // PXMDEBUGWINDOW_H

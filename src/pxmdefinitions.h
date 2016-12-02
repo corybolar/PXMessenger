@@ -23,6 +23,7 @@ Q_DECLARE_METATYPE(bufferevent*);
 #define PACKED_UUID_BYTE_LENGTH 16
 #define MESSAGE_HISTORY_LENGTH 500
 #define MIDNIGHT_TIMER_INTERVAL_MINUTES 1
+#define DEBUG_PADDING 25
 
 struct peerDetails{
     bool isConnected;
