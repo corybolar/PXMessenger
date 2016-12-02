@@ -114,12 +114,13 @@ private:
     bufferevent *closeBev;
     time_t messTime;
     struct tm *currentTime;
-    QString localHostname = "";
+    QString localHostname;
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
     QLinkedList<QString*> globalChat;
     QUuid globalChatUuid;
-    bool globalChatAlerted = false;
+    bool globalChatAlerted;
+    bool multicastFunctioning;
 
     /*!
      * \brief getFormattedTime
@@ -248,6 +249,7 @@ private:
     void setupTooltips();
     void setupMenuBar();
     void createCheckBoxes();
+    void setupGui();
 private slots:
     void sendButtonClicked();
     void quitButtonClicked();
@@ -256,7 +258,7 @@ private slots:
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
     void printToTextBrowser(QString str, QUuid uuid, bool alert, bool formatAsMessage);
-    void printToTextBrowserServerSlot(QString msg, QUuid uuid, int socket, bool global);
+    void printToTextBrowserServerSlot(QString msg, QUuid uuid, bufferevent *bev, bool global);
     void updateListWidget(QUuid uuid);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
@@ -267,10 +269,12 @@ private slots:
     void debugActionSlot();
     void printInfoToDebug();
     void setlibeventBackend(QString);
-    void setCloseBufferevent(void *bev);
+    void setCloseBufferevent(bufferevent *bev);
+    void setSelfCommsBufferevent(bufferevent *bev);
+    void multicastIsFunctional();
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
-    void sendMsg(evutil_socket_t, QByteArray, QByteArray, QUuid, QUuid);
+    void sendMsg(bufferevent*, QByteArray, QByteArray, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
 };

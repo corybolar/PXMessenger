@@ -48,30 +48,31 @@ public slots:
     void setListenerPort(unsigned short port);
     void hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUuid);
     void attemptConnection(sockaddr_in addr, QUuid uuid);
-    void authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, void *bevptr);
-    void newTcpConnection(evutil_socket_t s);
-    void peerQuit(evutil_socket_t s, void *bevptr);
+    void authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, bufferevent *bev);
+    void newTcpConnection(bufferevent *bev);
+    void peerQuit(evutil_socket_t s, bufferevent *bev);
     void setPeerHostname(QString hname, QUuid uuid);
-    void sendIps(evutil_socket_t i);
-    void resultOfConnectionAttempt(evutil_socket_t socket, bool result, void *bevptr);
+    void sendIps(bufferevent *bev, QUuid uuid);
+    void resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent *bev);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg, bool print);
 private:
     Q_DISABLE_COPY(PXMPeerWorker)
     QString localHostname;
     QString ourListenerPort;
     QUuid localUUID;
-    QUuid waitingOnIpsFrom = QUuid();
+    QUuid waitingOnIpsFrom;
     QTimer *syncTimer;
     QTimer *nextSyncTimer;
-    bool areWeSyncing = false;
+    bool areWeSyncing;
     PXMServer *realServer;
     PXMSync *syncer;
-    void sendIdentityMsg(evutil_socket_t s);
+    void sendIdentityMsg(bufferevent *bev);
+signals:
 signals:
     void printToTextBrowser(QString, QUuid, bool, bool);
     void updateListWidget(QUuid);
-    void sendMsg(evutil_socket_t, QByteArray, QByteArray, QUuid, QUuid);
-    void sendIpsPacket(evutil_socket_t, char*, size_t len, QByteArray, QUuid, QUuid);
+    void sendMsg(bufferevent*, QByteArray, QByteArray, QUuid, QUuid);
+    void sendIpsPacket(bufferevent*, char*, size_t len, QByteArray, QUuid, QUuid);
     void connectToPeer(evutil_socket_t, sockaddr_in, void*);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
@@ -79,7 +80,7 @@ signals:
 private slots:
     void beginSync();
     void doneSync();
-    void requestIps(evutil_socket_t s, QUuid uuid);
+    void requestIps(bufferevent *bev, QUuid uuid);
 };
 
 #endif

@@ -54,37 +54,40 @@ public:
     static void tcpError(bufferevent *bev, short error, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
     static QUuid unpackUUID(unsigned char *src);
-    static struct event_base *base;
-private:
-    static void udpRecieve(evutil_socket_t socketfd, short, void *args);
-    static void accept_new(evutil_socket_t socketfd, short, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
-    static void stopLoop(int, short, void*);
+    static void accept_new(evutil_socket_t socketfd, short, void *arg);
+    static void udpRecieve(evutil_socket_t socketfd, short, void *args);
     static void stopLoopBufferevent(bufferevent *bev, void *);
+    static struct event_base *base;
+    static void tcpWrite(bufferevent *bev, void *arg);
+private:
     QString localHostname;
     QString localUUID;
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
+    bool gotDiscover;
 
-    int singleMessageIterator(evutil_socket_t socket, char *buf, uint16_t len, QUuid quuid);
+    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len, QUuid quuid);
     int getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 signals:
-    void messageRecieved(QString, QUuid, evutil_socket_t, bool);
-    void newTCPConnection(evutil_socket_t);
-    void authenticationReceived(QString, unsigned short, evutil_socket_t, QUuid, void*);
-    void peerQuit(evutil_socket_t, void*);
+    void messageRecieved(QString, QUuid, bufferevent*, bool);
+    void newTCPConnection(bufferevent*);
+    void authenticationReceived(QString, unsigned short, evutil_socket_t, QUuid, bufferevent*);
+    void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(sockaddr_in, QUuid);
-    void sendIps(evutil_socket_t);
-    void sendName(evutil_socket_t, QString, QString);
+    void sendIps(bufferevent*, QUuid);
+    void sendName(bufferevent*, QString, QString);
     void hostnameCheck(char*, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPort(unsigned short);
     void xdebug(QString);
     void libeventBackend(QString);
-    void setCloseBufferevent(void*);
+    void setCloseBufferevent(bufferevent*);
+    void setSelfCommsBufferevent(bufferevent*);
+    void multicastIsFunctional();
 };
 
 #endif // MESS_SERV_H

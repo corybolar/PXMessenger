@@ -34,20 +34,20 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     }
     evutil_closesocket(socketfd2);
 }
-void PXMClient::connectCallBack(struct bufferevent *bev, short event, void *arg)
+void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
 {
     PXMClient *realClient = static_cast<PXMClient*>(arg);
     realClient->xdebug(QString::number(bufferevent_getfd(bev)));
     if(event & BEV_EVENT_CONNECTED)
-        realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), true, (void*)(bev));
+        realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev);
     else
-        realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, (void*)(bev));
+        realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev);
 }
 
 void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bevptr)
 {
     bufferevent *bev = static_cast<bufferevent*>(bevptr);
-    bufferevent_setcb(bev, NULL, NULL, PXMClient::connectCallBack, (void*)this);
+    bufferevent_setcb(bev, NULL, NULL, PXMClient::connectCB, (void*)this);
     timeval timeout = {5,0};
     bufferevent_set_timeouts(bev, &timeout, &timeout);
     bufferevent_socket_connect(bev, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
@@ -56,7 +56,8 @@ void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bev
     //xdebug("connect:  " + QString::fromUtf8(strerror(errno)));
 }
 
-void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver)
+
+void PXMClient::sendMsg(bufferevent *bev, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver)
 {
     int bytesSent = 0;
     int packetLen;
@@ -76,40 +77,50 @@ void PXMClient::sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen
         print = true;
     }
 
+    if(!bev)
+    {
+        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print);
+        return;
+    }
+
     char full_mess[packetLen + 1];
 
     packetLenNBO = htons(packetLen);
-    //packetLenNBO = htons(packetLen + 100);
 
     packUuid(full_mess, &uuidSender);
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH, type, strlen(type));
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
     full_mess[packetLen] = 0;
 
-    // if(!strcmp(type, "/msg"))
-    //    packetLenNBO = htons(1500);
+    /*
+    if(!strcmp(type, "/msg"))
+    {
+        evutil_closesocket(bufferevent_getfd(bev));
+    }
+    */
 
-    bytesSent = this->recursiveSend(socketfd, &packetLenNBO, sizeof(uint16_t), 0);
-
-    if(bytesSent != sizeof(uint16_t))
+    if(!(bufferevent_get_enabled(bev) & EV_WRITE))
     {
         emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print);
         return;
     }
+    bytesSent = bufferevent_write(bev, &packetLenNBO, sizeof(uint16_t));
 
-    bytesSent = this->recursiveSend(socketfd, full_mess, packetLen, 0);
+    bytesSent = bufferevent_write(bev, full_mess, packetLen);
 
     if(bytesSent >= packetLen)
     {
         bytesSent = 0;
     }
     if(!uuidReceiver.isNull())
+    {
         emit resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print);
+    }
     return;
 }
-void PXMClient::sendMsgSlot(evutil_socket_t s, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid)
+void PXMClient::sendMsgSlot(bufferevent *bev, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid)
 {
-    this->sendMsg(s, msg.constData(), msg.length(), type.constData(), uuid, theiruuid);
+    this->sendMsg(bev, msg.constData(), msg.length(), type.constData(), uuid, theiruuid);
 }
 size_t PXMClient::packUuid(char *buf, QUuid *uuid)
 {
@@ -131,9 +142,9 @@ size_t PXMClient::packUuid(char *buf, QUuid *uuid)
     return index;
 }
 
-void PXMClient::sendIpsSlot(evutil_socket_t s, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid)
+void PXMClient::sendIpsSlot(bufferevent *bev, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid)
 {
-    this->sendMsg(s, msg, len, type, uuid, theiruuid);
+    this->sendMsg(bev, msg, len, type, uuid, theiruuid);
     delete [] msg;
 }
 

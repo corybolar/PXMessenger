@@ -14,7 +14,6 @@ class PXMSync : public QObject
     Q_OBJECT
 public:
     PXMSync(QObject *parent);
-    int iterator = 0;
     void setsyncHash(QHash<QUuid, peerDetails> *hash);
     QHash<QUuid, peerDetails>::iterator hashIterator;
     void setIteratorToStart();
@@ -24,7 +23,7 @@ public slots:
     void syncNext();
 
 signals:
-    void requestIps(evutil_socket_t, QUuid);
+    void requestIps(bufferevent*, QUuid);
     void syncComplete();
 };
 

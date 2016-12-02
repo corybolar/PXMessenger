@@ -44,7 +44,7 @@ void PXMDebugWindow::adjustScrollBar(int i)
 void PXMDebugWindow::rangeChanged(int, int i2)
 {
     if(this->atMaximum)
-        sb->setValue(i2);
+	sb->setValue(i2);
 }
 void PXMDebugWindow::xdebug(QString str)
 {

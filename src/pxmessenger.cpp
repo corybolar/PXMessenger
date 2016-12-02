@@ -70,6 +70,13 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
 int main(int argc, char **argv)
 {
     qInstallMessageHandler(debugMessageOutput);
+#ifdef _WIN32
+    qRegisterMetaType<intptr_t>("intptr_t");
+#endif
+    qRegisterMetaType<sockaddr_in>();
+    qRegisterMetaType<size_t>("size_t");
+    qRegisterMetaType<bufferevent*>();
+
     QApplication app (argc, argv);
 
 #ifdef _WIN32
@@ -84,7 +91,7 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.1");
+    QApplication::setApplicationVersion("1.1.1");
 
     MessIniReader iniReader;
     initialSettings presets;
@@ -141,7 +148,6 @@ int main(int argc, char **argv)
     presets.preventFocus = iniReader.getFocus();
 
     PXMWindow window(presets);
-    //window.show();
 
     int result = app.exec();
 

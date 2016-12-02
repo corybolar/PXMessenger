@@ -2,21 +2,29 @@
 
 PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QString uuid, PXMServer *server) : QObject(parent)
 {
+    //Init
+    areWeSyncing = false;
+    waitingOnIpsFrom = QUuid();
+    //End of Init
+
     localHostname = hostname;
     localUUID = uuid;
     realServer = server;
     syncer = new PXMSync(this);
     QObject::connect(syncer, &PXMSync::requestIps, this, &PXMPeerWorker::requestIps);
     QObject::connect(syncer, &PXMSync::syncComplete, this, &PXMPeerWorker::doneSync);
+
     srand (time(NULL));
+
     syncTimer = new QTimer(this);
     syncTimer->setInterval((rand() % 300000) + 900000);
-    //syncTimer->setInterval(10000);
     QObject::connect(syncTimer, &QTimer::timeout, this, &PXMPeerWorker::beginSync);
     syncTimer->start();
+
     nextSyncTimer = new QTimer(this);
     nextSyncTimer->setInterval(2000);
     QObject::connect(nextSyncTimer, &QTimer::timeout, syncer, &PXMSync::syncNext);
+
 }
 PXMPeerWorker::~PXMPeerWorker()
 {
@@ -26,6 +34,26 @@ PXMPeerWorker::~PXMPeerWorker()
     {
         qDeleteAll(itr.messages);
     }
+
+    int count = 0;
+    for(auto &itr : peerDetailsHash)
+    {
+        if(itr.bev != nullptr)
+        {
+            bufferevent_free(itr.bev);
+            count++;
+        }
+        evutil_closesocket(itr.socketDescriptor);
+    }
+    qDebug() << "freed" << count << "bufferevents";
+
+    count = 0;
+    for(auto &itr : extraBufferevents)
+    {
+        bufferevent_free(itr);
+        count++;
+    }
+    qDebug() << "freed" << count << "extra bufferevents";
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
 
@@ -102,19 +130,19 @@ void PXMPeerWorker::hostnameCheck(char *ipHeapArray, size_t len, QUuid senderUui
 
     delete [] ipHeapArray;
 }
-void PXMPeerWorker::newTcpConnection(evutil_socket_t s)
+void PXMPeerWorker::newTcpConnection(bufferevent *bev)
 {
-    this->sendIdentityMsg(s);
+    this->sendIdentityMsg(bev);
 }
-void PXMPeerWorker::sendIdentityMsg(evutil_socket_t s)
+void PXMPeerWorker::sendIdentityMsg(bufferevent *bev)
 {
-    emit sendMsg(s, (localHostname % QStringLiteral("::::") % ourListenerPort).toUtf8(), "/uuid", localUUID, "");
+    emit sendMsg(bev, (localHostname % QStringLiteral("::::") % ourListenerPort).toUtf8(), "/uuid", localUUID, "");
 }
-void PXMPeerWorker::requestIps(evutil_socket_t s, QUuid uuid)
+void PXMPeerWorker::requestIps(bufferevent *bev, QUuid uuid)
 {
     waitingOnIpsFrom = uuid;
-    qDebug() << "Requesting ips from" << s;
-    emit sendMsg(s, "", "/request", localUUID, "");
+    qDebug() << "Requesting ips from" << peerDetailsHash.value(uuid).hostname;
+    emit sendMsg(bev, "", "/request", localUUID, "");
 }
 void PXMPeerWorker::attemptConnection(sockaddr_in addr, QUuid uuid)
 {
@@ -125,14 +153,15 @@ void PXMPeerWorker::attemptConnection(sockaddr_in addr, QUuid uuid)
 
     evutil_socket_t s = socket(AF_INET, SOCK_STREAM, 0);
     evutil_make_socket_nonblocking(s);
-    struct bufferevent *bev = bufferevent_socket_new(PXMServer::base, s, 0);
+    struct bufferevent *bev = bufferevent_socket_new(PXMServer::base, s, BEV_OPT_THREADSAFE);
+    //<struct bufferevent> bev= bufferevent_socket_new(PXMServer::base, s, BEV_OPT_THREADSAFE);
 
     peerDetailsHash[uuid].identifier = uuid;
     peerDetailsHash[uuid].socketDescriptor = s;
     peerDetailsHash[uuid].isConnected = true;
     peerDetailsHash[uuid].ipAddressRaw = addr;
 
-    emit connectToPeer(s, addr, (void*)bev);
+    emit connectToPeer(s, addr, bev);
 }
 void PXMPeerWorker::setPeerHostname(QString hname, QUuid uuid)
 {
@@ -143,9 +172,8 @@ void PXMPeerWorker::setPeerHostname(QString hname, QUuid uuid)
     }
     return;
 }
-void PXMPeerWorker::peerQuit(evutil_socket_t s, void *bevptr)
+void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent *bev)
 {
-    bufferevent *bev = static_cast<bufferevent*>(bevptr);
     for(auto &itr : peerDetailsHash)
     {
         if(itr.socketDescriptor == s)
@@ -189,16 +217,16 @@ size_t PXMPeerWorker::packUuid(char *buf, QUuid *uuid)
 
     return index;
 }
-void PXMPeerWorker::sendIps(evutil_socket_t i)
+void PXMPeerWorker::sendIps(bufferevent *bev, QUuid uuid)
 {
-    qDebug() << "Sending ips to" << i;
+    qDebug() << "Sending ips to" << peerDetailsHash.value(uuid).hostname;
     char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + PACKED_UUID_BYTE_LENGTH) + 1];
     //size_t index = 1;
     size_t index = 0;
     //msgRaw[0] = 0;
     for(auto & itr : peerDetailsHash)
     {
-        if(itr.isConnected)
+        if(itr.isAuthenticated)
         {
             memcpy(msgRaw + index, &(itr.ipAddressRaw.sin_addr.s_addr),sizeof(uint32_t));
             index += sizeof(uint32_t);
@@ -209,10 +237,11 @@ void PXMPeerWorker::sendIps(evutil_socket_t i)
     }
     //emit sendMsg(i, QByteArray::fromRawData(msgRaw, index), "/ip", localUUID, "");
     msgRaw[index+1] = 0;
-    emit sendIpsPacket(i, msgRaw, index, "/ip", localUUID, "");
+
+    emit sendIpsPacket(bev, msgRaw, index, "/ip", localUUID, "");
 }
 
-void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result, void *bevptr)
+void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent *bev)
 {
     QUuid uuid;
     for(auto &itr : peerDetailsHash)
@@ -225,17 +254,16 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
     if(uuid.isNull())
         return;
 
-    struct bufferevent *bev = static_cast<bufferevent*>(bevptr);
     if(result)
     {
         bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
-        bufferevent_enable(bev, EV_READ);
+        bufferevent_enable(bev, EV_READ|EV_WRITE);
         if(peerDetailsHash[uuid].bev != nullptr)
             bufferevent_free(peerDetailsHash[uuid].bev);
         peerDetailsHash[uuid].bev = bev;
 
-        emit sendIdentityMsg(socket);
+        emit sendIdentityMsg(bev);
     }
     else
     {
@@ -253,7 +281,7 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
     {
         if(levelOfSuccess < 0)
         {
-            msg = QStringLiteral("Message was not sent successfully, Broken Pipe.  Peer likely disconnected");
+            msg = QStringLiteral("Message was not sent successfully, Broken Pipe.  Peer is disconnected");
             //peerQuit(peerDetailsHash.value(uuid).socketDescriptor, peerDetailsHash.value(uuid).bev);
         }
         else if(levelOfSuccess > 0)
@@ -271,15 +299,14 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
     //if(levelOfSuccess<0)
         //peerQuit(peerDetailsHash.value(uuid).socketDescriptor, peerDetailsHash.value(uuid).bev);
 }
-void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, void *bevptr)
+void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, bufferevent *bev)
 {
     if(uuid.isNull())
     {
         evutil_closesocket(s);
-        bufferevent_free(static_cast<struct bufferevent*>(bevptr));
+        bufferevent_free(bev);
         return;
     }
-    struct bufferevent *bev = static_cast<struct bufferevent*>(bevptr);
     struct sockaddr_in addr;
     socklen_t socklen = sizeof(addr);
     memset(&addr, 0, socklen);
@@ -302,5 +329,5 @@ void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, e
     peerDetailsHash[uuid].ipAddressRaw = addr;
 
     emit updateListWidget(uuid);
-    emit requestIps(s, uuid);
+    emit requestIps(bev, uuid);
 }

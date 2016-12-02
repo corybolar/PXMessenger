@@ -1,19 +1,13 @@
 #include <pxmmainwindow.h>
 
-#ifdef _WIN32
-Q_DECLARE_METATYPE(intptr_t)
-#endif
-Q_DECLARE_METATYPE(sockaddr_in)
-Q_DECLARE_METATYPE(size_t)
-Q_DECLARE_METATYPE(QTextCursor)
 PXMWindow::PXMWindow(initialSettings presets)
 {
-#ifdef _WIN32
-    qRegisterMetaType<intptr_t>("intptr_t");
-#endif
-    qRegisterMetaType<sockaddr_in>();
-    qRegisterMetaType<size_t>("size_t");
-    qRegisterMetaType<QTextCursor>();
+    //Init
+    localHostname = QString();
+    globalChatAlerted = false;
+    multicastFunctioning = false;
+    debugWindow = nullptr;
+    //End of Init
 
     debugWindow = new PXMDebugWindow();
     QObject::connect(debugWindow->pushButton, SIGNAL(clicked(bool)), this, SLOT(printInfoToDebug()));
@@ -34,42 +28,17 @@ PXMWindow::PXMWindow(initialSettings presets)
 
     peerWorker = new PXMPeerWorker(this, localHostname, ourUUIDString, messServer);
 
-    setupLayout();
-
-    createTextBrowser();
-
-    createTextEdit();
-
-    createLineEdit();
-
-    createButtons();
-
-    createListWidget();
-
-    createSystemTray();
-
-    createCheckBoxes();
-
-    setupMenuBar();
-
-    setupTooltips();
+    createMessClient();
 
     createMessServ();
 
-    createMessClient();
-
-    createMessTime();
-
-    connectGuiSignalsAndSlots();
-
     connectPeerClassSignalsAndSlots();
 
-    this->setCentralWidget(centralwidget);
+    setupGui();
 
     focusCheckBox->setChecked(presets.preventFocus);
     muteCheckBox->setChecked(presets.mute);
 
-    this->show();
     this->resize(presets.windowSize);
 
     QTimer::singleShot(5000, this, SLOT(discoveryTimerSingleShot()));
@@ -78,21 +47,30 @@ PXMWindow::PXMWindow(initialSettings presets)
     midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
     QObject::connect(midnightTimer, &QTimer::timeout, this, &PXMWindow::midnightTimerPersistent);
     midnightTimer->start();
-
-    //QObject::connect(messServer, SIGNAL(debug(QString)),
-    //                 PXMDebugWindow::textEdit, SLOT(append(QString)), Qt::QueuedConnection);
 }
 PXMWindow::~PXMWindow()
 {
     midnightTimer->stop();
 
+    peerWorker->disconnect(messServer);
     delete peerWorker;
-    qDebug() << "Deletion of PXMPeerWorker Successful";
 
-    qDebug() << "Shutdown of PXMServerThread Successful";
+    if(messServer != 0 && messServer->isRunning())
+    {
+        bufferevent_write(closeBev, "/exit", 5);
+        messServer->wait(5000);
+    }
+    qDebug() << "Shutdown of PXMServer Successful";
+
+    if(messClientThread != 0 && messClientThread->isRunning())
+    {
+        messClientThread->quit();
+        messClientThread->wait(5000);
+    }
+    qDebug() << "Shutdown of PXMClientThread Successful";
+
     delete messClient;
     qDebug() << "Deletion of PXMClient Successful";
-
 
     qDeleteAll(globalChat);
 
@@ -277,6 +255,37 @@ void PXMWindow::createCheckBoxes()
 
     layout->addWidget(focusCheckBox, 5, 3, 1, 1);
 }
+
+void PXMWindow::setupGui()
+{
+    setupLayout();
+
+    createTextBrowser();
+
+    createTextEdit();
+
+    createLineEdit();
+
+    createButtons();
+
+    createListWidget();
+
+    createSystemTray();
+
+    createCheckBoxes();
+
+    setupMenuBar();
+
+    setupTooltips();
+
+    createMessTime();
+
+    connectGuiSignalsAndSlots();
+
+    this->setCentralWidget(centralwidget);
+
+    this->show();
+}
 void PXMWindow::createMessClient()
 {
     messClientThread = new QThread(this);
@@ -332,6 +341,8 @@ void PXMWindow::createMessServ()
     QObject::connect(messServer, &PXMServer::setListenerPort, this, &PXMWindow::setListenerPort);
     QObject::connect(messServer, &PXMServer::libeventBackend, this, &PXMWindow::setlibeventBackend);
     QObject::connect(messServer, &PXMServer::setCloseBufferevent, this, &PXMWindow::setCloseBufferevent);
+    QObject::connect(messServer, &PXMServer::setSelfCommsBufferevent, this, &PXMWindow::setSelfCommsBufferevent);
+    QObject::connect(messServer, &PXMServer::multicastIsFunctional, this, &PXMWindow::multicastIsFunctional);
     QObject::connect(messServer, SIGNAL(xdebug(QString)),
                      debugWindow, SLOT(xdebug(QString)), Qt::QueuedConnection);
     messServer->start();
@@ -380,9 +391,19 @@ void PXMWindow::setlibeventBackend(QString str)
 {
     libeventBackend = str;
 }
-void PXMWindow::setCloseBufferevent(void *bev)
+void PXMWindow::setCloseBufferevent(bufferevent *bev)
 {
-    closeBev = static_cast<bufferevent*>(bev);
+    closeBev = bev;
+}
+void PXMWindow::setSelfCommsBufferevent(bufferevent *bev)
+{
+    peerWorker->peerDetailsHash[ourUUIDString].bev = bev;
+    peerWorker->peerDetailsHash[ourUUIDString].hostname = localHostname;
+    peerWorker->peerDetailsHash[ourUUIDString].identifier = ourUUIDString;
+    peerWorker->peerDetailsHash[ourUUIDString].isAuthenticated = false;
+    peerWorker->peerDetailsHash[ourUUIDString].isConnected = true;
+    peerWorker->peerDetailsHash[ourUUIDString].socketDescriptor = -1;
+    updateListWidget(ourUUIDString);
 }
 
 void PXMWindow::printInfoToDebug()
@@ -473,31 +494,19 @@ QString PXMWindow::getFormattedTime()
 void PXMWindow::midnightTimerPersistent()
 {
     QDateTime dt = QDateTime::currentDateTime();
-    if(dt.time() <= QTime(0, (MIDNIGHT_TIMER_INTERVAL_MINUTES*60000/60000), 0, 0))
+    if(dt.time() <= QTime(0, MIDNIGHT_TIMER_INTERVAL_MINUTES, 0, 0))
     {
-        QString str = "";
-        int len = dt.date().toString().length();
-        for(int i = 0; i < len+50; i++)
-        {
-            str.append('-');
-        }
+        QString str = QString();
+        QString dashes = "-------------------------------";
         str.append("\n");
-        str.append('|');
-        for(int i = 0; i < 24; i++)
-        {
-            str.append(' ');
-        }
+        str.append("<center>");
+        str.append(dashes.right(7));
+        str.append(' ');
         str.append(dt.date().toString());
-        for(int i = 0; i < 24; i++)
-        {
-            str.append(' ');
-        }
-        str.append('|');
+        str.append(' ');
+        str.append(dashes.right(7));
+        str.append("<center>");
         str.append("\n");
-        for(int i = 0; i < len+50; i++)
-        {
-            str.append('-');
-        }
         for(auto &itr : peerWorker->peerDetailsHash)
         {
             printToTextBrowser(str, itr.identifier, false, false);
@@ -520,11 +529,10 @@ void PXMWindow::discoveryTimerPersistent()
 }
 void PXMWindow::discoveryTimerSingleShot()
 {
-    if(messListWidget->count() < 3)
+    if(!multicastFunctioning)
     {
         QMessageBox::warning(this, "Network Problem", "Could not find anyone, even ourselves, on the network\nThis could indicate a problem with your configuration\n\nWe'll keep looking...");
     }
-
     if(messListWidget->count() < 4)
     {
         discoveryTimer= new QTimer(this);
@@ -538,6 +546,10 @@ void PXMWindow::discoveryTimerSingleShot()
     {
         qDebug() << "Found enough peers";
     }
+}
+void PXMWindow::multicastIsFunctional()
+{
+    multicastFunctioning = true;
 }
 void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
@@ -608,7 +620,9 @@ void PXMWindow::currentItemChanged(QListWidgetItem *item1)
     else
     {
         for(auto &itr : peerWorker->peerDetailsHash.value(uuid1).messages)
+        {
             messTextBrowser->append(*itr);
+        }
     }
     if(item1->background() == Qt::red)
     {
@@ -666,41 +680,6 @@ void PXMWindow::closeEvent(QCloseEvent *event)
     iniReader.setMute(muteCheckBox->isChecked());
     iniReader.setFocus(focusCheckBox->isChecked());
     qDebug() << "ini done";
-    int count = 0;
-    qDebug() << "Disconnect signals...";
-    QObject::disconnect(messServer, &PXMServer::peerQuit, peerWorker, &PXMPeerWorker::peerQuit);
-    qDebug() << "PeerWorker signals disconnected";
-    for(auto &itr : peerWorker->peerDetailsHash)
-    {
-        if(itr.bev != nullptr)
-        {
-            bufferevent_free(itr.bev);
-            count++;
-        }
-        evutil_closesocket(itr.socketDescriptor);
-    }
-    qDebug() << "sockets closed";
-    qDebug() << "freed" << count << "bufferevents";
-    count = 0;
-    for(auto &itr : peerWorker->extraBufferevents)
-    {
-        bufferevent_free(itr);
-        count++;
-    }
-    qDebug() << "freed" << count << "extra bufferevents";
-    if(messServer != 0 && messServer->isRunning())
-    {
-        bufferevent_write(closeBev, "exit", 4);
-        messServer->wait(5000);
-    }
-    qDebug() << "Shutdown of PXMServer Successful";
-
-    if(messClientThread != 0 && messClientThread->isRunning())
-    {
-        messClientThread->quit();
-        messClientThread->wait(5000);
-    }
-    qDebug() << "Shutdown of PXMClientThread Successful";
 
     qDebug() << "closeEvent calling event->accept()";
     event->accept();
@@ -711,7 +690,8 @@ void PXMWindow::globalSend(QByteArray msg)
     {
         if(itr.isConnected)
         {
-            emit sendMsg(itr.socketDescriptor,  msg, "/global", ourUUIDString, itr.identifier);
+            //bufferevent_lock(itr.bev);
+            emit sendMsg(itr.bev,  msg, "/global", ourUUIDString, QUuid());
         }
     }
     messTextEdit->setText("");
@@ -726,7 +706,8 @@ void PXMWindow::sendButtonClicked()
     }
 
     QByteArray msg = messTextEdit->toPlainText().toUtf8();
-    //QString str = messTextEdit->toHtml();
+    //QByteArray msg = messTextEdit->toHtml().toUtf8();
+    //int len1 = msg.length();
     if(!(msg.isEmpty()))
     {
         int index = messListWidget->currentRow();
@@ -741,11 +722,8 @@ void PXMWindow::sendButtonClicked()
             messTextEdit->setText("");
             return;
         }
-        //if(!(destination.isConnected))
-        //{
-            //peerWorker->attemptConnection(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).ipAddressRaw, uuidOfSelectedItem);
-        //}
-        emit sendMsg(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).socketDescriptor, msg, "/msg", ourUUIDString, uuidOfSelectedItem);
+        //bufferevent_lock(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).bev);
+        emit sendMsg(peerWorker->peerDetailsHash.value(uuidOfSelectedItem).bev, msg, "/msg", ourUUIDString, uuidOfSelectedItem);
         messTextEdit->setText("");
     }
 
@@ -831,9 +809,8 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert, bool for
     {
         if(uuid == messListWidget->currentItem()->data(Qt::UserRole))
         {
-            messTextBrowser->append(str);
+            messTextBrowser->append(str.toHtmlEscaped());
             //messTextBrowser->insertHtml(str);
-            //messTextBrowser->append("");
             if(alert)
                 this->focusWindow();
             return;
@@ -854,17 +831,23 @@ void PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert, bool for
  * @param ipstr				The ip address of the peer this message has come from
  * @param global			Whether this message should be displayed in the global textbox
  */
-void PXMWindow::printToTextBrowserServerSlot(QString msg, QUuid uuid, evutil_socket_t socket, bool global)
+void PXMWindow::printToTextBrowserServerSlot(QString msg, QUuid uuid, bufferevent* bev, bool global)
 {
     if(uuid != ourUUIDString)
     {
-        if(peerWorker->peerDetailsHash.value(uuid).socketDescriptor != socket)
+        if( !( peerWorker->peerDetailsHash.contains(uuid) ) )
+        {
+            qDebug() << "Message from invalid uuid, rejection";
+            return;
+        }
+
+        if(peerWorker->peerDetailsHash.value(uuid).bev != bev)
         {
             bool foundIt = false;
             QUuid uuidSpoofer = "";
             for(auto &itr : peerWorker->peerDetailsHash)
             {
-                if(itr.socketDescriptor == socket)
+                if(itr.bev == bev)
                 {
                     foundIt = true;
                     uuidSpoofer = itr.identifier;
@@ -879,18 +862,12 @@ void PXMWindow::printToTextBrowserServerSlot(QString msg, QUuid uuid, evutil_soc
         }
     }
 
-    if( !( peerWorker->peerDetailsHash.contains(uuid) ) )
-    {
-        qDebug() << "Message from invalid uuid, rejection";
-        return;
-    }
-    else
-    {
-        msg.prepend(peerWorker->peerDetailsHash.value(uuid).hostname % ": ");
-    }
+    msg.prepend(peerWorker->peerDetailsHash.value(uuid).hostname % ": ");
+
     if(global)
     {
         uuid = globalChatUuid;
     }
+
     this->printToTextBrowser(msg, uuid, true, true);
 }

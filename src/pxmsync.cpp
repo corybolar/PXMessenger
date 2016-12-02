@@ -2,7 +2,6 @@
 
 PXMSync::PXMSync(QObject *parent) : QObject(parent)
 {
-
 }
 
 void PXMSync::syncNext()
@@ -18,7 +17,7 @@ void PXMSync::syncNext()
     }
     else
     {
-        emit requestIps(hashIterator.value().socketDescriptor, hashIterator.value().identifier);
+        emit requestIps(hashIterator.value().bev, hashIterator.value().identifier);
     }
     hashIterator++;
 }

@@ -13,6 +13,8 @@
 #include <stdlib.h>
 
 #include <event2/event.h>
+#include <event2/bufferevent.h>
+#include <event2/buffer.h>
 
 #include "pxmdefinitions.h"
 
@@ -53,7 +55,7 @@ public slots:
      * \return emits a resultsOfTCPSend()
      * \see man send
      */
-    void sendMsg(evutil_socket_t socketfd, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver);
+    void sendMsg(bufferevent *bev, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver);
     /*!
      * \brief sendMsgSlot
      *
@@ -66,7 +68,7 @@ public slots:
      * 			included in packet
      * \see sendMsg()
      */
-    void sendMsgSlot(evutil_socket_t s, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid);
+    void sendMsgSlot(bufferevent *bev, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid);
     /*!
      * \brief sendUDP
      *
@@ -89,12 +91,12 @@ public slots:
      * \see man connect
      */
     void connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bevptr);
-    void sendIpsSlot(int s, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid);
+    void sendIpsSlot(bufferevent *bev, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid);
 private:
     int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
-    static void connectCallBack(bufferevent *bev, short event, void *arg);
+    static void connectCB(bufferevent *bev, short event, void *arg);
 signals:
-    void resultOfConnectionAttempt(evutil_socket_t, bool, void*);
+    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*);
     void resultOfTCPSend(unsigned int, QUuid, QString, bool);
     void xdebug(QString);
 };
