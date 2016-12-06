@@ -8,7 +8,6 @@ MessIniReader::~MessIniReader()
 {
     delete inisettings;
 }
-
 bool MessIniReader::checkAllowMoreThanOne()
 {
     if(inisettings->contains("config/AllowMoreThanOneInstance"))
@@ -22,7 +21,6 @@ void MessIniReader::setAllowMoreThanOne(bool value)
 {
     inisettings->setValue("config/AllowMoreThanOneInstance", value);
 }
-
 int MessIniReader::getUUIDNumber()
 {
     int i = 0;
@@ -61,39 +59,26 @@ void MessIniReader::setPort(QString protocol, int portNumber)
 }
 unsigned short MessIniReader::getPort(QString protocol)
 {
-    int portNumber = inisettings->value("port/" + protocol, 0).toUInt();
+    unsigned short portNumber = inisettings->value("port/" + protocol, 0).toUInt();
+    return portNumber;
     if( portNumber == 0)
     {
         if(protocol == "UDP")
-            inisettings->setValue("port/" + protocol, 13649);
+            inisettings->setValue("port/" + protocol, 0);
         else
             inisettings->setValue("port/" + protocol, 0);
-        return 0;
     }
-    else
-    {
-        return portNumber;
-    }
-
+    return 0;
 }
 void MessIniReader::setHostname(QString hostname)
 {
-    inisettings->setValue("hostname/hostname", hostname.left(255));
-
+    inisettings->setValue("hostname/hostname", hostname.left(MAX_HOSTNAME_LENGTH));
 }
 QString MessIniReader::getHostname(QString defaultHostname)
 {
-    QString hostname = inisettings->value("hostname/hostname", "").toString();
-    if(hostname.isEmpty())
-    {
-        inisettings->setValue("hostname/hostname", defaultHostname);
-        return defaultHostname;
-    }
-    else
-    {
-        return hostname.left(255);
-    }
+    QString hostname = inisettings->value("hostname/hostname", defaultHostname).toString();
 
+    return hostname.left(MAX_HOSTNAME_LENGTH);
 }
 void MessIniReader::setWindowSize(QSize windowSize)
 {
@@ -111,7 +96,6 @@ QSize MessIniReader::getWindowSize(QSize defaultSize)
         inisettings->setValue("WindowSize/QSize", windowSize);
         return windowSize;
     }
-
 }
 void MessIniReader::setMute(bool mute)
 {
@@ -137,4 +121,34 @@ void MessIniReader::setFont(QString font)
 {
     inisettings->setValue("config/Font", font);
 }
+QString MessIniReader::getMulticastAddress()
+{
+    QString ipFull = inisettings->value("net/MulticastAddress", "").toString();
+    if(ipFull.isEmpty())
+    {
+        return QString("");
+    }
+    QStringList ipList = ipFull.split(".");
+    for(int i = 0; i < 4; i++)
+    {
+        if(ipList[i].toUInt() > 255)
+            ipList[i] = "0";
+    }
 
+    return ipList.join("");
+}
+int MessIniReader::setMulticastAddress(QStringList ip)
+{
+    QString ipFull = QString();
+    for(int i = 0; i < 4; i++)
+    {
+        if(ip[i].toUInt() > 255)
+            return -1;
+        ip.append(ip[i] + QString("."));
+    }
+    ipFull.chop(1);
+
+    inisettings->setValue("net/MulticastAddress", ipFull);
+
+    return 0;
+}

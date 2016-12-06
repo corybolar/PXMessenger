@@ -2,14 +2,14 @@
 #include <QDir>
 #include <QLockFile>
 #include <QFontDatabase>
-#include <pxminireader.h>
-#include <pxmdefinitions.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 
-#include <pxmmainwindow.h>
-#include <pxmdebugwindow.h>
+#include "pxmmainwindow.h"
+#include "pxmdebugwindow.h"
+#include "pxminireader.h"
+#include "pxmdefinitions.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -77,11 +77,10 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.1.1");
+    QApplication::setApplicationVersion("1.2.0");
 
     MessIniReader iniReader;
     initialSettings presets;
-    char localHostname[250];
 
     QFont font;
     if(!(iniReader.getFont().isEmpty()))
@@ -91,18 +90,21 @@ int main(int argc, char **argv)
     }
 
 #ifdef _WIN32
-    char user[UNLEN+1];
+    char localHostname[UNLEN+1];
     TCHAR t_user[UNLEN+1];
     DWORD user_size = UNLEN+1;
     if(GetUserName(t_user, &user_size))
-    {
-        wcstombs(user, t_user, UNLEN+1);
-        strcpy(localHostname, user);
-    }
+        wcstombs(localHostname, t_user, UNLEN+1);
+    else
+        strcpy(localHostname, "user\0");
 #else
+    char localHostname[sysconf(_SC_GETPW_R_SIZE_MAX)];
     struct passwd *user;
     user = getpwuid(getuid());
-    strcpy(localHostname, user->pw_name);
+    if(!user)
+        strcpy(localHostname, "user\0");
+    else
+        strcpy(localHostname, user->pw_name);
 #endif
 
     QString tmpDir = QDir::tempPath();

@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QDebug>
+#include <QDialog>
 
 #define DEBUG_WINDOW_HISTORY_LIMIT 5000
 

@@ -1,7 +1,7 @@
 #include <pxmserver.h>
 
 struct event_base* PXMServer::base = nullptr;
-PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort) : QThread(parent)
+PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast) : QThread(parent)
 {
     //Init
     gotDiscover = false;
@@ -9,18 +9,21 @@ PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udp
 
     tcpListenerPort = tcpPort;
     udpListenerPort = udpPort;
+    multicastAddress = multicast;
     this->setObjectName("PXMServer");
 }
 PXMServer::~PXMServer()
 {
 }
-void PXMServer::setLocalHostname(QString hostname)
+int PXMServer::setLocalHostname(QString hostname)
 {
     localHostname = hostname;
+    return 0;
 }
-void PXMServer::setLocalUUID(QString uuid)
+int PXMServer::setLocalUUID(QUuid uuid)
 {
     localUUID = uuid;
+    return 0;
 }
 void PXMServer::accept_new(evutil_socket_t s, short, void *arg)
 {
@@ -32,7 +35,6 @@ void PXMServer::accept_new(evutil_socket_t s, short, void *arg)
     socklen_t addr_size = sizeof(ss);
 
     result = (accept(s, (struct sockaddr *)&ss, &addr_size));
-    //realServer->xdebug(QString::number(FD_SETSIZE));
     if(result < 0)
     {
         qDebug() << "accept: " << QString::fromUtf8(strerror(errno));
@@ -45,6 +47,7 @@ void PXMServer::accept_new(evutil_socket_t s, short, void *arg)
         bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
         bufferevent_setwatermark(bev, EV_READ, 2, sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ|EV_WRITE);
+
         realServer->newTCPConnection(bev);
     }
 }
@@ -253,7 +256,7 @@ int PXMServer::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bufLe
     else if(!(strncmp(buf, "/namerequest", 12)))
     {
         qDebug() << "/namerequest received from";
-        emit sendName(bev, quuid.toString(), localUUID);
+        //emit sendName(bev, quuid.toString(), localUUID);
     }
     else
     {
@@ -263,7 +266,7 @@ int PXMServer::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bufLe
 
     return 0;
 }
-QUuid PXMServer::unpackUUID(unsigned char *src)
+QUuid PXMServer::unpackUUID(const unsigned char *src)
 {
     QUuid uuid;
     size_t index = 0;
@@ -287,6 +290,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     char buf[100] = {};
 
     recvfrom(socketfd, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
+    //qDebug() << inet_ntoa(si_other.sin_addr);
 
     if (strncmp(buf, "/discover", 9) == 0)
     {
@@ -298,13 +302,14 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         evutil_socket_t replySocket;
         if ( (replySocket = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
             qDebug() << "socket: " + QString::fromUtf8(strerror(errno));
+
         si_other.sin_port = htons(realServer->udpListenerPort);
 
-        char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.length() + 7];
+        char name[QString::number(realServer->tcpListenerPort).length() + realServer->localUUID.toByteArray().length() + 7];
 
         strcpy(name, "/name:");
         snprintf(&name[6], sizeof(name), "%d", realServer->tcpListenerPort);
-        strcat(name, realServer->localUUID.toStdString().c_str());
+        strcat(name, realServer->localUUID.toByteArray().constData());
 
         int len = strlen(name);
 
@@ -324,7 +329,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         QUuid uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
 
         si_other.sin_port = htons(portNumber.toInt());
-        realServer->attemptConnection(si_other, uuid);
+        realServer->connectionCheck(si_other, uuid);
     }
     else
     {
@@ -353,21 +358,35 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 
     evutil_socket_t socketUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
+    multicastGroup.imr_multiaddr = multicastAddress;
+    multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
+    if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
+    {
+        qDebug() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        evutil_closesocket(socketUDP);
+        return -1;
+    }
+
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
     si_me.sin_port = htons(udpListenerPort);
+    //si_me.sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
     si_me.sin_addr.s_addr = INADDR_ANY;
 
     if(setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int)) < 0)
+    {
         qDebug() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        evutil_closesocket(socketUDP);
+        return -1;
+    }
 
     evutil_make_socket_nonblocking(socketUDP);
 
     if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
     {
         qDebug() << "bind: " + QString::fromUtf8(strerror(errno));
-        close(socketUDP);
-        exit(1);
+        evutil_closesocket(socketUDP);
+        return -1;
     }
 
     tcpListenerPort = getPortNumber(s_listen);
@@ -378,10 +397,6 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 
     qDebug() << "Port number for Multicast: " + QString::number(udpSocketNumber);
 
-    multicastGroup.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDRESS);
-    multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
-    if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
-        qDebug() << "setsockopt: " + QString::fromUtf8(strerror(errno));
 
     //send our discover packet to find other computers
     emit sendUDP("/discover:", udpSocketNumber);
@@ -416,7 +431,7 @@ evutil_socket_t PXMServer::setupTCPSocket()
     if(listen(socketTCP, BACKLOG) < 0)
         qDebug() << "listen: " + QString::fromUtf8(strerror(errno));
 
-    qDebug() << "Port number for TCP/IP Listner " + QString::number(getPortNumber(socketTCP));
+    qDebug() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
 
     freeaddrinfo(res);
 
@@ -436,6 +451,7 @@ void PXMServer::run()
 {
     evutil_socket_t s_discover, s_listen;
     struct event *eventAccept, *eventDiscover;
+    int failureCodes;
 #ifdef _WIN32
     evthread_use_windows_threads();
 #else
@@ -445,33 +461,14 @@ void PXMServer::run()
     base = event_base_new();
 
     if(!base)
+    {
+        qDebug() << "FATAL:event_base_new returned NULL";
+        serverSetupFailure();
         return;
+    }
 
     qDebug() << "Using " + QString::fromUtf8(event_base_get_method(base)) + " as the libevent backend";
     emit libeventBackend(QString::fromUtf8(event_base_get_method(base)));
-
-    //TCP STUFF
-    s_listen = setupTCPSocket();
-
-    //UDP STUFF
-    s_discover = setupUDPSocket(s_listen);
-
-    eventDiscover = event_new(base, s_discover, EV_READ|EV_PERSIST, udpRecieve, this);
-
-    event_add(eventDiscover, NULL);
-
-    eventAccept = event_new(base, s_listen, EV_READ|EV_PERSIST, accept_new, this);
-
-    event_add(eventAccept, NULL);
-
-    //Pair to shutdown server
-    struct bufferevent *closePair[2];
-    bufferevent_pair_new(base, BEV_OPT_THREADSAFE, closePair);
-    bufferevent_setcb(closePair[0], PXMServer::stopLoopBufferevent, NULL, NULL, NULL);
-    bufferevent_enable(closePair[0], EV_READ);
-    bufferevent_enable(closePair[1], EV_WRITE);
-
-    emit setCloseBufferevent(closePair[1]);
 
     //Pair for self communication
     struct bufferevent *selfCommsPair[2];
@@ -483,12 +480,74 @@ void PXMServer::run()
 
     emit setSelfCommsBufferevent(selfCommsPair[1]);
 
-    event_base_dispatch(PXMServer::base);
+    //TCP STUFF
+    s_listen = setupTCPSocket();
+    if(s_listen < 0)
+    {
+        qDebug() << "FATAL:TCP socket setup has failed";
+        serverSetupFailure();
+        return;
+    }
+
+    //UDP STUFF
+    s_discover = setupUDPSocket(s_listen);
+    if(s_discover < 0)
+    {
+        qDebug() << "FATAL:UDP socket setup has failed";
+        serverSetupFailure();
+        return;
+    }
+
+    eventDiscover = event_new(base, s_discover, EV_READ|EV_PERSIST, udpRecieve, this);
+    if(!eventDiscover)
+    {
+        qDebug() << "FATAL:event_new returned NULL";
+        serverSetupFailure();
+        return;
+    }
+
+    failureCodes = event_add(eventDiscover, NULL);
+    if(failureCodes < 0)
+    {
+        qDebug() << "FATAL:event_add returned -1";
+        serverSetupFailure();
+        return;
+    }
+
+    eventAccept = event_new(base, s_listen, EV_READ|EV_PERSIST, accept_new, this);
+    if(!eventAccept)
+    {
+        qDebug() << "FATAL:event_new returned NULL";
+        serverSetupFailure();
+        return;
+    }
+
+    failureCodes = event_add(eventAccept, NULL);
+    if(failureCodes < 0)
+    {
+        qDebug() << "FATAL:event_add returned -1";
+        serverSetupFailure();
+        return;
+    }
+
+    //Pair to shutdown server
+    struct bufferevent *closePair[2];
+    bufferevent_pair_new(base, BEV_OPT_THREADSAFE, closePair);
+    bufferevent_setcb(closePair[0], PXMServer::stopLoopBufferevent, NULL, NULL, NULL);
+    bufferevent_enable(closePair[0], EV_READ);
+    bufferevent_enable(closePair[1], EV_WRITE);
+
+    emit setCloseBufferevent(closePair[1]);
+
+    failureCodes = event_base_dispatch(PXMServer::base);
+    if(failureCodes < 0)
+    {
+        qDebug() << "event_base_dispatch shutdown with error";
+    }
 
     qDebug() << "Freeing events...";
     event_free(eventAccept);
     event_free(eventDiscover);
-    //event_free(eventStopLoop);
 
     bufferevent_free(closePair[1]);
     bufferevent_free(closePair[0]);
@@ -498,6 +557,4 @@ void PXMServer::run()
     event_base_free(base);
 
     qDebug() << "Events free";
-
-    return;
 }

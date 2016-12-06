@@ -17,7 +17,7 @@ void PXMSync::syncNext()
     }
     else
     {
-        emit requestIps(hashIterator.value().bev, hashIterator.value().identifier);
+        emit requestIps(hashIterator.value().bw, hashIterator.value().identifier);
     }
     hashIterator++;
 }

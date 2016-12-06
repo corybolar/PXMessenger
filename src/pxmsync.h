@@ -23,7 +23,7 @@ public slots:
     void syncNext();
 
 signals:
-    void requestIps(bufferevent*, QUuid);
+    void requestIps(BevWrapper*, QUuid);
     void syncComplete();
 };
 

@@ -6,6 +6,7 @@
 #include <QUuid>
 #include <QSettings>
 #include <QSize>
+#include "pxmdefinitions.h"
 
 class MessIniReader
 {
@@ -31,6 +32,8 @@ public:
     int getFontSize();
     void setFontSize(int size);
     void setAllowMoreThanOne(bool value);
+    int setMulticastAddress(QStringList ip);
+    QString getMulticastAddress();
 private:
     QSettings *inisettings;
 };

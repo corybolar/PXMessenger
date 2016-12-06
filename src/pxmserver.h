@@ -44,16 +44,15 @@ const timeval readTimeout {1, 0};
 class PXMServer : public QThread
 {
     Q_OBJECT
-
 public:
-    PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort);
+    PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast);
     void run() Q_DECL_OVERRIDE;
-    void setLocalHostname(QString hostname);
-    void setLocalUUID(QString uuid);
+    int setLocalHostname(QString hostname);
+    int setLocalUUID(QUuid uuid);
     ~PXMServer();
     static void tcpError(bufferevent *bev, short error, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
-    static QUuid unpackUUID(unsigned char *src);
+    static QUuid unpackUUID(const unsigned char *src);
     static void tcpRead(bufferevent *bev, void *arg);
     static void accept_new(evutil_socket_t socketfd, short, void *arg);
     static void udpRecieve(evutil_socket_t socketfd, short, void *args);
@@ -61,9 +60,10 @@ public:
     static struct event_base *base;
 private:
     QString localHostname;
-    QString localUUID;
+    QUuid localUUID;
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
+    in_addr multicastAddress;
     bool gotDiscover;
 
     int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len, QUuid quuid);
@@ -75,7 +75,7 @@ signals:
     void newTCPConnection(bufferevent*);
     void authenticationReceived(QString, unsigned short, evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
-    void attemptConnection(sockaddr_in, QUuid);
+    void connectionCheck(sockaddr_in, QUuid);
     void sendIps(bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
     void hostnameCheck(char*, size_t, QUuid);
@@ -86,6 +86,7 @@ signals:
     void setCloseBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
+    void serverSetupFailure();
 };
 
 #endif // MESS_SERV_H

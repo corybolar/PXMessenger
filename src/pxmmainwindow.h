@@ -98,10 +98,10 @@ private:
     QListWidget *messListWidget;
     QCheckBox *muteCheckBox;
     QCheckBox *focusCheckBox;
-    QThread *messClientThread;
+    QThread *workerThread;
     QTimer *discoveryTimer;
     QTimer *midnightTimer;
-    QString ourUUIDString;
+    QUuid ourUUID;
     QString libeventBackend;
     QFrame *fsep;
     PXMTextEdit *messTextEdit;
@@ -119,6 +119,7 @@ private:
     QUuid globalChatUuid;
     bool globalChatAlerted;
     bool multicastFunctioning;
+    initialSettings presets;
 
     /*!
      * \brief getFormattedTime
@@ -216,14 +217,14 @@ private:
      * its own event loop.  All sending of messages and connecting to other
      * hosts is done in this object.
      */
-    void createMessClient();
+    void startWorkerThread();
     /*!
      * \brief createMessServ
      *
      * Initialize a PXMServer.  A PXMServer subclasses QThread and runs its own
      * event loop.  All receiving of data is done in this object.
      */
-    void createMessServ();
+    void startServerThread();
     /*!
      * \brief createMessTime
      *
@@ -270,9 +271,10 @@ private slots:
     void setCloseBufferevent(bufferevent *bev);
     void setSelfCommsBufferevent(bufferevent *bev);
     void multicastIsFunctional();
+    void serverSetupFailure();
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
-    void sendMsg(bufferevent*, QByteArray, QByteArray, QUuid, QUuid);
+    void sendMsg(BevWrapper*, QByteArray, QByteArray, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
 };

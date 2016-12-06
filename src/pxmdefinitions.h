@@ -9,6 +9,7 @@
 #include <QSize>
 #include <QLinkedList>
 #include <QtAlgorithms>
+#include <QMutex>
 
 #ifdef _WIN32
 Q_DECLARE_METATYPE(intptr_t);
@@ -24,6 +25,23 @@ Q_DECLARE_METATYPE(bufferevent*);
 #define MESSAGE_HISTORY_LENGTH 500
 #define MIDNIGHT_TIMER_INTERVAL_MINUTES 1
 #define DEBUG_PADDING 25
+#define DEFAULT_UDP_PORT 53273
+#define TEXT_EDIT_MAX_LENGTH 2000
+#define MAX_HOSTNAME_LENGTH 24
+
+class BevWrapper {
+public:
+    BevWrapper(bufferevent *buf) : bev(buf) {}
+    BevWrapper() : bev(nullptr) {}
+    void setBev(bufferevent *buf) {bev = buf;}
+    bufferevent* getBev() {return bev;}
+    void lockBev() {locker.lock();}
+    void unlockBev() {locker.unlock();}
+    bufferevent *bev;
+
+private:
+    QMutex locker;
+};
 
 struct peerDetails{
     bool isConnected;
@@ -33,7 +51,7 @@ struct peerDetails{
     QString hostname;
     QLinkedList<QString*> messages;
     QUuid identifier;
-    bufferevent *bev;
+    BevWrapper *bw;
     peerDetails()
     {
         isConnected = false;
@@ -43,7 +61,7 @@ struct peerDetails{
         messages = QLinkedList<QString*>();
         hostname = QString();
         identifier = QUuid();
-        bev = nullptr;
+        bw = new BevWrapper();
     }
 };
 struct initialSettings{
@@ -55,6 +73,7 @@ struct initialSettings{
     QString username;
     QSize windowSize;
     QUuid uuid;
+    QString multicast;
     initialSettings()
     {
         uuidNum = 0;
@@ -65,6 +84,11 @@ struct initialSettings{
         username = QString();
         windowSize = QSize(700,500);
         uuid = QUuid();
+        multicast = QString();
     }
 };
+
+
+
+
 #endif
