@@ -60,15 +60,16 @@ void MessIniReader::setPort(QString protocol, int portNumber)
 unsigned short MessIniReader::getPort(QString protocol)
 {
     unsigned short portNumber = inisettings->value("port/" + protocol, 0).toUInt();
-    return portNumber;
     if( portNumber == 0)
     {
-        if(protocol == "UDP")
-            inisettings->setValue("port/" + protocol, 0);
-        else
-            inisettings->setValue("port/" + protocol, 0);
+        inisettings->setValue("port/" + protocol, 0);
     }
-    return 0;
+    else if( portNumber == 13649 )
+    {
+        inisettings->setValue("port/" + protocol, 0);
+        portNumber = 0;
+    }
+    return portNumber;
 }
 void MessIniReader::setHostname(QString hostname)
 {

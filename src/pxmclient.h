@@ -79,7 +79,7 @@ public slots:
      * \param msg Message to send
      * \param port Port to send to in the multicast group
      */
-    void sendUDP(const char *msg, unsigned short port);
+    int sendUDP(const char *msg, unsigned short port);
     /*!
      * \brief connectToPeer
      *

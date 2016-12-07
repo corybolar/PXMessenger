@@ -9,6 +9,8 @@
 #include <QTimer>
 #include <QStringBuilder>
 #include <QBuffer>
+#include <QApplication>
+#include <QDateTime>
 
 #include <sys/unistd.h>
 #include <stdio.h>
@@ -39,13 +41,29 @@ class PXMPeerWorker : public QObject
 {
     Q_OBJECT
 public:
-    explicit PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, PXMServer *server);
-    QHash<QUuid,peerDetails>peerDetailsHash;
-    void setLocalHostName(QString name);
+    explicit PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, QString multicast, PXMServer *server, QUuid globaluuid);
     ~PXMPeerWorker();
     QVector<bufferevent*> extraBufferevents;
+private:
+    Q_DISABLE_COPY(PXMPeerWorker)
+    QHash<QUuid,peerDetails>peerDetailsHash;
+    QString localHostname;
+    QString ourListenerPort;
+    QString ourUDPListenerPort;
+    QString libeventBackend;
+    QString multicastAddress;
+    QUuid localUUID;
+    QUuid waitingOnSyncFrom;
+    QUuid globalUUID;
+    QTimer *syncTimer;
+    QTimer *nextSyncTimer;
+    bool areWeSyncing;
+    PXMServer *realServer;
+    PXMSync *syncer;
+    QVector<BevWrapper*> bwShortLife;
+    void sendIdentityMsg(BevWrapper *bw);
 public slots:
-    void setListenerPort(unsigned short port);
+    void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
     void attemptConnection(sockaddr_in addr, QUuid uuid);
     void authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, bufferevent *bev);
@@ -57,32 +75,28 @@ public slots:
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent *bev);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg, bool print, BevWrapper *bw);
     void currentThreadInit();
-private:
-    Q_DISABLE_COPY(PXMPeerWorker)
-    QString localHostname;
-    QString ourListenerPort;
-    QUuid localUUID;
-    QUuid waitingOnSyncFrom;
-    QTimer *syncTimer;
-    QTimer *nextSyncTimer;
-    bool areWeSyncing;
-    PXMServer *realServer;
-    PXMSync *syncer;
-    QVector<BevWrapper*> bwShortLife;
-    void sendIdentityMsg(BevWrapper *bw);
+    int addMessageToPeer(QString str, QUuid uuid, bool alert, bool formatAsMessage);
+    void printInfoToDebug();
+    void setlibeventBackend(QString str);
+    int recieveServerMessage(QString str, QUuid uuid, bufferevent *bev, bool global);
+    void addMessageToAllPeers(QString str, bool alert, bool formatAsMessage);
+    void printFullHistory(QUuid uuid);
+    void sendMsgAccessor(QByteArray msg, QByteArray type, QUuid uuid1, QUuid uuid2);
+    void setSelfCommsBufferevent(bufferevent *bev);
+private slots:
+    void beginSync();
+    void doneSync();
+    void requestIps(BevWrapper *bw, QUuid uuid);
 signals:
-    void printToTextBrowser(QString, QUuid, bool, bool);
-    void updateListWidget(QUuid);
+    void printToTextBrowser(QString, QUuid, bool);
+    void updateListWidget(QUuid, QString);
     void sendMsg(BevWrapper*, QByteArray, QByteArray, QUuid, QUuid);
     void sendIpsPacket(BevWrapper*, char*, size_t len, QByteArray, QUuid, QUuid);
     void connectToPeer(evutil_socket_t, sockaddr_in, void*);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);
-private slots:
-    void beginSync();
-    void doneSync();
-    void requestIps(BevWrapper *bw, QUuid uuid);
+
 };
 
 #endif

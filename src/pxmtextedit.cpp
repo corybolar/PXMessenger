@@ -1,6 +1,5 @@
 #include <pxmtextedit.h>
 
-
 PXMTextEdit::PXMTextEdit(QWidget *parent) : QTextEdit(parent)
 {
 

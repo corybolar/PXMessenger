@@ -1,6 +1,6 @@
 #include <pxmpeerworker.h>
 
-PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, PXMServer *server) : QObject(parent)
+PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, QString multicast, PXMServer *server, QUuid globaluuid) : QObject(parent)
 {
     //Init
     areWeSyncing = false;
@@ -9,6 +9,8 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, PXMS
 
     localHostname = hostname;
     localUUID = uuid;
+    globalUUID = globaluuid;
+    multicastAddress = multicast;
 
     //Prevent race condition when starting threads, a bufferevent
     //for this (us) is coming soon.
@@ -17,6 +19,12 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, PXMS
     peerDetailsHash[localUUID].socketDescriptor = -1;
     peerDetailsHash[localUUID].isConnected = true;
     peerDetailsHash[localUUID].isAuthenticated = false;
+
+    peerDetailsHash[globalUUID].identifier = globalUUID;
+    peerDetailsHash[globalUUID].hostname = "Global Chat";
+    peerDetailsHash[globalUUID].socketDescriptor = -1;
+    peerDetailsHash[globalUUID].isConnected = true;
+    peerDetailsHash[globalUUID].isAuthenticated = false;
 
     realServer = server;
 }
@@ -53,6 +61,7 @@ PXMPeerWorker::~PXMPeerWorker()
     qDebug() << "freed" << count << "extra bufferevents";
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
+
 void PXMPeerWorker::currentThreadInit()
 {
     syncer = new PXMSync(this);
@@ -70,14 +79,10 @@ void PXMPeerWorker::currentThreadInit()
     nextSyncTimer->setInterval(2000);
     QObject::connect(nextSyncTimer, &QTimer::timeout, syncer, &PXMSync::syncNext);
 }
-
-void PXMPeerWorker::setLocalHostName(QString name)
+void PXMPeerWorker::setListenerPorts(unsigned short tcpport, unsigned short udpport)
 {
-    localHostname = name;
-}
-void PXMPeerWorker::setListenerPort(unsigned short port)
-{
-    ourListenerPort = QString::number(port);
+    ourListenerPort = QString::number(tcpport);
+    ourUDPListenerPort = QString::number(udpport);
 }
 void PXMPeerWorker::doneSync()
 {
@@ -172,7 +177,7 @@ void PXMPeerWorker::setPeerHostname(QString hname, QUuid uuid)
     if(peerDetailsHash.contains(uuid))
     {
         peerDetailsHash[uuid].hostname = hname;
-        emit updateListWidget(uuid);
+        emit updateListWidget(uuid, peerDetailsHash.value(uuid).hostname);
     }
     return;
 }
@@ -254,7 +259,9 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
         }
     }
     if(uuid.isNull())
+    {
         return;
+    }
 
     if(result)
     {
@@ -287,7 +294,7 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
     {
         if(levelOfSuccess < 0)
         {
-            msg = QStringLiteral("Message was not sent successfully, Broken Pipe.  Peer is disconnected");
+            msg = QStringLiteral("Message was not sent successfully.  Peer is disconnected.");
         }
         else if(levelOfSuccess > 0)
         {
@@ -296,8 +303,10 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
             qDebug() << "Partial Send";
         }
         else
+        {
             msg.prepend(localHostname % ": ");
-        emit printToTextBrowser(msg, uuid, 0, true);
+        }
+        addMessageToPeer(msg, uuid, false, true);
     }
     if(bwShortLife.contains(bw))
     {
@@ -336,6 +345,161 @@ void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, e
     peerDetailsHash[uuid].hostname = hname;
     peerDetailsHash[uuid].ipAddressRaw = addr;
 
-    emit updateListWidget(uuid);
+    emit updateListWidget(uuid, peerDetailsHash.value(uuid).hostname);
     emit requestIps(peerDetailsHash.value(uuid).bw, uuid);
+}
+int PXMPeerWorker::recieveServerMessage(QString str, QUuid uuid, bufferevent *bev, bool global)
+{
+    if(uuid != localUUID)
+    {
+        if( !( peerDetailsHash.contains(uuid) ) )
+        {
+            qDebug() << "Message from invalid uuid, rejection";
+            return -1;
+        }
+
+        if(peerDetailsHash.value(uuid).bw->getBev() != bev)
+        {
+            bool foundIt = false;
+            QUuid uuidSpoofer = "";
+            for(auto &itr : peerDetailsHash)
+            {
+                if(itr.bw->getBev() == bev)
+                {
+                    foundIt = true;
+                    uuidSpoofer = itr.identifier;
+                    break;
+                }
+            }
+            if(foundIt)
+                addMessageToPeer("This user is trying to spoof another users uuid!", uuidSpoofer, true, false);
+            else
+                addMessageToPeer("Someone is trying to spoof this users uuid!", uuid, true, false);
+
+            return -1;
+        }
+    }
+
+    str.prepend(peerDetailsHash.value(uuid).hostname % ": ");
+
+    if(global)
+    {
+        uuid = globalUUID;
+    }
+
+    addMessageToPeer(str, uuid, true, true);
+    return 0;
+}
+void PXMPeerWorker::addMessageToAllPeers(QString str, bool alert, bool formatAsMessage)
+{
+    for(auto &itr : peerDetailsHash)
+        addMessageToPeer(str, itr.identifier, alert, formatAsMessage);
+}
+
+int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool formatAsMessage)
+{
+    if(!peerDetailsHash.contains(uuid))
+    {
+        return -1;
+    }
+
+    if(formatAsMessage)
+    {
+        QDateTime dt = QDateTime::currentDateTime();
+        str = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ") % str;
+    }
+
+    peerDetailsHash[uuid].messages.append(new QString(str.toUtf8()));
+    if(peerDetailsHash[uuid].messages.size() > MESSAGE_HISTORY_LENGTH)
+    {
+        delete peerDetailsHash[uuid].messages.takeFirst();
+    }
+    emit printToTextBrowser(str, uuid, alert);
+    return 0;
+}
+void PXMPeerWorker::setSelfCommsBufferevent(bufferevent *bev)
+{
+    peerDetailsHash[localUUID].bw->lockBev();
+    peerDetailsHash[localUUID].bw->setBev(bev);
+    peerDetailsHash[localUUID].bw->unlockBev();
+
+    updateListWidget(localUUID, localHostname);
+}
+void PXMPeerWorker::sendMsgAccessor(QByteArray msg, QByteArray type, QUuid uuid1, QUuid uuid2)
+{
+    if(type != "/global")
+    {
+        emit sendMsg(peerDetailsHash.value(uuid1).bw, msg, type, uuid1, uuid2);
+    }
+    else
+    {
+        for(auto &itr : peerDetailsHash)
+        {
+            if(itr.isConnected)
+                emit sendMsg(itr.bw, msg, type, uuid1, uuid2);
+        }
+    }
+}
+
+void PXMPeerWorker::printFullHistory(QUuid uuid)
+{
+    QString str = QString();
+
+    for(auto &itr : peerDetailsHash.value(uuid).messages)
+    {
+        str.append(*itr % QStringLiteral("\n"));
+    }
+    emit printToTextBrowser(str, uuid, false);
+}
+
+void PXMPeerWorker::setlibeventBackend(QString str)
+{
+    libeventBackend = str;
+}
+void PXMPeerWorker::printInfoToDebug()
+{
+    int i = 0;
+    QString str;
+    QString pad = QString(DEBUG_PADDING, ' ');
+    str.append(QStringLiteral("\n"));
+    str.append(pad % "---Program Info---\n");
+    //str.append(QStringLiteral("---Program Info---\n"));
+    str.append(pad % QStringLiteral("Program Name: ") % qApp->applicationName() % QStringLiteral("\n"));
+    str.append(pad % QStringLiteral("Version: ") % qApp->applicationVersion() % QStringLiteral("\n"));
+
+    str.append(pad % QStringLiteral("---Network Info---\n"));
+    str.append(pad % QStringLiteral("Libevent Backend: ") % libeventBackend % QStringLiteral("\n")
+              % pad % QStringLiteral("Multicast Address: ") % multicastAddress % QStringLiteral("\n")
+              % pad % QStringLiteral("TCP Listener Port: ") % ourListenerPort % QStringLiteral("\n")
+              % pad % QStringLiteral("UDP Listener Port: ") % ourUDPListenerPort % QStringLiteral("\n")
+              % pad % QStringLiteral("Our UUID: ") % localUUID.toString() % QStringLiteral("\n"));
+    str.append(pad % QStringLiteral("---Peer Details---\n"));
+
+    for(auto &itr : peerDetailsHash)
+    {
+        str.append(pad % QStringLiteral("---Peer #") % QString::number(i) % "---\n");
+        str.append(pad % QStringLiteral("Hostname: ") % itr.hostname % QStringLiteral("\n"));
+        str.append(pad % QStringLiteral("UUID: ") % itr.identifier.toString() % QStringLiteral("\n"));
+        str.append(pad % QStringLiteral("IP Address: ") % QString::fromLocal8Bit(inet_ntoa(itr.ipAddressRaw.sin_addr))
+                   % QStringLiteral(":") % QString::number(ntohs(itr.ipAddressRaw.sin_port)) % QStringLiteral("\n"));
+        str.append(pad % QStringLiteral("IsAuthenticated: ") % QString::fromLocal8Bit((itr.isAuthenticated? "true" : "false")) % QStringLiteral("\n"));
+        str.append(pad % QStringLiteral("IsConnected: ") % QString::fromLocal8Bit((itr.isConnected ? "true" : "false")) % QStringLiteral("\n"));
+        str.append(pad % QStringLiteral("SocketDescriptor: ") % QString::number(itr.socketDescriptor) % QStringLiteral("\n"));
+        str.append(pad % QStringLiteral("History Length: ") % QString::number(itr.messages.count()) % QStringLiteral("\n"));
+        if(itr.bw->getBev() != nullptr)
+        {
+            QString t;
+            str.append(pad % QStringLiteral("Bufferevent: ") % t.asprintf("%8p",itr.bw->getBev()) % QStringLiteral("\n"));
+        }
+        else
+            str.append(pad % QStringLiteral("Bufferevent: ") % QStringLiteral("NULL") % QStringLiteral("\n"));
+
+        i++;
+    }
+
+    str.append(pad % QStringLiteral("-------------\n"));
+    str.append(pad % QStringLiteral("Total Peers: ") % QString::number(i) % QStringLiteral("\n"));
+    str.append(pad % QStringLiteral("Extra Bufferevents: ") % QString::number(extraBufferevents.count()) % QStringLiteral("\n"));
+    str.append(pad % QStringLiteral("-------------"));
+    qDebug().noquote() << str;
 }

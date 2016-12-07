@@ -391,9 +391,9 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 
     tcpListenerPort = getPortNumber(s_listen);
 
-    emit setListenerPort(tcpListenerPort);
-
     udpSocketNumber = getPortNumber(socketUDP);
+
+    emit setListenerPorts(tcpListenerPort, udpSocketNumber);
 
     qDebug() << "Port number for Multicast: " + QString::number(udpSocketNumber);
 

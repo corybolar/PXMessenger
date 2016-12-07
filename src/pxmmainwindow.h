@@ -48,6 +48,7 @@
 #include "pxmpeerworker.h"
 #include "pxmsettingsdialog.h"
 #include "pxmdebugwindow.h"
+#include "pxmtextbrowser.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -74,6 +75,7 @@ public:
 public slots:
     void midnightTimerPersistent();
     void bloomActionsSlot();
+    void resizeLabel(QRect size);
 protected:
     void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;
     void changeEvent(QEvent *event)  Q_DECL_OVERRIDE;
@@ -92,7 +94,7 @@ private:
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
     QSystemTrayIcon *messSystemTray;
-    QTextBrowser *messTextBrowser;
+    PXMTextBrowser *messTextBrowser;
     QLineEdit *messLineEdit;
     QPushButton *m_sendDebugButton;
     QListWidget *messListWidget;
@@ -101,8 +103,8 @@ private:
     QThread *workerThread;
     QTimer *discoveryTimer;
     QTimer *midnightTimer;
+    QLabel *loadingLabel;
     QUuid ourUUID;
-    QString libeventBackend;
     QFrame *fsep;
     PXMTextEdit *messTextEdit;
     PXMClient *messClient;
@@ -140,13 +142,6 @@ private:
      * \param username Username of user, from the config file
      */
     void setupHostname(int uuidNum, QString username);
-    /*!
-     * \brief globalSend
-     *
-     * Sends a message with a type /global to all connected peers
-     * \param msg Message to send
-     */
-    void globalSend(QByteArray msg);
     /*!
      * \brief focusWindow
      *
@@ -256,27 +251,25 @@ private slots:
     void currentItemChanged(QListWidgetItem *item1);
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void printToTextBrowser(QString str, QUuid uuid, bool alert, bool formatAsMessage);
-    void printToTextBrowserServerSlot(QString msg, QUuid uuid, bufferevent *bev, bool global);
-    void updateListWidget(QUuid uuid);
+    void printToTextBrowser(QString str, QUuid uuid, bool alert);
+    void updateListWidget(QUuid uuid, QString hostname);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
     void settingsActionsSlot();
     void discoveryTimerSingleShot();
     void discoveryTimerPersistent();
-    void setListenerPort(unsigned short port);
     void debugActionSlot();
-    void printInfoToDebug();
-    void setlibeventBackend(QString);
     void setCloseBufferevent(bufferevent *bev);
-    void setSelfCommsBufferevent(bufferevent *bev);
     void multicastIsFunctional();
     void serverSetupFailure();
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
-    void sendMsg(BevWrapper*, QByteArray, QByteArray, QUuid, QUuid);
+    void sendMsg(QByteArray, QByteArray, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
+    void addMessageToPeer(QString, QUuid, bool, bool);
+    void addMessageToAllPeers(QString, bool, bool);
+    void printFullHistory(QUuid);
 };
 
 #endif

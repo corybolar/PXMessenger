@@ -47,8 +47,3 @@ void PXMDebugWindow::rangeChanged(int, int i2)
     if(this->atMaximum)
 	sb->setValue(i2);
 }
-/*void PXMDebugWindow::xdebug(QString str)
-{
-    qDebug().noquote() << str;
-}
-*/

@@ -8,7 +8,7 @@ PXMClient::PXMClient(in_addr multicast)
     //strcpy(multicastAddress, multicast);
     multicastAddress = multicast;
 }
-void PXMClient::sendUDP(const char* msg, unsigned short port)
+int PXMClient::sendUDP(const char* msg, unsigned short port)
 {
     int len;
     struct sockaddr_in broadaddr;
@@ -20,23 +20,32 @@ void PXMClient::sendUDP(const char* msg, unsigned short port)
     broadaddr.sin_port = htons(port);
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
+    {
         qDebug() << "socket: " + QString::fromUtf8(strerror(errno));
+        return -1;
+    }
 
     len = strlen(msg);
 
     char loopback = 1;
     if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0)
+    {
         qDebug() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        evutil_closesocket(socketfd2);
+        return -1;
+    }
 
     for(int i = 0; i < 1; i++)
     {
         if(sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr)) != len+1)
         {
             qDebug() << "sendto: " + QString::fromUtf8(strerror(errno));
-            break;
+            evutil_closesocket(socketfd2);
+            return -1;
         }
     }
     evutil_closesocket(socketfd2);
+    return 0;
 }
 void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
 {
@@ -86,20 +95,12 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const ch
     memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
     full_mess[packetLen] = 0;
 
-    /*
-    if(!strcmp(type, "/msg"))
-    {
-        evutil_closesocket(bufferevent_getfd(bev));
-    }
-    */
-
     bw->lockBev();
 
-    //if(!(bw->getBev()) || (bufferevent_get_enabled(bw->getBev()) & EV_WRITE))
-    if((bw->getBev()) == nullptr)
+    if((bw->getBev() == nullptr) || !(bufferevent_get_enabled(bw->getBev()) & EV_WRITE))
     {
-        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print, bw);
         bw->unlockBev();
+        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print, bw);
         return;
     }
 
@@ -107,12 +108,12 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const ch
 
     bytesSent = bufferevent_write(bw->getBev(), full_mess, packetLen);
 
+    bw->unlockBev();
+
     if(!uuidReceiver.isNull())
     {
         emit resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print, bw);
     }
-
-    bw->unlockBev();
 
     return;
 }

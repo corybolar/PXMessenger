@@ -41,7 +41,8 @@ SOURCES += \
     pxmmainwindow.cpp \
     pxmessenger.cpp \
     pxmdebugwindow.cpp \
-    pxmsettingsdialog.cpp
+    pxmsettingsdialog.cpp \
+    pxmtextbrowser.cpp
 
 HEADERS += \
     pxmdefinitions.h \
@@ -53,7 +54,8 @@ HEADERS += \
     pxmtextedit.h \
     pxmserver.h \
     pxmclient.h \
-    pxmdebugwindow.h
+    pxmdebugwindow.h \
+    pxmtextbrowser.h
 
 DISTFILES +=
 

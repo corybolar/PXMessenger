@@ -2,8 +2,8 @@
 
 PXMSync::PXMSync(QObject *parent) : QObject(parent)
 {
-}
 
+}
 void PXMSync::syncNext()
 {
     while(hashIterator != syncHash->end() && !(hashIterator.value().isAuthenticated))
