@@ -1,6 +1,6 @@
 #include <pxmclient.h>
 
-PXMClient::PXMClient(in_addr multicast)
+PXMClient::PXMClient(QObject *parent, in_addr multicast) : QObject(parent)
 {
     this->setObjectName("PXMClient");
 

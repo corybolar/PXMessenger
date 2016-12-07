@@ -37,12 +37,7 @@
 #include <stdlib.h>
 #include <sys/unistd.h>
 
-#include <event2/event.h>
-#include <event2/bufferevent.h>
-
-#include "pxmserver.h"
 #include "pxmtextedit.h"
-#include "pxmclient.h"
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
 #include "pxmpeerworker.h"
@@ -63,6 +58,7 @@
 #include <netinet/in.h>
 #include <resolv.h>
 #include <pwd.h>
+
 #endif
 
 class PXMWindow : public QMainWindow
@@ -104,19 +100,13 @@ private:
     QUuid ourUUID;
     QFrame *fsep;
     PXMTextEdit *messTextEdit;
-    PXMClient *messClient;
-    PXMServer *messServer;
     PXMPeerWorker *peerWorker;
     PXMDebugWindow *debugWindow = nullptr;
-    bufferevent *closeBev;
     QString localHostname;
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
-    QLinkedList<QString*> globalChat;
     QUuid globalChatUuid;
-    bool globalChatAlerted;
     bool multicastFunctioning;
-    initialSettings presets;
 
     /*!
      * \brief getFormattedTime
@@ -209,13 +199,6 @@ private:
      */
     void startWorkerThread();
     /*!
-     * \brief createMessServ
-     *
-     * Initialize a PXMServer.  A PXMServer subclasses QThread and runs its own
-     * event loop.  All receiving of data is done in this object.
-     */
-    void startServerThread();
-    /*!
      * \brief connectPeerClassSignalsAndSlots
      *
      * Connect the many signals and slots moving to and from a PXMPeerWorker
@@ -245,7 +228,6 @@ private slots:
     void aboutActionSlot();
     void settingsActionsSlot();
     void debugActionSlot();
-    void setCloseBufferevent(bufferevent *bev);
     void warnBox(QString title, QString msg);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);

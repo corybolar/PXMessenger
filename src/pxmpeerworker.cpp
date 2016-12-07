@@ -1,16 +1,17 @@
 #include <pxmpeerworker.h>
 
-PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, QString multicast, PXMServer *server, QUuid globaluuid) : QObject(parent)
+PXMPeerWorker::PXMPeerWorker(QObject *parent, initialSettings presets, QUuid globaluuid) : QObject(parent)
 {
     //Init
     areWeSyncing = false;
     waitingOnSyncFrom = QUuid();
     //End of Init
 
-    localHostname = hostname;
-    localUUID = uuid;
+    localHostname = presets.username;
+    localUUID = presets.uuid;
     globalUUID = globaluuid;
-    multicastAddress = multicast;
+    multicastAddress = presets.multicast;
+
 
     //Prevent race condition when starting threads, a bufferevent
     //for this (us) is coming soon.
@@ -25,8 +26,6 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, QStr
     peerDetailsHash[globalUUID].socketDescriptor = -1;
     peerDetailsHash[globalUUID].isConnected = true;
     peerDetailsHash[globalUUID].isAuthenticated = false;
-
-    realServer = server;
 }
 PXMPeerWorker::~PXMPeerWorker()
 {
@@ -58,7 +57,19 @@ PXMPeerWorker::~PXMPeerWorker()
     }
     qDeleteAll(bwShortLife);
     qDebug() << "freed" << count << "extra bufferevents";
+
+    if(messServer != 0 && messServer->isRunning())
+    {
+        bufferevent_write(closeBev, "/exit", 5);
+        messServer->wait(5000);
+    }
+    qDebug() << "Shutdown of PXMServer Successful";
+
     qDebug() << "Shutdown of PXMPeerWorker Successful";
+}
+void PXMPeerWorker::setCloseBufferevent(bufferevent *bev)
+{
+    closeBev = bev;
 }
 void PXMPeerWorker::currentThreadInit()
 {
@@ -83,7 +94,49 @@ void PXMPeerWorker::currentThreadInit()
     midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
     QObject::connect(midnightTimer, &QTimer::timeout, this, &PXMPeerWorker::midnightTimerPersistent);
     midnightTimer->start();
+
+    startClient();
+    startServerThread();
 }
+void PXMPeerWorker::startServerThread()
+{
+    in_addr multicast_in_addr;
+    multicast_in_addr.s_addr = inet_addr(multicastAddress.toLatin1().constData());
+    messServer = new PXMServer(this, 0, DEFAULT_UDP_PORT, multicast_in_addr);
+
+    messServer->setLocalHostname(localHostname);
+    messServer->setLocalUUID(localUUID);
+    QObject::connect(messServer, &PXMServer::authenticationReceived, this, &PXMPeerWorker::authenticationReceived, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::messageRecieved, this, &PXMPeerWorker::recieveServerMessage, Qt::QueuedConnection);
+    QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
+    QObject::connect(messServer, &PXMServer::newTCPConnection, this, &PXMPeerWorker::newTcpConnection, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::peerQuit, this, &PXMPeerWorker::peerQuit, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::attemptConnection, this, &PXMPeerWorker::attemptConnection, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::sendSyncPacket, this, &PXMPeerWorker::sendSyncPacketBev, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::syncPacketIterator, this, &PXMPeerWorker::syncPacketIterator, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::setPeerHostname, this, &PXMPeerWorker::setPeerHostname, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::setListenerPorts, this, &PXMPeerWorker::setListenerPorts, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::libeventBackend, this, &PXMPeerWorker::setlibeventBackend, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::setCloseBufferevent, this, &PXMPeerWorker::setCloseBufferevent, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::setSelfCommsBufferevent, this, &PXMPeerWorker::setSelfCommsBufferevent, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::multicastIsFunctional, this, &PXMPeerWorker::multicastIsFunctional, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::serverSetupFailure, this, &PXMPeerWorker::serverSetupFailure, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::sendUDP, messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
+    messServer->start();
+}
+void PXMPeerWorker::startClient()
+{
+    in_addr multicast_in_addr;
+    multicast_in_addr.s_addr = inet_addr(multicastAddress.toLatin1().constData());
+    messClient = new PXMClient(this, multicast_in_addr);
+
+    QObject::connect(messClient, &PXMClient::resultOfConnectionAttempt, this, &PXMPeerWorker::resultOfConnectionAttempt, Qt::AutoConnection);
+    QObject::connect(messClient, &PXMClient::resultOfTCPSend, this, &PXMPeerWorker::resultOfTCPSend, Qt::AutoConnection);
+    QObject::connect(this, &PXMPeerWorker::sendMsg, messClient, &PXMClient::sendMsgSlot, Qt::AutoConnection);
+    QObject::connect(this, &PXMPeerWorker::connectToPeer, messClient, &PXMClient::connectToPeer, Qt::AutoConnection);
+    QObject::connect(this, &PXMPeerWorker::sendIpsPacket, messClient, &PXMClient::sendIpsSlot, Qt::AutoConnection);
+}
+
 void PXMPeerWorker::setListenerPorts(unsigned short tcpport, unsigned short udpport)
 {
     ourListenerPort = QString::number(tcpport);
@@ -95,6 +148,11 @@ void PXMPeerWorker::doneSync()
     nextSyncTimer->stop();
     qDebug() << "Finished Syncing peers";
 }
+void PXMPeerWorker::sendUDPAccessor(const char *msg, unsigned short port)
+{
+    emit sendUDP(msg, port);
+}
+
 void PXMPeerWorker::beginSync()
 {
     if(areWeSyncing)
@@ -267,7 +325,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
 
     if(result)
     {
-        bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)realServer);
+        bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, (void*)messServer);
         bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ|EV_WRITE);
         peerDetailsHash[uuid].bw->lockBev();

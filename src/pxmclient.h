@@ -32,30 +32,10 @@ class PXMClient : public QObject
 {
     Q_OBJECT
 public:
-    PXMClient(in_addr multicast);
+    PXMClient(QObject *parent, in_addr multicast);
     ~PXMClient() {qDebug() << "Shutdown of PXMClient Successful";}
     static size_t packUuid(char *buf, QUuid *uuid);
 public slots:
-    /*!
-     * \brief sendMsg
-     *
-     * Sends a message to the already connected socket.  This function must be
-     * called after connectToPeer.  The format for any tcp packet begins with
-     * a 4 byte non-inclusive length of the packet.  After this, all packets
-     * contain the uuid of the sender.  Then a variable length type character is
-     * inserted.  Type always begins with a "/".  After the type, the actual
-     * message is appended to the end of the packet.  The sending of data is
-     * done by the recursiveSend() function to ensure partial sends are resent.
-     * \param socketfd Socket descriptor to send on
-     * \param msg message to send.
-     * \param msgLen size of msg array
-     * \param type type of packet to send.  Current types are "/msg", "/uuid"
-     * 				"/request", "/ip".  See PXMServer for more details.
-     * \param uuidSender Our UUID to send out.
-     * \param uuidReceiver The recipients uuid used for our own recording purposes
-     * \return emits a resultsOfTCPSend()
-     * \see man send
-     */
     void sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver);
     /*!
      * \brief sendMsgSlot

@@ -4,7 +4,6 @@ PXMWindow::PXMWindow(initialSettings presets)
 {
     //Init
     localHostname = QString();
-    globalChatAlerted = false;
     multicastFunctioning = false;
     debugWindow = nullptr;
     globalChatUuid = QUuid::createUuid();
@@ -17,6 +16,7 @@ PXMWindow::PXMWindow(initialSettings presets)
     qDebug() << "Our UUID:" << ourUUID.toString();
 
     setupHostname(presets.uuidNum, presets.username);
+    presets.username = localHostname;
 
     if(presets.tcpPort != 0)
         presets.tcpPort += presets.uuidNum;
@@ -27,19 +27,9 @@ PXMWindow::PXMWindow(initialSettings presets)
     if(presets.multicast.isEmpty() || strlen(presets.multicast.toLatin1().constData()) > INET_ADDRSTRLEN)
         presets.multicast = QString::fromLocal8Bit(MULTICAST_ADDRESS);
 
-    in_addr multicast_in_addr;
-    multicast_in_addr.s_addr = inet_addr(presets.multicast.toLatin1().constData());
-    //inet_pton(AF_INET,presets.multicast.toLatin1().constData(), &multicast_in_addr);
-
-    messServer = new PXMServer(this, presets.tcpPort, presets.udpPort, multicast_in_addr);
-
-    peerWorker = new PXMPeerWorker(nullptr, localHostname, ourUUID, presets.multicast, messServer, globalChatUuid);
-
-    messClient = new PXMClient(multicast_in_addr);
+    peerWorker = new PXMPeerWorker(nullptr, presets, globalChatUuid);
 
     startWorkerThread();
-
-    startServerThread();
 
     connectPeerClassSignalsAndSlots();
 
@@ -49,29 +39,15 @@ PXMWindow::PXMWindow(initialSettings presets)
     muteCheckBox->setChecked(presets.mute);
 
     this->resize(presets.windowSize);
-
-    this->presets = presets;
-
 }
 PXMWindow::~PXMWindow()
 {
-    peerWorker->disconnect(messServer);
-
     if(workerThread != 0 && workerThread->isRunning())
     {
         workerThread->quit();
         workerThread->wait(5000);
     }
     qDebug() << "Shutdown of WorkerThread Successful";
-
-    if(messServer != 0 && messServer->isRunning())
-    {
-        bufferevent_write(closeBev, "/exit", 5);
-        messServer->wait(5000);
-    }
-    qDebug() << "Shutdown of PXMServer Successful";
-
-    qDeleteAll(globalChat);
 
     delete debugWindow;
 
@@ -174,28 +150,12 @@ void PXMWindow::createTextBrowser()
     loadingLabel->setGeometry(messTextBrowser->geometry());
     loadingLabel->show();
     resizeLabel(messTextBrowser->geometry());
-
-    /*
-    browserLabel = new QLabel(messTextBrowser);
-    browserLabel->setText("hello");
-    browserLabel->setAlignment(Qt::AlignCenter);
-    browserLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
-
-    QRect r = messTextBrowser->contentsRect();
-    QFontMetrics fm = QFontMetrics(qApp->font());
-    r.setHeight(fm.height()+fm.lineSpacing());
-    r.adjust(1,1,-1,-1);
-
-    browserLabel->setGeometry(r);
-    browserLabel->show();
-    */
 }
 void PXMWindow::resizeLabel(QRect size)
 {
     if((loadingLabel))
     {
         loadingLabel->setGeometry(size);
-        //loadingLabel->setStyleSheet("border: 2px; border-style: solid;");
     }
 }
 
@@ -310,17 +270,11 @@ void PXMWindow::startWorkerThread()
 {
     workerThread = new QThread(this);
     workerThread->setObjectName("WorkerThread");
-    messClient->moveToThread(workerThread);
     peerWorker->moveToThread(workerThread);
     QObject::connect(workerThread, &QThread::started, peerWorker, &PXMPeerWorker::currentThreadInit);
     QObject::connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
     QObject::connect(workerThread, &QThread::finished, peerWorker, &QObject::deleteLater);
-    QObject::connect(workerThread, &QThread::finished, messClient, &QObject::deleteLater);
-    QObject::connect(messClient, &PXMClient::resultOfConnectionAttempt, peerWorker, &PXMPeerWorker::resultOfConnectionAttempt, Qt::AutoConnection);
-    QObject::connect(messClient, &PXMClient::resultOfTCPSend, peerWorker, &PXMPeerWorker::resultOfTCPSend, Qt::AutoConnection);
-    QObject::connect(this, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
-    QObject::connect(this, &PXMWindow::sendUDP, messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::sendUDP, messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
+
     workerThread->start();
 }
 void PXMWindow::connectGuiSignalsAndSlots()
@@ -337,39 +291,18 @@ void PXMWindow::connectGuiSignalsAndSlots()
 }
 void PXMWindow::connectPeerClassSignalsAndSlots()
 {
-    QObject::connect(peerWorker, &PXMPeerWorker::sendMsg, messClient, &PXMClient::sendMsgSlot, Qt::AutoConnection);
-    QObject::connect(peerWorker, &PXMPeerWorker::connectToPeer, messClient, &PXMClient::connectToPeer, Qt::AutoConnection);
     QObject::connect(peerWorker, &PXMPeerWorker::printToTextBrowser, this, &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
     QObject::connect(peerWorker, &PXMPeerWorker::setItalicsOnItem, this, &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
     QObject::connect(peerWorker, &PXMPeerWorker::updateListWidget, this, &PXMWindow::updateListWidget, Qt::QueuedConnection);
-    QObject::connect(peerWorker, &PXMPeerWorker::sendIpsPacket, messClient, &PXMClient::sendIpsSlot, Qt::AutoConnection);
     QObject::connect(peerWorker, &PXMPeerWorker::warnBox, this, &PXMWindow::warnBox, Qt::AutoConnection);
     QObject::connect(this, &PXMWindow::addMessageToPeer, peerWorker, &PXMPeerWorker::addMessageToPeer, Qt::QueuedConnection);
+    QObject::connect(this, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
+    QObject::connect(this, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDPAccessor, Qt::QueuedConnection);
     //QObject::connect(this, &PXMWindow::addMessageToAllPeers, peerWorker, &PXMPeerWorker::addMessageToAllPeers, Qt::QueuedConnection);
     QObject::connect(this, &PXMWindow::printFullHistory, peerWorker, &PXMPeerWorker::printFullHistory, Qt::QueuedConnection);
     QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, peerWorker, &PXMPeerWorker::printInfoToDebug);
-    QObject::connect(messServer, &PXMServer::multicastIsFunctional, peerWorker, &PXMPeerWorker::multicastIsFunctional, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::serverSetupFailure, peerWorker, &PXMPeerWorker::serverSetupFailure, Qt::QueuedConnection);
 }
-void PXMWindow::startServerThread()
-{
-    messServer->setLocalHostname(localHostname);
-    messServer->setLocalUUID(ourUUID);
-    QObject::connect(messServer, &PXMServer::authenticationReceived, peerWorker, &PXMPeerWorker::authenticationReceived, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::messageRecieved, peerWorker, &PXMPeerWorker::recieveServerMessage, Qt::QueuedConnection);
-    QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
-    QObject::connect(messServer, &PXMServer::newTCPConnection, peerWorker, &PXMPeerWorker::newTcpConnection, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::peerQuit, peerWorker, &PXMPeerWorker::peerQuit, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::attemptConnection, peerWorker, &PXMPeerWorker::attemptConnection, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::sendSyncPacket, peerWorker, &PXMPeerWorker::sendSyncPacketBev, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::syncPacketIterator, peerWorker, &PXMPeerWorker::syncPacketIterator, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::setPeerHostname, peerWorker, &PXMPeerWorker::setPeerHostname, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::setListenerPorts, peerWorker, &PXMPeerWorker::setListenerPorts, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::libeventBackend, peerWorker, &PXMPeerWorker::setlibeventBackend, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::setCloseBufferevent, this, &PXMWindow::setCloseBufferevent, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::setSelfCommsBufferevent, peerWorker, &PXMPeerWorker::setSelfCommsBufferevent, Qt::QueuedConnection);
-    messServer->start();
-}
+
 void PXMWindow::aboutActionSlot()
 {
     QMessageBox::about(this, "About", "<br><center>PXMessenger v"
@@ -407,10 +340,7 @@ void PXMWindow::bloomActionsSlot()
         emit sendUDP("/discover", ourUDPListenerPort);
     }
 }
-void PXMWindow::setCloseBufferevent(bufferevent *bev)
-{
-    closeBev = bev;
-}
+
 void PXMWindow::warnBox(QString title, QString msg)
 {
     QMessageBox::warning(this, title, msg);

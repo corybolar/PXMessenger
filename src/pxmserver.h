@@ -45,7 +45,7 @@ class PXMServer : public QThread
 {
     Q_OBJECT
 public:
-    PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast);
+    PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast);
     void run() Q_DECL_OVERRIDE;
     int setLocalHostname(QString hostname);
     int setLocalUUID(QUuid uuid);

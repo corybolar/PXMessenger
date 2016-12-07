@@ -1,7 +1,7 @@
 #include <pxmserver.h>
 
 struct event_base* PXMServer::base = nullptr;
-PXMServer::PXMServer(QWidget *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast) : QThread(parent)
+PXMServer::PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast) : QThread(parent)
 {
     //Init
     gotDiscover = false;

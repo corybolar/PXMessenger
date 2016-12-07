@@ -41,9 +41,8 @@ class PXMPeerWorker : public QObject
 {
     Q_OBJECT
 public:
-    explicit PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, QString multicast, PXMServer *server, QUuid globaluuid);
+    explicit PXMPeerWorker(QObject *parent, initialSettings presets, QUuid globaluuid);
     ~PXMPeerWorker();
-    QVector<bufferevent*> extraBufferevents;
 private:
     Q_DISABLE_COPY(PXMPeerWorker)
     QHash<QUuid,peerDetails>peerDetailsHash;
@@ -61,10 +60,16 @@ private:
     QTimer *midnightTimer;
     bool areWeSyncing;
     bool multicastIsFunctioning;
-    PXMServer *realServer;
     PXMSync *syncer;
     QVector<BevWrapper*> bwShortLife;
+    PXMServer *messServer;
+    PXMClient *messClient;
+    bufferevent *closeBev;
+    QVector<bufferevent*> extraBufferevents;
+
     void sendAuthPacket(BevWrapper *bw);
+    void startServerThread();
+    void startClient();
 public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
@@ -89,12 +94,14 @@ public slots:
     void discoveryTimerPersistent();
     void multicastIsFunctional();
     void serverSetupFailure();
+    void sendUDPAccessor(const char *msg, unsigned short port);
 private slots:
     void beginSync();
     void doneSync();
     void requestSyncPacket(BevWrapper *bw, QUuid uuid);
     void discoveryTimerSingleShot();
     void midnightTimerPersistent();
+    void setCloseBufferevent(bufferevent *bev);
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid, QString);

@@ -118,7 +118,8 @@ int main(int argc, char **argv)
     }
     else
     {
-        if(!lockFile.tryLock(100)){
+        if(!lockFile.tryLock(100))
+        {
             QMessageBox msgBox;
             msgBox.setIcon(QMessageBox::Warning);
             msgBox.setText("You already have this app running."
