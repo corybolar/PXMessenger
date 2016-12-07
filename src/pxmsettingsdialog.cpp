@@ -158,7 +158,24 @@ void PXMSettingsDialog::setupUi()
     void (QSpinBox:: *signal)(int) = &QSpinBox::valueChanged;
     QObject::connect(spinBox_3, signal, this, &PXMSettingsDialog::valueChanged);
 
-    //QMetaObject::connectSlotsByName(this);
+#ifdef _WIN32
+        char localHostname[UNLEN+1];
+        TCHAR t_user[UNLEN+1];
+        DWORD user_size = UNLEN+1;
+        if(GetUserName(t_user, &user_size))
+            wcstombs(localHostname, t_user, UNLEN+1);
+        else
+            strcpy(localHostname, "user\0");
+#else
+        char localHostname[sysconf(_SC_GETPW_R_SIZE_MAX)];
+        struct passwd *user;
+        user = getpwuid(getuid());
+        if(!user)
+            strcpy(localHostname, "user\0");
+        else
+            strcpy(localHostname, user->pw_name);
+#endif
+        hostname = QString::fromUtf8(localHostname);
 }
 
 void PXMSettingsDialog::retranslateUi()
@@ -177,7 +194,7 @@ void PXMSettingsDialog::readIni()
 {
     MessIniReader iniReader;
     AllowMoreThanOneInstance = iniReader.checkAllowMoreThanOne();
-    hostname = iniReader.getHostname("");
+    hostname = iniReader.getHostname(hostname);
     tcpPort = iniReader.getPort("TCP");
     udpPort = iniReader.getPort("UDP");
     fontSize = qApp->font().pointSize();

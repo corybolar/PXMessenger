@@ -4,8 +4,6 @@ PXMClient::PXMClient(in_addr multicast)
 {
     this->setObjectName("PXMClient");
 
-    //multicastAddress = new char[INET_ADDRSTRLEN];
-    //strcpy(multicastAddress, multicast);
     multicastAddress = multicast;
 }
 int PXMClient::sendUDP(const char* msg, unsigned short port)

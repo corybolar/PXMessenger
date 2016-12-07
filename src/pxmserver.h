@@ -75,10 +75,10 @@ signals:
     void newTCPConnection(bufferevent*);
     void authenticationReceived(QString, unsigned short, evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
-    void connectionCheck(sockaddr_in, QUuid);
-    void sendIps(bufferevent*, QUuid);
+    void attemptConnection(sockaddr_in, QUuid);
+    void sendSyncPacket(bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
-    void hostnameCheck(char*, size_t, QUuid);
+    void syncPacketIterator(char*, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);

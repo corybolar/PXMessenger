@@ -73,7 +73,6 @@ public:
     PXMWindow(initialSettings presets);
     ~PXMWindow();
 public slots:
-    void midnightTimerPersistent();
     void bloomActionsSlot();
     void resizeLabel(QRect size);
 protected:
@@ -90,7 +89,6 @@ private:
     QStatusBar *statusbar;
     QPushButton *messSendButton;
     QPushButton *messQuitButton;
-    QPushButton *messDebugButton;
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
     QSystemTrayIcon *messSystemTray;
@@ -101,9 +99,8 @@ private:
     QCheckBox *muteCheckBox;
     QCheckBox *focusCheckBox;
     QThread *workerThread;
-    QTimer *discoveryTimer;
-    QTimer *midnightTimer;
     QLabel *loadingLabel;
+    QLabel *browserLabel;
     QUuid ourUUID;
     QFrame *fsep;
     PXMTextEdit *messTextEdit;
@@ -112,8 +109,6 @@ private:
     PXMPeerWorker *peerWorker;
     PXMDebugWindow *debugWindow = nullptr;
     bufferevent *closeBev;
-    time_t messTime;
-    struct tm *currentTime;
     QString localHostname;
     unsigned short ourTCPListenerPort;
     unsigned short ourUDPListenerPort;
@@ -148,7 +143,7 @@ private:
      * Brings the window to the foreground if allowed by the window manager.
      * Plays a sound when doing this.
      */
-    void focusWindow();
+    int focusWindow();
     /*!
      * \brief changeListColor
      *
@@ -157,7 +152,7 @@ private:
      * \param row Row of item in QListWidget to change
      * \param style Color to change to.  1 for red, 0 for default.
      */
-    void changeListColor(int row, int style);
+    int changeListItemColor(QUuid uuid, int style);
     /*!
      * \brief createTextEdit
      *
@@ -221,12 +216,6 @@ private:
      */
     void startServerThread();
     /*!
-     * \brief createMessTime
-     *
-     * Initialize the time objects for use with getFormattedTime()
-     */
-    void createMessTime();
-    /*!
      * \brief connectPeerClassSignalsAndSlots
      *
      * Connect the many signals and slots moving to and from a PXMPeerWorker
@@ -245,30 +234,25 @@ private:
     void createCheckBoxes();
     void setupGui();
 private slots:
-    void sendButtonClicked();
+    int sendButtonClicked();
     void quitButtonClicked();
-    void debugButtonClicked();
     void currentItemChanged(QListWidgetItem *item1);
     void textEditChanged();
     void showWindow(QSystemTrayIcon::ActivationReason reason);
-    void printToTextBrowser(QString str, QUuid uuid, bool alert);
+    int printToTextBrowser(QString str, QUuid uuid, bool alert);
     void updateListWidget(QUuid uuid, QString hostname);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void aboutActionSlot();
     void settingsActionsSlot();
-    void discoveryTimerSingleShot();
-    void discoveryTimerPersistent();
     void debugActionSlot();
     void setCloseBufferevent(bufferevent *bev);
-    void multicastIsFunctional();
-    void serverSetupFailure();
+    void warnBox(QString title, QString msg);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
     void sendMsg(QByteArray, QByteArray, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
     void addMessageToPeer(QString, QUuid, bool, bool);
-    void addMessageToAllPeers(QString, bool, bool);
     void printFullHistory(QUuid);
 };
 

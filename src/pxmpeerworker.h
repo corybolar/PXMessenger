@@ -57,11 +57,14 @@ private:
     QUuid globalUUID;
     QTimer *syncTimer;
     QTimer *nextSyncTimer;
+    QTimer *discoveryTimer;
+    QTimer *midnightTimer;
     bool areWeSyncing;
+    bool multicastIsFunctioning;
     PXMServer *realServer;
     PXMSync *syncer;
     QVector<BevWrapper*> bwShortLife;
-    void sendIdentityMsg(BevWrapper *bw);
+    void sendAuthPacket(BevWrapper *bw);
 public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
@@ -70,8 +73,8 @@ public slots:
     void newTcpConnection(bufferevent *bev);
     void peerQuit(evutil_socket_t s, bufferevent *bev);
     void setPeerHostname(QString hname, QUuid uuid);
-    void sendIps(BevWrapper *bw, QUuid uuid);
-    void sendIpsBev(bufferevent *bev, QUuid uuid);
+    void sendSyncPacket(BevWrapper *bw, QUuid uuid);
+    void sendSyncPacketBev(bufferevent *bev, QUuid uuid);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent *bev);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg, bool print, BevWrapper *bw);
     void currentThreadInit();
@@ -83,19 +86,26 @@ public slots:
     void printFullHistory(QUuid uuid);
     void sendMsgAccessor(QByteArray msg, QByteArray type, QUuid uuid1, QUuid uuid2);
     void setSelfCommsBufferevent(bufferevent *bev);
+    void discoveryTimerPersistent();
+    void multicastIsFunctional();
+    void serverSetupFailure();
 private slots:
     void beginSync();
     void doneSync();
-    void requestIps(BevWrapper *bw, QUuid uuid);
+    void requestSyncPacket(BevWrapper *bw, QUuid uuid);
+    void discoveryTimerSingleShot();
+    void midnightTimerPersistent();
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid, QString);
     void sendMsg(BevWrapper*, QByteArray, QByteArray, QUuid, QUuid);
+    void sendUDP(const char*, unsigned short);
     void sendIpsPacket(BevWrapper*, char*, size_t len, QByteArray, QUuid, QUuid);
     void connectToPeer(evutil_socket_t, sockaddr_in, void*);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);
+    void warnBox(QString, QString);
 
 };
 

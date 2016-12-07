@@ -9,7 +9,7 @@ class PXMTextBrowser : public QTextBrowser
 {
     Q_OBJECT
 public:
-    PXMTextBrowser(QWidget *parent) : QTextBrowser(parent) {};
+    PXMTextBrowser(QWidget *parent) : QTextBrowser(parent) {}
     void resizeEvent(QResizeEvent *event);
 signals:
     void resizeLabel(QRect);

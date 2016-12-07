@@ -228,14 +228,14 @@ int PXMServer::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bufLe
         char *ipHeapArray = new char[bufLen-3];
         memcpy(ipHeapArray, &buf[3], bufLen-3);
         qDebug() << "/ip received";
-        emit hostnameCheck(ipHeapArray, bufLen-3, quuid);
+        emit syncPacketIterator(ipHeapArray, bufLen-3, quuid);
     }
     //This packet is asking us to communicate our list of peers with the sender, leads to us sending an /ip packet
     //These packets should come formatted like "/request\0"
     else if(!(strncmp(buf, "/request", 8)))
     {
         qDebug() << "/request received";
-        emit sendIps(bev, quuid);
+        emit sendSyncPacket(bev, quuid);
     }
     //These packets are messages sent to the global chat room
     //These packets should come formatted like "/globalhostname: msg\0"
@@ -329,7 +329,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         QUuid uuid = fullidStr.right(fullidStr.length() - fullidStr.indexOf("{"));
 
         si_other.sin_port = htons(portNumber.toInt());
-        realServer->connectionCheck(si_other, uuid);
+        realServer->attemptConnection(si_other, uuid);
     }
     else
     {

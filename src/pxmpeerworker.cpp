@@ -28,7 +28,6 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString hostname, QUuid uuid, QStr
 
     realServer = server;
 }
-
 PXMPeerWorker::~PXMPeerWorker()
 {
     syncTimer->stop();
@@ -61,11 +60,10 @@ PXMPeerWorker::~PXMPeerWorker()
     qDebug() << "freed" << count << "extra bufferevents";
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
-
 void PXMPeerWorker::currentThreadInit()
 {
     syncer = new PXMSync(this);
-    QObject::connect(syncer, &PXMSync::requestIps, this, &PXMPeerWorker::requestIps);
+    QObject::connect(syncer, &PXMSync::requestIps, this, &PXMPeerWorker::requestSyncPacket);
     QObject::connect(syncer, &PXMSync::syncComplete, this, &PXMPeerWorker::doneSync);
 
     srand (time(NULL));
@@ -78,6 +76,13 @@ void PXMPeerWorker::currentThreadInit()
     nextSyncTimer = new QTimer(this);
     nextSyncTimer->setInterval(2000);
     QObject::connect(nextSyncTimer, &QTimer::timeout, syncer, &PXMSync::syncNext);
+
+    QTimer::singleShot(5000, this, SLOT(discoveryTimerSingleShot()));
+
+    midnightTimer = new QTimer(this);
+    midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
+    QObject::connect(midnightTimer, &QTimer::timeout, this, &PXMPeerWorker::midnightTimerPersistent);
+    midnightTimer->start();
 }
 void PXMPeerWorker::setListenerPorts(unsigned short tcpport, unsigned short udpport)
 {
@@ -90,7 +95,6 @@ void PXMPeerWorker::doneSync()
     nextSyncTimer->stop();
     qDebug() << "Finished Syncing peers";
 }
-
 void PXMPeerWorker::beginSync()
 {
     if(areWeSyncing)
@@ -142,13 +146,13 @@ void PXMPeerWorker::newTcpConnection(bufferevent *bev)
     //QSharedPointer<BevWrapper> bws = QSharedPointer<BevWrapper>(new BevWrapper(bev));
     BevWrapper *bw = new BevWrapper(bev);
     bwShortLife.append(bw);
-    this->sendIdentityMsg(bw);
+    this->sendAuthPacket(bw);
 }
-void PXMPeerWorker::sendIdentityMsg(BevWrapper *bw)
+void PXMPeerWorker::sendAuthPacket(BevWrapper *bw)
 {
     emit sendMsg(bw, (localHostname % QStringLiteral("::::") % ourListenerPort).toUtf8(), "/uuid", localUUID, "");
 }
-void PXMPeerWorker::requestIps(BevWrapper *bw, QUuid uuid)
+void PXMPeerWorker::requestSyncPacket(BevWrapper *bw, QUuid uuid)
 {
     waitingOnSyncFrom = uuid;
     qDebug() << "Requesting ips from" << peerDetailsHash.value(uuid).hostname;
@@ -212,19 +216,18 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent *bev)
     bufferevent_free(bev);
     evutil_closesocket(s);
 }
-void PXMPeerWorker::sendIpsBev(bufferevent *bev, QUuid uuid)
+void PXMPeerWorker::sendSyncPacketBev(bufferevent *bev, QUuid uuid)
 {
     if(peerDetailsHash.contains(uuid) && peerDetailsHash.value(uuid).bw->getBev() == bev)
     {
-        this->sendIps(peerDetailsHash.value(uuid).bw, uuid);
+        this->sendSyncPacket(peerDetailsHash.value(uuid).bw, uuid);
     }
     else
     {
         qDebug() << "sendIpsBev:error";
     }
 }
-
-void PXMPeerWorker::sendIps(BevWrapper *bw, QUuid uuid)
+void PXMPeerWorker::sendSyncPacket(BevWrapper *bw, QUuid uuid)
 {
     qDebug() << "Sending ips to" << peerDetailsHash.value(uuid).hostname;
     char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + PACKED_UUID_BYTE_LENGTH) + 1];
@@ -247,7 +250,6 @@ void PXMPeerWorker::sendIps(BevWrapper *bw, QUuid uuid)
 
     emit sendIpsPacket(bw, msgRaw, index, "/ip", localUUID, "");
 }
-
 void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent *bev)
 {
     QUuid uuid;
@@ -274,7 +276,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
         peerDetailsHash[uuid].bw->setBev(bev);
         peerDetailsHash[uuid].bw->unlockBev();
 
-        emit sendIdentityMsg(peerDetailsHash.value(uuid).bw);
+        emit sendAuthPacket(peerDetailsHash.value(uuid).bw);
     }
     else
     {
@@ -346,7 +348,7 @@ void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, e
     peerDetailsHash[uuid].ipAddressRaw = addr;
 
     emit updateListWidget(uuid, peerDetailsHash.value(uuid).hostname);
-    emit requestIps(peerDetailsHash.value(uuid).bw, uuid);
+    emit requestSyncPacket(peerDetailsHash.value(uuid).bw, uuid);
 }
 int PXMPeerWorker::recieveServerMessage(QString str, QUuid uuid, bufferevent *bev, bool global)
 {
@@ -429,7 +431,7 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, QByteArray type, QUuid uuid1
 {
     if(type != "/global")
     {
-        emit sendMsg(peerDetailsHash.value(uuid1).bw, msg, type, uuid1, uuid2);
+        emit sendMsg(peerDetailsHash.value(uuid2).bw, msg, type, uuid1, uuid2);
     }
     else
     {
@@ -440,7 +442,6 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, QByteArray type, QUuid uuid1
         }
     }
 }
-
 void PXMPeerWorker::printFullHistory(QUuid uuid)
 {
     QString str = QString();
@@ -449,6 +450,7 @@ void PXMPeerWorker::printFullHistory(QUuid uuid)
     {
         str.append(*itr % QStringLiteral("\n"));
     }
+    str.chop(1);
     emit printToTextBrowser(str, uuid, false);
 }
 
@@ -486,13 +488,15 @@ void PXMPeerWorker::printInfoToDebug()
         str.append(pad % QStringLiteral("IsConnected: ") % QString::fromLocal8Bit((itr.isConnected ? "true" : "false")) % QStringLiteral("\n"));
         str.append(pad % QStringLiteral("SocketDescriptor: ") % QString::number(itr.socketDescriptor) % QStringLiteral("\n"));
         str.append(pad % QStringLiteral("History Length: ") % QString::number(itr.messages.count()) % QStringLiteral("\n"));
-        if(itr.bw->getBev() != nullptr)
+        if(itr.bw->getBev() == nullptr)
+        {
+            str.append(pad % QStringLiteral("Bufferevent: ") % QStringLiteral("NULL") % QStringLiteral("\n"));
+        }
+        else
         {
             QString t;
             str.append(pad % QStringLiteral("Bufferevent: ") % t.asprintf("%8p",itr.bw->getBev()) % QStringLiteral("\n"));
         }
-        else
-            str.append(pad % QStringLiteral("Bufferevent: ") % QStringLiteral("NULL") % QStringLiteral("\n"));
 
         i++;
     }
@@ -502,4 +506,66 @@ void PXMPeerWorker::printInfoToDebug()
     str.append(pad % QStringLiteral("Extra Bufferevents: ") % QString::number(extraBufferevents.count()) % QStringLiteral("\n"));
     str.append(pad % QStringLiteral("-------------"));
     qDebug().noquote() << str;
+}
+void PXMPeerWorker::discoveryTimerPersistent()
+{
+    if(peerDetailsHash.count() < 3)
+    {
+        this->sendUDP("/discover", ourUDPListenerPort.toUShort());
+    }
+    else
+    {
+        qDebug() << "Found enough peers";
+        discoveryTimer->stop();
+    }
+}
+void PXMPeerWorker::discoveryTimerSingleShot()
+{
+    if(!multicastIsFunctioning)
+    {
+        emit warnBox("Network Problem", "Could not find anyone, even ourselves, on the network.\nThis could indicate a problem with your configuration.\n\nWe'll keep looking...");
+    }
+    if(peerDetailsHash.count() < 3)
+    {
+        discoveryTimer= new QTimer(this);
+        discoveryTimer->setInterval(30000);
+        QObject::connect(discoveryTimer, &QTimer::timeout, this, &PXMPeerWorker::discoveryTimerPersistent);
+        emit sendUDP("/discover", ourUDPListenerPort.toUShort());
+        qDebug() << QStringLiteral("Retrying discovery packet, looking for other computers...");
+        discoveryTimer->start();
+    }
+    else
+    {
+        qDebug() << "Found enough peers";
+    }
+}
+void PXMPeerWorker::midnightTimerPersistent()
+{
+    QDateTime dt = QDateTime::currentDateTime();
+    if(dt.time() <= QTime(0, MIDNIGHT_TIMER_INTERVAL_MINUTES, 0, 0))
+    {
+        QString str = QString();
+        QString dashes = "-------------------------------";
+        str.append("<br>");
+        str.append("<center>");
+        str.append(dashes.right(7));
+        str.append(' ');
+        str.append(dt.date().toString());
+        str.append(' ');
+        str.append(dashes.right(7));
+        str.append("<center>");
+        str.append("<br>");
+
+        this->addMessageToAllPeers(str, false, false);
+    }
+}
+void PXMPeerWorker::multicastIsFunctional()
+{
+    multicastIsFunctioning = true;
+}
+void PXMPeerWorker::serverSetupFailure()
+{
+    discoveryTimer->stop();
+    emit warnBox("Server Setup Failure", "Failure setting up the server sockets and multicast group.  Check the debug logger for more information.\n\n"
+                              "Settings for your network conditions will have to be adjusted and the program restarted.");
 }
