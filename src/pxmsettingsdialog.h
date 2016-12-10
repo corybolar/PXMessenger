@@ -28,19 +28,8 @@
 #include <unistd.h>
 #endif
 
-QT_BEGIN_NAMESPACE
-
 class PXMSettingsDialog : public QDialog
 {
-private slots:
-    void clickedme(QAbstractButton *button);
-    void accept();
-    void currentFontChanged(QFont font);
-    void valueChanged(int size);
-
-public:
-    explicit PXMSettingsDialog(QWidget* parent) : QDialog(parent) {}
-
     bool AllowMoreThanOneInstance;
     QString hostname;
     int tcpPort;
@@ -63,19 +52,18 @@ public:
     QSpinBox *spinBox_2;
     QFontComboBox *fontComboBox;
     QSpinBox *spinBox_3;
+private slots:
+    void clickedme(QAbstractButton *button);
+    void accept();
+    void currentFontChanged(QFont font);
+    void valueChanged(int size);
+
+public:
+    explicit PXMSettingsDialog(QWidget* parent) : QDialog(parent) {}
 
     void setupUi();
-
     void retranslateUi();
-
     void readIni();
-
 };
 
-namespace Ui {
-class Settings: public PXMSettingsDialog {};
-} // namespace Ui
-
-QT_END_NAMESPACE
-
-#endif // DIALOG_20__2D__20_UNTITLEDXQ7926_H
+#endif

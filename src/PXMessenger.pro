@@ -6,6 +6,7 @@ QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
+CONFIG += c++11
 
 unix: LIBS += -levent -levent_pthreads
 
@@ -19,16 +20,10 @@ win32 {
 LIBS += -lws2_32 \
 }
 
-win32 {
-CONFIG += c++11 \
-		release \ 
-        debug 
-}
-unix {
-CONFIG += c++11 \
-		release \
-        debug
-}
+target.path = /usr/bin
+
+#INSTALLS += target
+
 QMAKE_CXXFLAGS += -Wall
 
 SOURCES += \

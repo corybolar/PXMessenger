@@ -39,11 +39,24 @@
 #include <fcntl.h>
 #endif
 
-const timeval readTimeout {1, 0};
+const timeval READ_TIMEOUT = {1, 0};
+const timeval READ_TIMEOUT_RESET = {3600, 0};
 
 class PXMServer : public QThread
 {
     Q_OBJECT
+
+    QString localHostname;
+    QUuid localUUID;
+    unsigned short tcpListenerPort;
+    unsigned short udpListenerPort;
+    in_addr multicastAddress;
+    bool gotDiscover;
+
+    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len, QUuid quuid);
+    int getPortNumber(evutil_socket_t socket);
+    evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
+    evutil_socket_t setupTCPSocket();
 public:
     PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast);
     void run() Q_DECL_OVERRIDE;
@@ -58,18 +71,6 @@ public:
     static void udpRecieve(evutil_socket_t socketfd, short, void *args);
     static void stopLoopBufferevent(bufferevent *bev, void *);
     static struct event_base *base;
-private:
-    QString localHostname;
-    QUuid localUUID;
-    unsigned short tcpListenerPort;
-    unsigned short udpListenerPort;
-    in_addr multicastAddress;
-    bool gotDiscover;
-
-    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len, QUuid quuid);
-    int getPortNumber(evutil_socket_t socket);
-    evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
-    evutil_socket_t setupTCPSocket();
 signals:
     void messageRecieved(QString, QUuid, bufferevent*, bool);
     void newTCPConnection(bufferevent*);

@@ -10,6 +10,7 @@
 
 class MessIniReader
 {
+    QSettings *inisettings;
 public:
     MessIniReader();
     ~MessIniReader();
@@ -34,8 +35,6 @@ public:
     void setAllowMoreThanOne(bool value);
     int setMulticastAddress(QStringList ip);
     QString getMulticastAddress();
-private:
-    QSettings *inisettings;
 };
 
 #endif // MESSINIREADER_H

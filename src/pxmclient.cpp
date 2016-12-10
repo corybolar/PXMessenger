@@ -55,9 +55,8 @@ void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
         realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev);
 }
 
-void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bevptr)
+void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, bufferevent *bev)
 {
-    bufferevent *bev = static_cast<bufferevent*>(bevptr);
     bufferevent_setcb(bev, NULL, NULL, PXMClient::connectCB, (void*)this);
     timeval timeout = {5,0};
     bufferevent_set_timeouts(bev, &timeout, &timeout);
@@ -65,8 +64,9 @@ void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bev
 }
 
 
-void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver)
+void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidSender, QUuid uuidReceiver)
 {
+    using PXMConsts::MSG;
     int bytesSent = 0;
     int packetLen;
     uint16_t packetLenNBO;
@@ -74,12 +74,12 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const ch
 
     if(msgLen > 65400)
     {
-        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print, bw);
+        emit resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
         return;
     }
-    packetLen = PACKED_UUID_BYTE_LENGTH + strlen(type) + msgLen;
+    packetLen = PXMConsts::PACKED_UUID_BYTE_LENGTH + sizeof(uint8_t) + msgLen;
 
-    if(!strcmp(type, "/msg") )
+    if(type == MSG)
     {
         print = true;
     }
@@ -89,8 +89,8 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const ch
     packetLenNBO = htons(packetLen);
 
     packUuid(full_mess, &uuidSender);
-    memcpy(full_mess+PACKED_UUID_BYTE_LENGTH, type, strlen(type));
-    memcpy(full_mess+PACKED_UUID_BYTE_LENGTH+strlen(type), msg, msgLen);
+    memcpy(full_mess+PXMConsts::PACKED_UUID_BYTE_LENGTH, &type, sizeof(uint8_t));
+    memcpy(full_mess+PXMConsts::PACKED_UUID_BYTE_LENGTH+sizeof(uint8_t), msg, msgLen);
     full_mess[packetLen] = 0;
 
     bw->lockBev();
@@ -115,31 +115,31 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const ch
 
     return;
 }
-void PXMClient::sendMsgSlot(BevWrapper *bw, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid)
+void PXMClient::sendMsgSlot(BevWrapper *bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid)
 {
-    this->sendMsg(bw, msg.constData(), msg.length(), type.constData(), uuid, theiruuid);
+    this->sendMsg(bw, msg.constData(), msg.length(), type, uuid, theiruuid);
 }
 size_t PXMClient::packUuid(char *buf, QUuid *uuid)
 {
     int index = 0;
 
-    uint32_t uuidSectionL = htonl((uint32_t)(uuid->data1));
-    memcpy(buf + index, &(uuidSectionL), sizeof(uint32_t));
+    uint32_t uuidSectionL = htonl(uuid->data1);
+    memcpy(&buf[index], &(uuidSectionL), sizeof(uint32_t));
     index += sizeof(uint32_t);
-    uint16_t uuidSectionS = htons((uint16_t)(uuid->data2));
-    memcpy(buf + index, &(uuidSectionS), sizeof(uint16_t));
+    uint16_t uuidSectionS = htons(uuid->data2);
+    memcpy(&buf[index], &(uuidSectionS), sizeof(uint16_t));
     index += sizeof(uint16_t);
-    uuidSectionS = htons((uint16_t)(uuid->data3));
-    memcpy(buf + index, &(uuidSectionS), sizeof(uint16_t));
+    uuidSectionS = htons(uuid->data3);
+    memcpy(&buf[index], &(uuidSectionS), sizeof(uint16_t));
     index += sizeof(uint16_t);
     unsigned char *uuidSectionC = uuid->data4;
-    memcpy(buf + index, uuidSectionC, 8);
+    memcpy(&buf[index], uuidSectionC, 8);
     index += 8;
 
     return index;
 }
 
-void PXMClient::sendIpsSlot(BevWrapper *bw, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid)
+void PXMClient::sendIpsSlot(BevWrapper *bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid)
 {
     this->sendMsg(bw, msg, len, type, uuid, theiruuid);
     delete [] msg;
@@ -165,7 +165,7 @@ int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int c
         qDebug() << "We are partially sending this msg";
         int len2 = len - status;
         //uint8_t cast to avoid compiler warning, we want to advance the pointer the number of bytes in status
-        msg = (void*)((uint8_t*)msg + status);
+        msg = (void*)((char*)msg + status);
         count++;
 
         status2 = recursiveSend(socketfd, msg, len2, count);

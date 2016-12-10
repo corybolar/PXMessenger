@@ -19,24 +19,31 @@ Q_DECLARE_METATYPE(size_t);
 Q_DECLARE_OPAQUE_POINTER(bufferevent*);
 Q_DECLARE_METATYPE(bufferevent*);
 
-#define BACKLOG 20
-#define MULTICAST_ADDRESS "239.192.13.13"
-#define PACKED_UUID_BYTE_LENGTH 16
-#define MESSAGE_HISTORY_LENGTH 500
-#define MIDNIGHT_TIMER_INTERVAL_MINUTES 1
-#define DEBUG_PADDING 25
-#define DEFAULT_UDP_PORT 53273
-#define TEXT_EDIT_MAX_LENGTH 2000
-#define MAX_HOSTNAME_LENGTH 24
+namespace PXMConsts {
+const int BACKLOG = 200;
+const char* const DEFAULT_MULTICAST_ADDRESS = "239.192.13.13";
+const size_t PACKED_UUID_BYTE_LENGTH = 16;
+const int MESSAGE_HISTORY_LENGTH = 500;
+const int MIDNIGHT_TIMER_INTERVAL_MINUTES = 1;
+#ifdef QT_DEBUG
+const int DEBUG_PADDING = 25;
+#else
+const int DEBUG_PADDING = 0;
+#endif
+const unsigned short DEFAULT_UDP_PORT = 53273;
+const int TEXT_EDIT_MAX_LENGTH = 2000;
+const int MAX_HOSTNAME_LENGTH = 24;
+enum MESSAGE_TYPE : uint8_t {UUID = 1, MSG, SYNC, SYNC_REQUEST, GLOBAL};
+}
 
 class BevWrapper {
 public:
     BevWrapper(bufferevent *buf) : bev(buf) {}
     BevWrapper() : bev(nullptr) {}
-    void setBev(bufferevent *buf) {bev = buf;}
-    bufferevent* getBev() {return bev;}
-    void lockBev() {locker.lock();}
-    void unlockBev() {locker.unlock();}
+    inline void setBev(bufferevent *buf) {bev = buf;}
+    inline bufferevent* getBev() {return bev;}
+    inline void lockBev() {locker.lock();}
+    inline void unlockBev() {locker.unlock();}
     bufferevent *bev;
 
 private:
@@ -63,6 +70,27 @@ struct peerDetails{
         identifier = QUuid();
         bw = new BevWrapper();
     }
+    peerDetails(bool iC, bool iA, evutil_socket_t sD,
+                sockaddr_in iAR, QString h, QLinkedList<QString*> m,
+                QUuid iD, BevWrapper *bw)
+    {
+        isConnected = iC;
+        isAuthenticated = iA;
+        socketDescriptor = sD;
+        ipAddressRaw = iAR;
+        hostname = h;
+        messages = m;
+        identifier = iD;
+        this->bw = bw;
+    }
+    peerDetails(const peerDetails& p) : isConnected(p.isConnected),
+      isAuthenticated(p.isAuthenticated),
+      socketDescriptor(p.socketDescriptor),
+      ipAddressRaw(p.ipAddressRaw),
+      hostname(p.hostname),
+      messages(p.messages),
+      identifier(p.identifier),
+      bw(p.bw) {}
 };
 struct initialSettings{
     int uuidNum;

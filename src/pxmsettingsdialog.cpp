@@ -11,19 +11,19 @@ void PXMSettingsDialog::clickedme(QAbstractButton *button)
         if(GetUserName(t_user, &user_size))
             wcstombs(localHostname, t_user, UNLEN+1);
         else
-            strcpy(localHostname, "user\0");
+            strcpy(localHostname, "user");
 #else
         char localHostname[sysconf(_SC_GETPW_R_SIZE_MAX)];
         struct passwd *user;
         user = getpwuid(getuid());
         if(!user)
-            strcpy(localHostname, "user\0");
+            strcpy(localHostname, "user");
         else
             strcpy(localHostname, user->pw_name);
 #endif
         spinBox->setValue(0);
         spinBox_2->setValue(0);
-        lineEdit->setText(QString::fromLatin1(localHostname).left(MAX_HOSTNAME_LENGTH));
+        lineEdit->setText(QString::fromLatin1(localHostname).left(PXMConsts::MAX_HOSTNAME_LENGTH));
         checkBox->setChecked(false);
     }
     if((QPushButton*)button == buttonBox->button(QDialogButtonBox::Help))
@@ -94,7 +94,7 @@ void PXMSettingsDialog::setupUi()
 
     lineEdit = new QLineEdit(this);
     lineEdit->setObjectName(QStringLiteral("lineEdit"));
-    lineEdit->setMaxLength(MAX_HOSTNAME_LENGTH);
+    lineEdit->setMaxLength(PXMConsts::MAX_HOSTNAME_LENGTH);
 
     gridLayout->addWidget(lineEdit, 1, 1, 1, 1);
 
@@ -165,13 +165,13 @@ void PXMSettingsDialog::setupUi()
         if(GetUserName(t_user, &user_size))
             wcstombs(localHostname, t_user, UNLEN+1);
         else
-            strcpy(localHostname, "user\0");
+            strcpy(localHostname, "user");
 #else
         char localHostname[sysconf(_SC_GETPW_R_SIZE_MAX)];
         struct passwd *user;
         user = getpwuid(getuid());
         if(!user)
-            strcpy(localHostname, "user\0");
+            strcpy(localHostname, "user");
         else
             strcpy(localHostname, user->pw_name);
 #endif

@@ -20,17 +20,20 @@ LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
 
 void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    QByteArray localMsg = msg.toLocal8Bit();
-    QByteArray localMsg2;
+#ifdef QT_DEBUG
+    QByteArray localMsg;
     QString padding = "                    ";
     QString filename = QString::fromUtf8(context.file);
     filename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
     filename.append(":" + QByteArray::number(context.line));
-    filename.append(padding.right(DEBUG_PADDING - filename.length()));
-    localMsg2 = filename.toUtf8() + msg.toUtf8();
+    filename.append(padding.right(PXMConsts::DEBUG_PADDING - filename.length()));
+    localMsg = filename.toUtf8() + msg.toUtf8();
+#else
+    QByteArray localMsg = msg.toLocal8Bit();
+#endif
     switch(type) {
     case QtDebugMsg:
-        fprintf(stderr, "%s\n", localMsg2.constData());
+        fprintf(stderr, "%s\n", localMsg.constData());
         //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         break;
     case QtWarningMsg:
@@ -49,7 +52,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     if(PXMDebugWindow::textEdit != 0)
     {
         LoggerSingleton *logger = LoggerSingleton::getInstance();
-        qApp->postEvent(logger, new AppendTextEvent(localMsg2), Qt::LowEventPriority);
+        qApp->postEvent(logger, new AppendTextEvent(localMsg), Qt::LowEventPriority);
     }
 }
 
@@ -62,6 +65,12 @@ int main(int argc, char **argv)
     qRegisterMetaType<sockaddr_in>();
     qRegisterMetaType<size_t>("size_t");
     qRegisterMetaType<bufferevent*>();
+
+#ifdef QT_DEBUG
+    qDebug() << "Running in debug mode";
+#else
+    qDebug() << "Running in release mode";
+#endif
 
     QApplication app (argc, argv);
 
@@ -96,13 +105,13 @@ int main(int argc, char **argv)
     if(GetUserName(t_user, &user_size))
         wcstombs(localHostname, t_user, UNLEN+1);
     else
-        strcpy(localHostname, "user\0");
+        strcpy(localHostname, "user");
 #else
     char localHostname[sysconf(_SC_GETPW_R_SIZE_MAX)];
     struct passwd *user;
     user = getpwuid(getuid());
     if(!user)
-        strcpy(localHostname, "user\0");
+        strcpy(localHostname, "user");
     else
         strcpy(localHostname, user->pw_name);
 #endif
@@ -136,7 +145,8 @@ int main(int argc, char **argv)
     presets.mute = iniReader.getMute();
     presets.preventFocus = iniReader.getFocus();
 
-    PXMWindow window(presets);
+    PXMWindow *window = new PXMWindow(presets);
+    window->startThreadsAndShow();
 
     int result = app.exec();
 

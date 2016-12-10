@@ -58,7 +58,6 @@
 #include <netinet/in.h>
 #include <resolv.h>
 #include <pwd.h>
-
 #endif
 
 class PXMWindow : public QMainWindow
@@ -68,6 +67,7 @@ class PXMWindow : public QMainWindow
 public:
     PXMWindow(initialSettings presets);
     ~PXMWindow();
+    void startThreadsAndShow();
 public slots:
     void bloomActionsSlot();
     void resizeLabel(QRect size);
@@ -231,11 +231,11 @@ private slots:
     void warnBox(QString title, QString msg);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
-    void sendMsg(QByteArray, QByteArray, QUuid, QUuid);
+    void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
     void addMessageToPeer(QString, QUuid, bool, bool);
-    void printFullHistory(QUuid);
+    void requestFullHistory(QUuid);
 };
 
 #endif

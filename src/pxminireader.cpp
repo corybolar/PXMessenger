@@ -73,13 +73,13 @@ unsigned short MessIniReader::getPort(QString protocol)
 }
 void MessIniReader::setHostname(QString hostname)
 {
-    inisettings->setValue("hostname/hostname", hostname.left(MAX_HOSTNAME_LENGTH));
+    inisettings->setValue("hostname/hostname", hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH));
 }
 QString MessIniReader::getHostname(QString defaultHostname)
 {
     QString hostname = inisettings->value("hostname/hostname", defaultHostname).toString();
 
-    return hostname.left(MAX_HOSTNAME_LENGTH);
+    return hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH);
 }
 void MessIniReader::setWindowSize(QSize windowSize)
 {

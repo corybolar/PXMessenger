@@ -31,12 +31,14 @@
 class PXMClient : public QObject
 {
     Q_OBJECT
+    int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
+    in_addr multicastAddress;
 public:
     PXMClient(QObject *parent, in_addr multicast);
     ~PXMClient() {qDebug() << "Shutdown of PXMClient Successful";}
     static size_t packUuid(char *buf, QUuid *uuid);
 public slots:
-    void sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, const char *type, QUuid uuidSender, QUuid uuidReceiver);
+    void sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidSender, QUuid uuidReceiver);
     /*!
      * \brief sendMsgSlot
      *
@@ -49,7 +51,7 @@ public slots:
      * 			included in packet
      * \see sendMsg()
      */
-    void sendMsgSlot(BevWrapper *bw, QByteArray msg, QByteArray type, QUuid uuid, QUuid theiruuid);
+    void sendMsgSlot(BevWrapper *bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid);
     /*!
      * \brief sendUDP
      *
@@ -71,13 +73,9 @@ public slots:
      * 			bool variable containing the result.
      * \see man connect
      */
-    void connectToPeer(evutil_socket_t, sockaddr_in socketAddr, void *bevptr);
-    void sendIpsSlot(BevWrapper *bw, char *msg, size_t len, QByteArray type, QUuid uuid, QUuid theiruuid);
-private:
-    int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
+    void connectToPeer(evutil_socket_t, sockaddr_in socketAddr, bufferevent *bev);
+    void sendIpsSlot(BevWrapper *bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid);
     static void connectCB(bufferevent *bev, short event, void *arg);
-    //char *multicastAddress;
-    in_addr multicastAddress;
 signals:
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*);
     void resultOfTCPSend(unsigned int, QUuid, QString, bool, BevWrapper*);

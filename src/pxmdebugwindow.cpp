@@ -32,8 +32,8 @@ PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
     this->resize(1000, 300);
     sb->setValue(sb->maximum());
     this->atMaximum = true;
-    QObject::connect(sb, SIGNAL(valueChanged(int)), this, SLOT(adjustScrollBar(int)));
-    QObject::connect(sb, SIGNAL(rangeChanged(int,int)), this, SLOT(rangeChanged(int, int)));
+    QObject::connect(sb, &QAbstractSlider::valueChanged, this, &PXMDebugWindow::adjustScrollBar);
+    QObject::connect(sb, &QAbstractSlider::rangeChanged, this, &PXMDebugWindow::rangeChanged);
 }
 void PXMDebugWindow::adjustScrollBar(int i)
 {

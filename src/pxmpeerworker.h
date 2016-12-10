@@ -89,7 +89,7 @@ public slots:
     int recieveServerMessage(QString str, QUuid uuid, bufferevent *bev, bool global);
     void addMessageToAllPeers(QString str, bool alert, bool formatAsMessage);
     void printFullHistory(QUuid uuid);
-    void sendMsgAccessor(QByteArray msg, QByteArray type, QUuid uuid1, QUuid uuid2);
+    void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid uuid1, QUuid uuid2);
     void setSelfCommsBufferevent(bufferevent *bev);
     void discoveryTimerPersistent();
     void multicastIsFunctional();
@@ -105,15 +105,15 @@ private slots:
 signals:
     void printToTextBrowser(QString, QUuid, bool);
     void updateListWidget(QUuid, QString);
-    void sendMsg(BevWrapper*, QByteArray, QByteArray, QUuid, QUuid);
+    void sendMsg(BevWrapper*, QByteArray, PXMConsts::MESSAGE_TYPE, QUuid, QUuid);
     void sendUDP(const char*, unsigned short);
-    void sendIpsPacket(BevWrapper*, char*, size_t len, QByteArray, QUuid, QUuid);
-    void connectToPeer(evutil_socket_t, sockaddr_in, void*);
+    void sendIpsPacket(BevWrapper*, char*, size_t len, PXMConsts::MESSAGE_TYPE, QUuid, QUuid);
+    void connectToPeer(evutil_socket_t, sockaddr_in, bufferevent*);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);
     void warnBox(QString, QString);
-
+    void fullHistory(QLinkedList<QString*>, QUuid);
 };
 
 #endif

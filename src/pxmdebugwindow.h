@@ -11,7 +11,7 @@
 #include <QDebug>
 #include <QDialog>
 
-#define DEBUG_WINDOW_HISTORY_LIMIT 5000
+const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
 
 class PXMDebugWindow : public QMainWindow
 {
