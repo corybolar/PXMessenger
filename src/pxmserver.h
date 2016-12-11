@@ -25,6 +25,7 @@
 #include <event2/thread.h>
 
 #include "pxmdefinitions.h"
+#include "uuidcompression.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -65,7 +66,6 @@ public:
     ~PXMServer();
     static void tcpError(bufferevent *bev, short error, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
-    static QUuid unpackUUID(const unsigned char *src);
     static void tcpRead(bufferevent *bev, void *arg);
     static void accept_new(evutil_socket_t socketfd, short, void *arg);
     static void udpRecieve(evutil_socket_t socketfd, short, void *args);

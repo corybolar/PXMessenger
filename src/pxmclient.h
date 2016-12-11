@@ -17,6 +17,7 @@
 #include <event2/buffer.h>
 
 #include "pxmdefinitions.h"
+#include "uuidcompression.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -36,7 +37,6 @@ class PXMClient : public QObject
 public:
     PXMClient(QObject *parent, in_addr multicast);
     ~PXMClient() {qDebug() << "Shutdown of PXMClient Successful";}
-    static size_t packUuid(char *buf, QUuid *uuid);
 public slots:
     void sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidSender, QUuid uuidReceiver);
     /*!
@@ -61,7 +61,7 @@ public slots:
      * \param msg Message to send
      * \param port Port to send to in the multicast group
      */
-    int sendUDP(const char *msg, unsigned short port);
+    int sendUDP(const char* msg, unsigned short port);
     /*!
      * \brief connectToPeer
      *

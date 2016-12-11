@@ -21,8 +21,7 @@ Q_DECLARE_METATYPE(bufferevent*);
 
 namespace PXMConsts {
 const int BACKLOG = 200;
-const char* const DEFAULT_MULTICAST_ADDRESS = "239.192.13.13";
-const size_t PACKED_UUID_BYTE_LENGTH = 16;
+const char * const DEFAULT_MULTICAST_ADDRESS = "239.192.13.13";
 const int MESSAGE_HISTORY_LENGTH = 500;
 const int MIDNIGHT_TIMER_INTERVAL_MINUTES = 1;
 #ifdef QT_DEBUG
@@ -33,8 +32,9 @@ const int DEBUG_PADDING = 0;
 const unsigned short DEFAULT_UDP_PORT = 53273;
 const int TEXT_EDIT_MAX_LENGTH = 2000;
 const int MAX_HOSTNAME_LENGTH = 24;
-enum MESSAGE_TYPE : uint8_t {UUID = 1, MSG, SYNC, SYNC_REQUEST, GLOBAL};
+enum MESSAGE_TYPE : const uint8_t {MSG_UUID = 1, MSG_TEXT, MSG_SYNC, MSG_SYNC_REQUEST, MSG_GLOBAL, MSG_DISCOVER = 48, MSG_INFO};
 }
+Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE);
 
 class BevWrapper {
 public:
@@ -51,46 +51,47 @@ private:
 };
 
 struct peerDetails{
-    bool isConnected;
-    bool isAuthenticated;
-    evutil_socket_t socketDescriptor;
+    QUuid identifier;
     sockaddr_in ipAddressRaw;
     QString hostname;
     QLinkedList<QString*> messages;
-    QUuid identifier;
     BevWrapper *bw;
+    evutil_socket_t socketDescriptor;
+    bool isConnected;
+    bool isAuthenticated;
     peerDetails()
     {
+        identifier = QUuid();
+        memset(&ipAddressRaw, 0, sizeof(sockaddr_in));
+        hostname = QString();
+        messages = QLinkedList<QString*>();
+        bw = new BevWrapper();
+        socketDescriptor = -1;
         isConnected = false;
         isAuthenticated = false;
-        socketDescriptor = -1;
-        memset(&ipAddressRaw, 0, sizeof(sockaddr_in));
-        messages = QLinkedList<QString*>();
-        hostname = QString();
-        identifier = QUuid();
-        bw = new BevWrapper();
     }
     peerDetails(bool iC, bool iA, evutil_socket_t sD,
                 sockaddr_in iAR, QString h, QLinkedList<QString*> m,
                 QUuid iD, BevWrapper *bw)
     {
-        isConnected = iC;
-        isAuthenticated = iA;
-        socketDescriptor = sD;
+        identifier = iD;
         ipAddressRaw = iAR;
         hostname = h;
         messages = m;
-        identifier = iD;
         this->bw = bw;
+        socketDescriptor = sD;
+        isConnected = iC;
+        isAuthenticated = iA;
     }
-    peerDetails(const peerDetails& p) : isConnected(p.isConnected),
-      isAuthenticated(p.isAuthenticated),
-      socketDescriptor(p.socketDescriptor),
+    peerDetails(const peerDetails& p) :
+      identifier(p.identifier),
       ipAddressRaw(p.ipAddressRaw),
       hostname(p.hostname),
       messages(p.messages),
-      identifier(p.identifier),
-      bw(p.bw) {}
+      bw(p.bw),
+      socketDescriptor(p.socketDescriptor),
+      isConnected(p.isConnected),
+      isAuthenticated(p.isAuthenticated) {}
 };
 struct initialSettings{
     int uuidNum;

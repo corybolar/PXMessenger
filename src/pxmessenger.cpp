@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     qRegisterMetaType<sockaddr_in>();
     qRegisterMetaType<size_t>("size_t");
     qRegisterMetaType<bufferevent*>();
+    qRegisterMetaType<PXMConsts::MESSAGE_TYPE>();
 
 #ifdef QT_DEBUG
     qDebug() << "Running in debug mode";
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.2.0");
+    QApplication::setApplicationVersion("1.2.1");
 
     MessIniReader iniReader;
     initialSettings presets;
@@ -144,6 +145,7 @@ int main(int argc, char **argv)
     presets.windowSize = iniReader.getWindowSize(QSize(700, 500));
     presets.mute = iniReader.getMute();
     presets.preventFocus = iniReader.getFocus();
+    presets.multicast = iniReader.getMulticastAddress();
 
     PXMWindow *window = new PXMWindow(presets);
     window->startThreadsAndShow();

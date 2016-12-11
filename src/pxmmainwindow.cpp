@@ -419,7 +419,7 @@ void PXMWindow::changeEvent(QEvent *event)
 {
     if(event->type() == QEvent::WindowStateChange)
     {
-        if(isMinimized())
+        if(this->isMinimized())
         {
             this->hide();
             event->ignore();
@@ -513,11 +513,11 @@ int PXMWindow::sendButtonClicked()
 
         if( ( uuidOfSelectedItem == globalChatUuid) )
         {
-            emit sendMsg(msg, PXMConsts::GLOBAL, ourUUID, QUuid());
+            emit sendMsg(msg, PXMConsts::MSG_GLOBAL, ourUUID, QUuid());
         }
         else
         {
-            emit sendMsg(msg, PXMConsts::MSG, ourUUID, uuidOfSelectedItem);
+            emit sendMsg(msg, PXMConsts::MSG_TEXT, ourUUID, uuidOfSelectedItem);
         }
         messTextEdit->setText("");
     }
@@ -551,12 +551,16 @@ int PXMWindow::focusWindow()
     {
         qApp->alert(this, 0);
     }
-    else if(this->isMinimized() && !(focusCheckBox->isChecked()))
+    else if(this->isMinimized())
     {
+        if(!this->focusCheckBox->isChecked())
+        {
+            this->setWindowState(Qt::WindowActive);
+        }
+        else
+            this->setWindowState(Qt::WindowNoState);
         this->show();
         qApp->alert(this, 0);
-        this->raise();
-        this->setWindowState(Qt::WindowActive);
     }
     return 0;
 }

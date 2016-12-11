@@ -1,6 +1,6 @@
 TEMPLATE = app
 TARGET = PXMessenger
-VERSION = 1.2.0
+VERSION = 1.2.1
 QMAKE_TARGET_COMPANY = Bolar Code Solutions
 QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
@@ -37,7 +37,8 @@ SOURCES += \
     pxmessenger.cpp \
     pxmdebugwindow.cpp \
     pxmsettingsdialog.cpp \
-    pxmtextbrowser.cpp
+    pxmtextbrowser.cpp \
+    uuidcompression.cpp
 
 HEADERS += \
     pxmdefinitions.h \
@@ -50,7 +51,8 @@ HEADERS += \
     pxmserver.h \
     pxmclient.h \
     pxmdebugwindow.h \
-    pxmtextbrowser.h
+    pxmtextbrowser.h \
+    uuidcompression.h
 
 DISTFILES +=
 

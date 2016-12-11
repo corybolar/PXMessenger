@@ -66,7 +66,6 @@ void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, buffereve
 
 void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidSender, QUuid uuidReceiver)
 {
-    using PXMConsts::MSG;
     int bytesSent = 0;
     int packetLen;
     uint16_t packetLenNBO;
@@ -77,9 +76,9 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
         emit resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
         return;
     }
-    packetLen = PXMConsts::PACKED_UUID_BYTE_LENGTH + sizeof(uint8_t) + msgLen;
+    packetLen = UUIDCompression::PACKED_UUID_BYTE_LENGTH + sizeof(uint8_t) + msgLen;
 
-    if(type == MSG)
+    if(type == PXMConsts::MSG_TEXT)
     {
         print = true;
     }
@@ -88,9 +87,9 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
 
     packetLenNBO = htons(packetLen);
 
-    packUuid(full_mess, &uuidSender);
-    memcpy(full_mess+PXMConsts::PACKED_UUID_BYTE_LENGTH, &type, sizeof(uint8_t));
-    memcpy(full_mess+PXMConsts::PACKED_UUID_BYTE_LENGTH+sizeof(uint8_t), msg, msgLen);
+    UUIDCompression::packUUID(full_mess, &uuidSender);
+    memcpy(full_mess+UUIDCompression::PACKED_UUID_BYTE_LENGTH, &type, sizeof(uint8_t));
+    memcpy(full_mess+UUIDCompression::PACKED_UUID_BYTE_LENGTH+sizeof(uint8_t), msg, msgLen);
     full_mess[packetLen] = 0;
 
     bw->lockBev();
@@ -118,25 +117,6 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
 void PXMClient::sendMsgSlot(BevWrapper *bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid)
 {
     this->sendMsg(bw, msg.constData(), msg.length(), type, uuid, theiruuid);
-}
-size_t PXMClient::packUuid(char *buf, QUuid *uuid)
-{
-    int index = 0;
-
-    uint32_t uuidSectionL = htonl(uuid->data1);
-    memcpy(&buf[index], &(uuidSectionL), sizeof(uint32_t));
-    index += sizeof(uint32_t);
-    uint16_t uuidSectionS = htons(uuid->data2);
-    memcpy(&buf[index], &(uuidSectionS), sizeof(uint16_t));
-    index += sizeof(uint16_t);
-    uuidSectionS = htons(uuid->data3);
-    memcpy(&buf[index], &(uuidSectionS), sizeof(uint16_t));
-    index += sizeof(uint16_t);
-    unsigned char *uuidSectionC = uuid->data4;
-    memcpy(&buf[index], uuidSectionC, 8);
-    index += 8;
-
-    return index;
 }
 
 void PXMClient::sendIpsSlot(BevWrapper *bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid)

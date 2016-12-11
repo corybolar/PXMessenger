@@ -129,14 +129,15 @@ QString MessIniReader::getMulticastAddress()
     {
         return QString("");
     }
+    return ipFull;
+    /*
     QStringList ipList = ipFull.split(".");
     for(int i = 0; i < 4; i++)
     {
         if(ipList[i].toUInt() > 255)
             ipList[i] = "0";
     }
-
-    return ipList.join("");
+    */
 }
 int MessIniReader::setMulticastAddress(QStringList ip)
 {
