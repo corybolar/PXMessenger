@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.2.1");
+    QApplication::setApplicationVersion("1.2.2");
 
     MessIniReader iniReader;
     initialSettings presets;
@@ -151,6 +151,8 @@ int main(int argc, char **argv)
     window->startThreadsAndShow();
 
     int result = app.exec();
+
+    delete window;
 
     iniReader.resetUUID(presets.uuidNum, presets.uuid);
 

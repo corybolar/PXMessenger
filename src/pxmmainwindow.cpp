@@ -27,6 +27,7 @@ PXMWindow::PXMWindow(initialSettings presets)
     if(presets.multicast.isEmpty() || strlen(presets.multicast.toLatin1().constData()) > INET_ADDRSTRLEN)
         presets.multicast = QString::fromLocal8Bit(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
 
+    workerThread = new QThread(this);
     peerWorker = new PXMPeerWorker(nullptr, presets, globalChatUuid);
 
     setupGui();
@@ -269,12 +270,12 @@ void PXMWindow::setupGui()
 }
 void PXMWindow::startWorkerThread()
 {
-    workerThread = new QThread(this);
     workerThread->setObjectName("WorkerThread");
     peerWorker->moveToThread(workerThread);
     QObject::connect(workerThread, &QThread::started, peerWorker, &PXMPeerWorker::currentThreadInit);
-    QObject::connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
-    QObject::connect(workerThread, &QThread::finished, peerWorker, &QObject::deleteLater);
+    QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
+    QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+    QObject::connect(workerThread, &QThread::finished, peerWorker, &QThread::deleteLater);
 
     workerThread->start();
 }

@@ -10,14 +10,15 @@
 #include <QLinkedList>
 #include <QtAlgorithms>
 #include <QMutex>
+#include <QDebug>
 
 #ifdef _WIN32
-Q_DECLARE_METATYPE(intptr_t);
+Q_DECLARE_METATYPE(intptr_t)
 #endif
-Q_DECLARE_METATYPE(sockaddr_in);
-Q_DECLARE_METATYPE(size_t);
-Q_DECLARE_OPAQUE_POINTER(bufferevent*);
-Q_DECLARE_METATYPE(bufferevent*);
+Q_DECLARE_METATYPE(sockaddr_in)
+Q_DECLARE_METATYPE(size_t)
+Q_DECLARE_OPAQUE_POINTER(bufferevent*)
+Q_DECLARE_METATYPE(bufferevent*)
 
 namespace PXMConsts {
 const int BACKLOG = 200;
@@ -34,7 +35,7 @@ const int TEXT_EDIT_MAX_LENGTH = 2000;
 const int MAX_HOSTNAME_LENGTH = 24;
 enum MESSAGE_TYPE : const uint8_t {MSG_UUID = 1, MSG_TEXT, MSG_SYNC, MSG_SYNC_REQUEST, MSG_GLOBAL, MSG_DISCOVER = 48, MSG_INFO};
 }
-Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE);
+Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE)
 
 class BevWrapper {
 public:
@@ -65,23 +66,13 @@ struct peerDetails{
         memset(&ipAddressRaw, 0, sizeof(sockaddr_in));
         hostname = QString();
         messages = QLinkedList<QString*>();
-        bw = new BevWrapper();
+        bw = nullptr;
         socketDescriptor = -1;
         isConnected = false;
         isAuthenticated = false;
     }
-    peerDetails(bool iC, bool iA, evutil_socket_t sD,
-                sockaddr_in iAR, QString h, QLinkedList<QString*> m,
-                QUuid iD, BevWrapper *bw)
+    ~peerDetails()
     {
-        identifier = iD;
-        ipAddressRaw = iAR;
-        hostname = h;
-        messages = m;
-        this->bw = bw;
-        socketDescriptor = sD;
-        isConnected = iC;
-        isAuthenticated = iA;
     }
     peerDetails(const peerDetails& p) :
       identifier(p.identifier),

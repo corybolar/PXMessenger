@@ -14,20 +14,27 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, initialSettings presets, QUuid glo
 
     //Prevent race condition when starting threads, a bufferevent
     //for this (us) is coming soon.
-    peerDetailsHash[localUUID].identifier = localUUID;
-    peerDetailsHash[localUUID].hostname = localHostname;
-    peerDetailsHash[localUUID].socketDescriptor = -1;
-    peerDetailsHash[localUUID].isConnected = true;
-    peerDetailsHash[localUUID].isAuthenticated = false;
+    peerDetails l1;
+    l1.identifier=localUUID;
+    l1.hostname = localHostname;
+    l1.socketDescriptor = -1;
+    l1.isConnected = true;
+    l1.isAuthenticated = false;
+    l1.bw = new BevWrapper();
+    peerDetailsHash.insert(localUUID, l1);
 
-    peerDetailsHash[globalUUID].identifier = globalUUID;
-    peerDetailsHash[globalUUID].hostname = "Global Chat";
-    peerDetailsHash[globalUUID].socketDescriptor = -1;
-    peerDetailsHash[globalUUID].isConnected = true;
-    peerDetailsHash[globalUUID].isAuthenticated = false;
+    peerDetails g;
+    g.identifier = globalUUID;
+    g.hostname = "Global Chat";
+    g.socketDescriptor = -1;
+    g.isConnected = true;
+    g.isAuthenticated = false;
+    g.bw = new BevWrapper();
+    peerDetailsHash.insert(globalUUID, g);
 }
 PXMPeerWorker::~PXMPeerWorker()
 {
+    qDebug() << "PXMPeerWorker destructor";
     syncTimer->stop();
     nextSyncTimer->stop();
     for(auto &itr : peerDetailsHash)
@@ -62,7 +69,6 @@ PXMPeerWorker::~PXMPeerWorker()
         bufferevent_write(closeBev, "/exit", 5);
         messServer->wait(5000);
     }
-    qDebug() << "Shutdown of PXMServer Successful";
 
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
@@ -327,6 +333,8 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
         bufferevent_setcb(bev, PXMServer::tcpReadUUID, NULL, PXMServer::tcpError, messServer);
         bufferevent_setwatermark(bev, EV_READ, sizeof(uint16_t), sizeof(uint16_t));
         bufferevent_enable(bev, EV_READ|EV_WRITE);
+        if(peerDetailsHash[uuid].bw == nullptr)
+            peerDetailsHash[uuid].bw = new BevWrapper();
         peerDetailsHash[uuid].bw->lockBev();
         if(peerDetailsHash[uuid].bw->getBev() != nullptr)
             bufferevent_free(peerDetailsHash[uuid].bw->getBev());
@@ -389,7 +397,11 @@ void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, e
 
     qDebug().noquote() << hname << "on port" << QString::number(port) << "authenticated!";
 
-    if(peerDetailsHash[uuid].bw->getBev() != nullptr && peerDetailsHash[uuid].bw->getBev() != bev)
+    if(peerDetailsHash[uuid].bw == nullptr)
+    {
+        peerDetailsHash[uuid].bw = new BevWrapper();
+    }
+    else if(peerDetailsHash[uuid].bw->getBev() != nullptr && peerDetailsHash[uuid].bw->getBev() != bev)
     {
         extraBufferevents.append(peerDetailsHash[uuid].bw->getBev());
     }
@@ -478,9 +490,9 @@ int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool fo
 }
 void PXMPeerWorker::setSelfCommsBufferevent(bufferevent *bev)
 {
-    peerDetailsHash[localUUID].bw->lockBev();
-    peerDetailsHash[localUUID].bw->setBev(bev);
-    peerDetailsHash[localUUID].bw->unlockBev();
+    peerDetailsHash.value(localUUID).bw->lockBev();
+    peerDetailsHash.value(localUUID).bw->setBev(bev);
+    peerDetailsHash.value(localUUID).bw->unlockBev();
 
     updateListWidget(localUUID, localHostname);
 }

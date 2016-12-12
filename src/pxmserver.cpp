@@ -14,6 +14,7 @@ PXMServer::PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udp
 }
 PXMServer::~PXMServer()
 {
+    qDebug() << "Shutdown of PXMServer Successful";
 }
 int PXMServer::setLocalHostname(QString hostname)
 {
@@ -181,7 +182,7 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
 
     bufLen -= UUIDCompression::PACKED_UUID_BYTE_LENGTH;
     //char *buf = new char[bufLen + 1];
-    char *buf = new char[bufLen];
+    char *buf = new char[bufLen + 1];
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
 
@@ -283,13 +284,16 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         }
         evutil_socket_t replySocket;
         if ( (replySocket = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
+        {
             qDebug().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
+            return;
+        }
 
         si_other.sin_port = htons(realServer->udpListenerPort);
 
-        int len = sizeof(uint16_t) + UUIDCompression::PACKED_UUID_BYTE_LENGTH + strlen("/name:") + 1;
+        int len = sizeof(uint16_t) + UUIDCompression::PACKED_UUID_BYTE_LENGTH + strlen("/name:");
 
-        char name[len];
+        char name[len+1];
 
         strcpy(name, "/name:");
 
@@ -297,11 +301,11 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         memcpy(&name[strlen("/name:")], &(port), sizeof(port));
         UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], &(realServer->localUUID));
 
-        name[len] = 0;
+        name[len+1] = 0;
 
         for(int k = 0; k < 2; k++)
         {
-            if(sendto(replySocket, name, len, 0, (struct sockaddr *)&si_other, si_other_len) != len)
+            if(sendto(replySocket, name, len, 0, (sockaddr *)&si_other, si_other_len) != len)
                 qDebug().noquote() << "sendto: " + QString::fromUtf8(strerror(errno));
         }
         evutil_closesocket(replySocket);
