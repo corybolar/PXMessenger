@@ -48,7 +48,6 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
 void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
 {
     PXMClient *realClient = static_cast<PXMClient*>(arg);
-    //qDebug() << QString::number(bufferevent_getfd(bev));
     if(event & BEV_EVENT_CONNECTED)
         realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev);
     else
@@ -62,7 +61,6 @@ void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, buffereve
     bufferevent_set_timeouts(bev, &timeout, &timeout);
     bufferevent_socket_connect(bev, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
 }
-
 
 void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidSender, QUuid uuidReceiver)
 {

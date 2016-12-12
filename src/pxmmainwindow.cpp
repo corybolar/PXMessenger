@@ -444,7 +444,7 @@ void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 }
 void PXMWindow::quitButtonClicked()
 {
-    qApp->quit();
+    this->close();
 }
 void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 {
@@ -479,7 +479,6 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 }
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
-    qDebug() << "starting closeEvent";
     qDebug() << "trying to hide systray";
     messSystemTray->hide();
     qDebug() << "systray hidden";
@@ -594,4 +593,3 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
 
     return 0;
 }
-

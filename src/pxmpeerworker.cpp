@@ -252,6 +252,7 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent *bev)
             peerDetailsHash[itr.identifier].isConnected = false;
             peerDetailsHash[itr.identifier].isAuthenticated = false;
             peerDetailsHash[itr.identifier].bw->lockBev();
+            qDebug().noquote() << "Peer:" << itr.identifier.toString() << "has disconnected";
             peerDetailsHash[itr.identifier].bw->setBev(nullptr);
             bufferevent_free(bev);
             peerDetailsHash[itr.identifier].bw->unlockBev();
@@ -271,6 +272,7 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent *bev)
             return;
         }
     }
+    qDebug().noquote() << "Non-Authed Peer has quit";
     bufferevent_free(bev);
     evutil_closesocket(s);
 }

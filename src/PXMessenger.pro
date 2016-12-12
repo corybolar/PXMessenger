@@ -22,7 +22,7 @@ LIBS += -lws2_32 \
 
 target.path = /usr/bin
 
-#INSTALLS += target
+INSTALLS += target
 
 QMAKE_CXXFLAGS += -Wall
 

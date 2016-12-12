@@ -34,7 +34,7 @@ void PXMServer::accept_new(evutil_socket_t s, short, void *arg)
     struct sockaddr_in ss;
     socklen_t addr_size = sizeof(ss);
 
-    result = (accept(s, (struct sockaddr *)&ss, &addr_size));
+    result = accept(s, (struct sockaddr *)&ss, &addr_size);
     if(result < 0)
     {
         qDebug() << "accept: " << QString::fromUtf8(strerror(errno));
