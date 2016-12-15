@@ -277,6 +277,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 
     if (strncmp(&buf[0], "/discover", 9) == 0)
     {
+        qDebug() << "Discovery Packet:" << buf;
         if(!realServer->gotDiscover)
         {
             realServer->gotDiscover = true;
@@ -314,6 +315,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     //when this is recieved it add the sender to the list of peers and connects to him
     else if ((strncmp(&buf[0], "/name:", 6)) == 0)
     {
+        qDebug() << "Name Packet:" << buf;
         si_other.sin_port = *(uint16_t*)(&buf[6]);
         QUuid uuid = UUIDCompression::unpackUUID((unsigned char*)&buf[8]);
         realServer->attemptConnection(si_other, uuid);
@@ -392,7 +394,7 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
 evutil_socket_t PXMServer::setupTCPSocket()
 {
     struct addrinfo hints, *res;
-    evutil_socket_t socketTCP;
+    QVector<evutil_socket_t> tcpSockets;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
@@ -404,24 +406,41 @@ evutil_socket_t PXMServer::setupTCPSocket()
     sprintf(tcpPortChar, "%d", tcpListenerPort);
 
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
+    {
         qDebug().noquote() << "getaddrinfo: " + QString::fromUtf8(strerror(errno));
-    if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
-        qDebug().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
-    if(setsockopt(socketTCP, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int)) < 0)
-        qDebug().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        return -1;
+    }
 
-    evutil_make_socket_nonblocking(socketTCP);
+    for(addrinfo *p = res; p; p = p->ai_next)
+    {
+        evutil_socket_t socketTCP;
+        if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
+        {
+            qDebug().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
+        }
+        if(setsockopt(socketTCP, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int)) < 0)
+        {
+            qDebug().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        }
 
-    if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
-        qDebug().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
-    if(listen(socketTCP, PXMConsts::BACKLOG) < 0)
-        qDebug().noquote() << "listen: " + QString::fromUtf8(strerror(errno));
+        evutil_make_socket_nonblocking(socketTCP);
 
-    qDebug().noquote() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
+        if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
+        {
+            qDebug().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
+        }
+        if(listen(socketTCP, PXMConsts::BACKLOG) < 0)
+        {
+            qDebug().noquote() << "listen: " + QString::fromUtf8(strerror(errno));
+        }
+        tcpSockets.append(socketTCP);
+        qDebug().noquote() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
+    }
+    qDebug().noquote() << "Number of tcp sockets:" << tcpSockets.length();
 
     freeaddrinfo(res);
 
-    return socketTCP;
+    return tcpSockets.first();
 }
 void PXMServer::stopLoopBufferevent(bufferevent* bev, void*)
 {

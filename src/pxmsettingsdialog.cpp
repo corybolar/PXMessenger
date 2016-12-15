@@ -42,7 +42,7 @@ void PXMSettingsDialog::accept()
 {
     MessIniReader iniReader;
     iniReader.setAllowMoreThanOne(this->checkBox->isChecked());
-    iniReader.setHostname(this->lineEdit->text());
+    iniReader.setHostname(this->lineEdit->text().simplified());
     iniReader.setPort("TCP", this->spinBox->value());
     iniReader.setPort("UDP", this->spinBox_2->value());
     iniReader.setFont(qApp->font().toString());

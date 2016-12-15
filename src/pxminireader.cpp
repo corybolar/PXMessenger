@@ -79,7 +79,7 @@ QString MessIniReader::getHostname(QString defaultHostname)
 {
     QString hostname = inisettings->value("hostname/hostname", defaultHostname).toString();
 
-    return hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH);
+    return hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH).simplified();
 }
 void MessIniReader::setWindowSize(QSize windowSize)
 {
