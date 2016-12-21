@@ -67,6 +67,10 @@ class PXMWindow : public QMainWindow
 public:
     PXMWindow(initialSettings presets);
     ~PXMWindow();
+    PXMWindow(PXMWindow const&) = delete;
+    PXMWindow& operator=(PXMWindow const&) = delete;
+    PXMWindow& operator=(PXMWindow&&) noexcept = delete;
+    PXMWindow(PXMWindow&&) noexcept = delete;
     void startThreadsAndShow();
 public slots:
     void bloomActionsSlot();

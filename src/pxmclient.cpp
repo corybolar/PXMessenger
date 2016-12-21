@@ -77,9 +77,7 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
     packetLen = UUIDCompression::PACKED_UUID_BYTE_LENGTH + sizeof(uint8_t) + msgLen;
 
     if(type == PXMConsts::MSG_TEXT)
-    {
         print = true;
-    }
 
     char full_mess[packetLen + 1];
 
@@ -95,15 +93,21 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
     if((bw->getBev() == nullptr) || !(bufferevent_get_enabled(bw->getBev()) & EV_WRITE))
     {
         bw->unlockBev();
-        emit resultOfTCPSend(-1, uuidReceiver, QString::fromUtf8(msg), print, bw);
+        emit resultOfTCPSend(-1, uuidReceiver, QStringLiteral("Peer is Disconnected, message not sent"), print, bw);
         return;
     }
 
-    bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(uint16_t));
+    if(bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(uint16_t)) == 0)
+    {
+        bytesSent = bufferevent_write(bw->getBev(), full_mess, packetLen);
 
-    bytesSent = bufferevent_write(bw->getBev(), full_mess, packetLen);
-
-    bw->unlockBev();
+        bw->unlockBev();
+    }
+    else
+    {
+        bytesSent = -1;
+        msg = "Message send failure, not sent\0";
+    }
 
     if(!uuidReceiver.isNull())
     {

@@ -55,11 +55,15 @@ class PXMServer : public QThread
     bool gotDiscover;
 
     int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len, QUuid quuid);
-    int getPortNumber(evutil_socket_t socket);
+    unsigned short getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 public:
     PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast);
+    PXMServer(PXMServer const&) = delete;
+    PXMServer& operator=(PXMServer const&) = delete;
+    PXMServer& operator=(PXMServer&&) noexcept = delete;
+    PXMServer(PXMServer&&) noexcept = delete;
     void run() Q_DECL_OVERRIDE;
     int setLocalHostname(QString hostname);
     int setLocalUUID(QUuid uuid);

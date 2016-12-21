@@ -98,7 +98,9 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     char buf[bufLen + 1];
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
+#ifdef QT_DEBUG
     qDebug().noquote() << QString::fromUtf8(buf);
+#endif
     if(*(uint8_t*)&buf[0] == PXMConsts::MSG_UUID)
     {
         QStringList hpsplit = (QString::fromUtf8(&buf[1], bufLen-1)).split("::::");
@@ -136,13 +138,17 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
     evbuffer *input = bufferevent_get_input(bev);
     if(evbuffer_get_length(input) == 1)
     {
+#ifdef QT_DEBUG
         qDebug().noquote() << "Setting timeout, 1 byte recieved";
+#endif
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
         return;
     }
     if(evbuffer_get_length(bufferevent_get_input(bev)) <= sizeof(uint16_t))
     {
+#ifdef QT_DEBUG
         qDebug().noquote() << "Recieved bufferlength value";
+#endif
         evbuffer_copyout(input, &nboBufLen, sizeof(uint16_t));
         bufLen = ntohs(nboBufLen);
         if(bufLen == 0)
@@ -151,13 +157,17 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
             evbuffer_drain(input, UINT16_MAX);
             return;
         }
-        qDebug().noquote() << "Setting watermark to " + QString::number(bufLen) + " bytes";
         bufferevent_setwatermark(bev, EV_READ, bufLen + sizeof(uint16_t), bufLen + sizeof(uint16_t));
-        qDebug().noquote() << "Setting timeout to " + QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) + " seconds";
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
+#ifdef QT_DEBUG
+        qDebug().noquote() << "Setting watermark to " + QString::number(bufLen) + " bytes";
+        qDebug().noquote() << "Setting timeout to " + QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) + " seconds";
+#endif
         return;
     }
+#ifdef QT_DEBUG
     qDebug() << "Full packet received";
+#endif
     bufferevent_setwatermark(bev, EV_READ, 1, sizeof(uint16_t));
 
     bufferevent_read(bev, &nboBufLen, 2);
@@ -198,19 +208,19 @@ void PXMServer::tcpError(struct bufferevent *bev, short error, void *arg)
     evutil_socket_t i = bufferevent_getfd(bev);
     if (error & BEV_EVENT_EOF)
     {
-        qDebug() << "EOF";
+        qDebug() << "BEV EOF";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
         realServer->peerQuit(i, bev);
     }
     else if (error & BEV_EVENT_ERROR)
     {
-        qDebug() << "ERROR";
+        qDebug() << "BEV ERROR";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
         realServer->peerQuit(i, bev);
     }
     else if (error & BEV_EVENT_TIMEOUT)
     {
-        qDebug() << "TIMEOUT";
+        qDebug() << "BEV TIMEOUT";
         bufferevent_setwatermark(bev, EV_READ, 1, sizeof(uint16_t));
         timeval readTimeoutReset = {3600, 0};
         bufferevent_set_timeouts(bev, &readTimeoutReset, NULL);
@@ -327,7 +337,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 
     return;
 }
-int PXMServer::getPortNumber(evutil_socket_t socket)
+unsigned short PXMServer::getPortNumber(evutil_socket_t socket)
 {
     sockaddr_in needPortNumber;
     memset(&needPortNumber, 0, sizeof(needPortNumber));
@@ -348,7 +358,7 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
     evutil_socket_t socketUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     multicastGroup.imr_multiaddr = multicastAddress;
-    multicastGroup.imr_interface.s_addr = htonl(INADDR_ANY);
+    multicastGroup.imr_interface.s_addr = INADDR_ANY;
     if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
     {
         qDebug().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
@@ -401,8 +411,7 @@ evutil_socket_t PXMServer::setupTCPSocket()
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    char tcpPortChar[6];
-    memset(tcpPortChar, 0, 6);
+    char tcpPortChar[6] = {};
     sprintf(tcpPortChar, "%d", tcpListenerPort);
 
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
@@ -561,5 +570,5 @@ void PXMServer::run()
 
     event_base_free(base);
 
-    qDebug() << "Events free";
+    qDebug() << "Events free, returning from PXMServer::run()";
 }

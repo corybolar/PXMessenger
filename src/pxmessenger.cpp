@@ -22,18 +22,17 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
 {
 #ifdef QT_DEBUG
     QByteArray localMsg;
-    QString padding = "                    ";
     QString filename = QString::fromUtf8(context.file);
-    filename = filename.right(filename.length() - filename.lastIndexOf("/") - 1);
+    filename = filename.right(filename.length() - filename.lastIndexOf(QChar('/')) - 1);
     filename.append(":" + QByteArray::number(context.line));
-    filename.append(padding.right(PXMConsts::DEBUG_PADDING - filename.length()));
+    filename.append(QString(PXMConsts::DEBUG_PADDING - filename.length(), QChar(' ')));
     localMsg = filename.toUtf8() + msg.toUtf8();
 #else
     QByteArray localMsg = msg.toLocal8Bit();
 #endif
     switch(type) {
     case QtDebugMsg:
-        fprintf(stderr, "%s\n", localMsg.constData());
+        fprintf(stdout, "%s\n", localMsg.constData());
         //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         break;
     case QtWarningMsg:
@@ -54,6 +53,33 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         LoggerSingleton *logger = LoggerSingleton::getInstance();
         qApp->postEvent(logger, new AppendTextEvent(localMsg), Qt::LowEventPriority);
     }
+}
+
+char* getHostname()
+{
+#ifdef _WIN32
+    size_t len = UNLEN+1;
+    char* localHostname = new char[len];
+    memset(localHostname, 0, len);
+    TCHAR t_user[len];
+    DWORD user_size = len;
+    if(GetUserName(t_user, &user_size))
+        wcstombs(localHostname, t_user, len);
+    else
+        strcpy(localHostname, "user");
+#else
+    size_t len = sysconf(_SC_GETPW_R_SIZE_MAX);
+    char* localHostname = new char[len];
+    memset(localHostname, 0, len);
+    struct passwd *user;
+    user = getpwuid(getuid());
+    if(!user)
+        strcpy(localHostname, "user");
+    else
+        strcpy(localHostname, user->pw_name);
+#endif
+
+    return localHostname;
 }
 
 int main(int argc, char **argv)
@@ -87,7 +113,7 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.2.2");
+    QApplication::setApplicationVersion("1.2.3");
 
     MessIniReader iniReader;
     initialSettings presets;
@@ -99,23 +125,7 @@ int main(int argc, char **argv)
         app.setFont(font);
     }
 
-#ifdef _WIN32
-    char localHostname[UNLEN+1];
-    TCHAR t_user[UNLEN+1];
-    DWORD user_size = UNLEN+1;
-    if(GetUserName(t_user, &user_size))
-        wcstombs(localHostname, t_user, UNLEN+1);
-    else
-        strcpy(localHostname, "user");
-#else
-    char localHostname[sysconf(_SC_GETPW_R_SIZE_MAX)];
-    struct passwd *user;
-    user = getpwuid(getuid());
-    if(!user)
-        strcpy(localHostname, "user");
-    else
-        strcpy(localHostname, user->pw_name);
-#endif
+    char* localHostname = getHostname();
 
     QString tmpDir = QDir::tempPath();
     QLockFile lockFile(tmpDir + "/pxmessenger" + QString::fromLatin1(localHostname) + ".lock");
@@ -147,14 +157,19 @@ int main(int argc, char **argv)
     presets.preventFocus = iniReader.getFocus();
     presets.multicast = iniReader.getMulticastAddress();
 
-    PXMWindow *window = new PXMWindow(presets);
-    window->startThreadsAndShow();
+    int result;
+    {
+        PXMWindow window(presets);
+        window.startThreadsAndShow();
 
-    int result = app.exec();
-
-    delete window;
+        result = app.exec();
+    }
 
     iniReader.resetUUID(presets.uuidNum, presets.uuid);
+
+    delete[] localHostname;
+
+    qDebug() << "Exiting PXMessenger";
 
     return result;
 }
