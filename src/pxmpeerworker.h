@@ -57,7 +57,6 @@ private:
     QString libeventBackend;
     QString multicastAddress;
     QUuid localUUID;
-    //QUuid waitingOnSyncFrom;
     QUuid globalUUID;
     QTimer *syncTimer;
     QTimer *nextSyncTimer;
@@ -71,7 +70,7 @@ private:
     PXMClient *messClient;
     bufferevent *closeBev;
     QVector<bufferevent*> extraBufferevents;
-    TimedVector<QUuid> syncablePeers = TimedVector<QUuid>(PXMConsts::SYNC_TIMEOUT_MSECS, SECONDS);
+    TimedVector<QUuid> *syncablePeers;
 
     void sendAuthPacket(BevWrapper *bw);
     void startServerThread();

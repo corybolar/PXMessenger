@@ -20,7 +20,8 @@ class TimedVector
 
         TimedStruct() : t(new T()) {}
 
-        TimedStruct(T t1) : t(new T(t1)), epoch(QDateTime::currentMSecsSinceEpoch()) {}
+        TimedStruct(T t1) : t(new T(t1)),
+            epoch(QDateTime::currentMSecsSinceEpoch()) {}
 
         ~TimedStruct() noexcept
         {
@@ -61,7 +62,8 @@ class TimedVector
 
 
 public:
-    TimedVector(int itemLife, Time_Format format) : ItemLifeMsecs(itemLife * format) {}
+    TimedVector(int itemLife, Time_Format format) :
+        ItemLifeMsecs(itemLife * format) {}
 
     ~TimedVector() {}
 
@@ -87,7 +89,8 @@ public:
         {
             if(*(itr.t) == t)
             {
-                if(itr.epoch + ItemLifeMsecs > QDateTime::currentMSecsSinceEpoch())
+                if(itr.epoch + ItemLifeMsecs >
+                        QDateTime::currentMSecsSinceEpoch())
                     return true;
                 else
                 {

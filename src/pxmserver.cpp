@@ -326,7 +326,7 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     else if ((strncmp(&buf[0], "/name:", 6)) == 0)
     {
         qDebug() << "Name Packet:" << buf;
-        si_other.sin_port = *(uint16_t*)(&buf[6]);
+        memcpy(&si_other.sin_port, &buf[6], sizeof(uint16_t));
         QUuid uuid = UUIDCompression::unpackUUID((unsigned char*)&buf[8]);
         realServer->attemptConnection(si_other, uuid);
     }

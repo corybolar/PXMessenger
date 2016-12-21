@@ -54,12 +54,14 @@ class PXMServer : public QThread
     in_addr multicastAddress;
     bool gotDiscover;
 
-    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len, QUuid quuid);
+    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len,
+                              QUuid quuid);
     unsigned short getPortNumber(evutil_socket_t socket);
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 public:
-    PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast);
+    PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort,
+              in_addr multicast);
     PXMServer(PXMServer const&) = delete;
     PXMServer& operator=(PXMServer const&) = delete;
     PXMServer& operator=(PXMServer&&) noexcept = delete;
@@ -78,7 +80,8 @@ public:
 signals:
     void messageRecieved(QString, QUuid, bufferevent*, bool);
     void newTCPConnection(bufferevent*);
-    void authenticationReceived(QString, unsigned short, evutil_socket_t, QUuid, bufferevent*);
+    void authenticationReceived(QString, unsigned short, evutil_socket_t,
+                                QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(sockaddr_in, QUuid);
     void sendSyncPacket(bufferevent*, QUuid);

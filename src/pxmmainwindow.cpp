@@ -300,7 +300,6 @@ void PXMWindow::connectPeerClassSignalsAndSlots()
     QObject::connect(this, &PXMWindow::addMessageToPeer, peerWorker, &PXMPeerWorker::addMessageToPeer, Qt::QueuedConnection);
     QObject::connect(this, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
     QObject::connect(this, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDPAccessor, Qt::QueuedConnection);
-    //QObject::connect(this, &PXMWindow::addMessageToAllPeers, peerWorker, &PXMPeerWorker::addMessageToAllPeers, Qt::QueuedConnection);
     QObject::connect(this, &PXMWindow::requestFullHistory, peerWorker, &PXMPeerWorker::printFullHistory, Qt::QueuedConnection);
     QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, peerWorker, &PXMPeerWorker::printInfoToDebug);
 }
@@ -480,6 +479,14 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 }
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
+#ifndef __unix
+    if(QMessageBox::No == QMessageBox::warning(this, "PXMessenger", "Are you sure you want to quit PXMessenger?", QMessageBox::Yes, QMessageBox::No))
+    {
+        event->ignore();
+        return;
+    }
+#endif
+
     qDebug() << "trying to hide systray";
     messSystemTray->hide();
     qDebug() << "systray hidden";
@@ -501,8 +508,6 @@ int PXMWindow::sendButtonClicked()
         return -1;
     }
     QByteArray msg = messTextEdit->toPlainText().toUtf8();
-    //QByteArray msg = messTextEdit->toHtml().toUtf8();
-    //int len1 = msg.length();
     if(!(msg.isEmpty()))
     {
         int index = messListWidget->currentRow();

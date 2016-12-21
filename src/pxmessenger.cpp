@@ -15,6 +15,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
+static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
+static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
+
 int AppendTextEvent::type = QEvent::registerEventType();
 LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
 
