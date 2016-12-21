@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/resources">
         <file>resources/message.wav</file>
-        <file>resources/70529.png</file>
+        <file>resources/70529.ico</file>
+        <file>resources/icon.rc</file>
     </qresource>
 </RCC>

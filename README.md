@@ -7,11 +7,11 @@
 
 ####Dependencies:
 
-qt5
+qt5 >= qt5.7.1
 
 qtmultimedia
 
-gcc
+gcc/clang
 
 libevent >= 2.0.22
 
@@ -58,7 +58,7 @@ there is a need.
 
 Adjustments can be made to the ports that are used for PXMessenger if firewall
 rules only allow specific ones.  By default, PXMessenger allows the operating
-system to choose the TCP port.  The UDP port defaults to 13649.  The UDP port
+system to choose the TCP port.  The UDP port defaults to 53723.  The UDP port
 must be the same for all connected computers however the TCP port can be
 whichever you prefer for each. 
 

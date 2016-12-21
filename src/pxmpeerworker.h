@@ -106,7 +106,6 @@ public slots:
     void discoveryTimerPersistent();
     void multicastIsFunctional();
     void serverSetupFailure();
-    void sendUDPAccessor(const char *msg, unsigned short port);
 private slots:
     void beginSync();
     void doneSync();

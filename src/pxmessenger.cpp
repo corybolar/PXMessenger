@@ -97,12 +97,6 @@ int main(int argc, char **argv)
     qRegisterMetaType<bufferevent*>();
     qRegisterMetaType<PXMConsts::MESSAGE_TYPE>();
 
-#ifdef QT_DEBUG
-    qDebug() << "Running in debug mode";
-#else
-    qDebug() << "Running in release mode";
-#endif
-
     QApplication app (argc, argv);
 
 #ifdef _WIN32
@@ -165,7 +159,11 @@ int main(int argc, char **argv)
     {
         PXMWindow window(presets);
         window.startThreadsAndShow();
-
+#ifdef QT_DEBUG
+        qDebug() << "Running in debug mode";
+#else
+        qDebug() << "Running in release mode";
+#endif
         result = app.exec();
     }
 

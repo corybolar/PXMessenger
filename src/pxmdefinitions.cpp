@@ -32,8 +32,8 @@ QString peerDetails::toString(QString pad)
                    % pad % QStringLiteral("IP Address: ") % QString::fromLocal8Bit(inet_ntoa(ipAddressRaw.sin_addr))
                    % QStringLiteral(":") % QString::number(ntohs(ipAddressRaw.sin_port)) % QStringLiteral("\n")
                    % pad % QStringLiteral("IsAuthenticated: ") % QString::fromLocal8Bit((isAuthenticated? "true" : "false")) % QStringLiteral("\n")
-               % pad % QStringLiteral("preventAttempConnection: ") % QString::fromLocal8Bit((connectTo ? "true" : "false")) % QStringLiteral("\n")
-               % pad % QStringLiteral("SocketDescriptor: ") % QString::number(socket) % QStringLiteral("\n")
-               % pad % QStringLiteral("History Length: ") % QString::number(messages.count()) % QStringLiteral("\n")
-               % pad % QStringLiteral("Bufferevent: ") % (bw->getBev() ? QString::asprintf("%8p",bw->getBev()) : QStringLiteral("NULL")) % QStringLiteral("\n"));
+                   % pad % QStringLiteral("preventAttempConnection: ") % QString::fromLocal8Bit((connectTo ? "true" : "false")) % QStringLiteral("\n")
+                   % pad % QStringLiteral("SocketDescriptor: ") % QString::number(socket) % QStringLiteral("\n")
+                   % pad % QStringLiteral("History Length: ") % QString::number(messages.count()) % QStringLiteral("\n")
+                   % pad % QStringLiteral("Bufferevent: ") % (bw->getBev() ? QString::asprintf("%8p",bw->getBev()) : QStringLiteral("NULL")) % QStringLiteral("\n"));
 }

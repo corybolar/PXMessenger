@@ -155,6 +155,7 @@ void PXMWindow::createTextBrowser()
     loadingLabel->show();
     resizeLabel(messTextBrowser->geometry());
 }
+
 void PXMWindow::resizeLabel(QRect size)
 {
     if((loadingLabel))
@@ -174,6 +175,7 @@ void PXMWindow::createLineEdit()
 
     layout->addWidget(messLineEdit, 0, 3, 1, 1);
 }
+
 void PXMWindow::createButtons()
 {
     messSendButton = new QPushButton(centralwidget);
@@ -214,7 +216,8 @@ void PXMWindow::createListWidget()
 }
 void PXMWindow::createSystemTray()
 {
-    QIcon trayIcon(":/resources/resources/70529.png");
+    QIcon trayIcon(":/resources/resources/70529.ico");
+    this->setWindowIcon(trayIcon);
 
     messSystemTrayMenu = new QMenu(this);
     messSystemTrayExitAction = new QAction(tr("&Exit"), this);
@@ -299,7 +302,7 @@ void PXMWindow::connectPeerClassSignalsAndSlots()
     QObject::connect(peerWorker, &PXMPeerWorker::warnBox, this, &PXMWindow::warnBox, Qt::AutoConnection);
     QObject::connect(this, &PXMWindow::addMessageToPeer, peerWorker, &PXMPeerWorker::addMessageToPeer, Qt::QueuedConnection);
     QObject::connect(this, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
-    QObject::connect(this, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDPAccessor, Qt::QueuedConnection);
+    QObject::connect(this, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDP, Qt::QueuedConnection);
     QObject::connect(this, &PXMWindow::requestFullHistory, peerWorker, &PXMPeerWorker::printFullHistory, Qt::QueuedConnection);
     QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, peerWorker, &PXMPeerWorker::printInfoToDebug);
 }

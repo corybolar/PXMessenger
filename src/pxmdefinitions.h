@@ -12,12 +12,14 @@
 #include <QtAlgorithms>
 #include <QMutex>
 #include <QDebug>
-#include <arpa/inet.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
 Q_DECLARE_METATYPE(intptr_t)
+#else
+#include <arpa/inet.h>
 #endif
+
 Q_DECLARE_METATYPE(sockaddr_in)
 Q_DECLARE_METATYPE(size_t)
 Q_DECLARE_OPAQUE_POINTER(bufferevent*)

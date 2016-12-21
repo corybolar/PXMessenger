@@ -125,10 +125,11 @@ void PXMPeerWorker::startServerThread()
     QObject::connect(messServer, &PXMServer::setListenerPorts, this, &PXMPeerWorker::setListenerPorts, Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::libeventBackend, this, &PXMPeerWorker::setlibeventBackend, Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::setCloseBufferevent, this, &PXMPeerWorker::setCloseBufferevent, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::setSelfCommsBufferevent, this, &PXMPeerWorker::setSelfCommsBufferevent, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::setSelfCommsBufferevent,
+                     this, &PXMPeerWorker::setSelfCommsBufferevent, Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::multicastIsFunctional, this, &PXMPeerWorker::multicastIsFunctional, Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::serverSetupFailure, this, &PXMPeerWorker::serverSetupFailure, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::sendUDP, messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::sendUDP, this, &PXMPeerWorker::sendUDP, Qt::QueuedConnection);
     messServer->start();
 }
 void PXMPeerWorker::startClient()
@@ -137,11 +138,13 @@ void PXMPeerWorker::startClient()
     multicast_in_addr.s_addr = inet_addr(multicastAddress.toLatin1().constData());
     messClient = new PXMClient(this, multicast_in_addr);
 
-    QObject::connect(messClient, &PXMClient::resultOfConnectionAttempt, this, &PXMPeerWorker::resultOfConnectionAttempt, Qt::AutoConnection);
+    QObject::connect(messClient, &PXMClient::resultOfConnectionAttempt,
+                     this, &PXMPeerWorker::resultOfConnectionAttempt, Qt::AutoConnection);
     QObject::connect(messClient, &PXMClient::resultOfTCPSend, this, &PXMPeerWorker::resultOfTCPSend, Qt::AutoConnection);
     QObject::connect(this, &PXMPeerWorker::sendMsg, messClient, &PXMClient::sendMsgSlot, Qt::AutoConnection);
     QObject::connect(this, &PXMPeerWorker::connectToPeer, messClient, &PXMClient::connectToPeer, Qt::AutoConnection);
     QObject::connect(this, &PXMPeerWorker::sendIpsPacket, messClient, &PXMClient::sendIpsSlot, Qt::AutoConnection);
+    QObject::connect(this, &PXMPeerWorker::sendUDP, messClient, &PXMClient::sendUDP, Qt::AutoConnection);
 }
 
 void PXMPeerWorker::setListenerPorts(unsigned short tcpport, unsigned short udpport)
@@ -154,10 +157,6 @@ void PXMPeerWorker::doneSync()
     areWeSyncing = false;
     nextSyncTimer->stop();
     qDebug() << "Finished Syncing peers";
-}
-void PXMPeerWorker::sendUDPAccessor(const char *msg, unsigned short port)
-{
-    emit sendUDP(msg, port);
 }
 void PXMPeerWorker::beginSync()
 {
@@ -175,10 +174,11 @@ void PXMPeerWorker::syncPacketIterator(char *ipHeapArray, size_t len, QUuid send
 {
     if(!syncablePeers->contains(senderUuid))
     {
+        qDebug() << "Sync packet from bad uuid, timeout or not requested" << senderUuid;
         delete [] ipHeapArray;
         return;
     }
-    qDebug() << "Recieved connection list from" << senderUuid.toString();
+    qDebug() << "Sync packet from" << senderUuid.toString();
 
     size_t index = 0;
     while(index + UUIDCompression::PACKED_UUID_BYTE_LENGTH + 6 <= len)
@@ -297,7 +297,7 @@ void PXMPeerWorker::sendSyncPacketBev(bufferevent *bev, QUuid uuid)
 void PXMPeerWorker::sendSyncPacket(BevWrapper *bw, QUuid uuid)
 {
     qDebug() << "Sending ips to" << peerDetailsHash.value(uuid).hostname;
-    char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + UUIDCompression::PACKED_UUID_BYTE_LENGTH) + 1];
+    char *msgRaw = new char[peerDetailsHash.size() * (4 + 2 + UUIDCompression::PACKED_UUID_BYTE_LENGTH) + 1];
     size_t index = 0;
     for(auto & itr : peerDetailsHash)
     {
@@ -528,11 +528,11 @@ void PXMPeerWorker::setlibeventBackend(QString str)
 void PXMPeerWorker::printInfoToDebug()
 {
     QString str;
+
     //hopefully reduce reallocs here
     str.reserve((330 + ( DEBUG_PADDING * 16) + (peerDetailsHash.size() * (260+(9*DEBUG_PADDING)))));
 
-    qDebug() << str.capacity();
-    QString pad = QString(DEBUG_PADDING, ' ');
+    QString pad = QString(DEBUG_PADDING, QChar(' '));
     str.append(QStringLiteral("--------------------------------\n")
                % pad % QStringLiteral("---Program Info---\n")
                % pad % QStringLiteral("Program Name: ") % qApp->applicationName() % QChar('\n')
@@ -543,7 +543,8 @@ void PXMPeerWorker::printInfoToDebug()
                % pad % QStringLiteral("TCP Listener Port: ") % ourListenerPort % QChar('\n')
                % pad % QStringLiteral("UDP Listener Port: ") % ourUDPListenerPort % QChar('\n')
                % pad % QStringLiteral("Our UUID: ") % localUUID.toString() % QChar('\n')
-               % pad % QStringLiteral("MulticastIsFunctioning: ") % QString::fromLocal8Bit((multicastIsFunctioning ? "true" : "false")) % QChar('\n')
+               % pad % QStringLiteral("MulticastIsFunctioning: ")
+               % QString::fromLocal8Bit((multicastIsFunctioning ? "true" : "false")) % QChar('\n')
                % pad % QStringLiteral("Sync waiting list: ") % QString::number(syncablePeers->length()) % QChar('\n')
                % pad % QStringLiteral("---Peer Details---\n"));
 
@@ -560,7 +561,6 @@ void PXMPeerWorker::printInfoToDebug()
                % pad % QStringLiteral("--------------------------------\n"));
     str.squeeze();
     qDebug().noquote() << str;
-    qDebug() << str.capacity();
 }
 void PXMPeerWorker::discoveryTimerPersistent()
 {
@@ -578,7 +578,11 @@ void PXMPeerWorker::discoveryTimerSingleShot()
 {
     if(!multicastIsFunctioning)
     {
-        emit warnBox(QStringLiteral("Network Problem"), QStringLiteral("Could not find anyone, even ourselves, on the network.\nThis could indicate a problem with your configuration.\n\nWe'll keep looking..."));
+        emit warnBox(QStringLiteral("Network Problem"),
+                     QStringLiteral("Could not find anyone, even ourselves, on "
+                                    "the network.\nThis could indicate a "
+                                    "problem with your configuration."
+                                    "\n\nWe'll keep looking..."));
     }
     if(peerDetailsHash.count() < 3)
     {
@@ -619,6 +623,11 @@ void PXMPeerWorker::multicastIsFunctional()
 void PXMPeerWorker::serverSetupFailure()
 {
     discoveryTimer->stop();
-    emit warnBox(QStringLiteral("Server Setup Failure"), QStringLiteral("Failure setting up the server sockets and multicast group.  Check the debug logger for more information.\n\n"
-                                                                        "Settings for your network conditions will have to be adjusted and the program restarted."));
+    emit warnBox(QStringLiteral("Server Setup Failure"),
+                 QStringLiteral("Failure setting up the server sockets and "
+                                "multicast group.  Check the debug logger for "
+                                "more information.\n\n"
+                                "Settings for your network conditions will "
+                                "have to be adjusted and the program "
+                                "restarted."));
 }

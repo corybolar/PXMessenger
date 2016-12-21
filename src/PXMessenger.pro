@@ -17,12 +17,9 @@ DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
 }
 
 win32 {
-LIBS += -lws2_32 \
+LIBS += -lws2_32
+RC_FILE = $$PWD/resources/icon.rc
 }
-
-target.path = /usr/bin
-
-#INSTALLS += target
 
 QMAKE_CXXFLAGS += -Wall
 

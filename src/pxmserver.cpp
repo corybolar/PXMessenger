@@ -99,7 +99,7 @@ void PXMServer::tcpReadUUID(struct bufferevent *bev, void *arg)
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
 #ifdef QT_DEBUG
-    qDebug().noquote() << QString::fromUtf8(buf);
+    qDebug().noquote() << QString::fromUtf8(&buf[1]);
 #endif
     if(*(uint8_t*)&buf[0] == PXMConsts::MSG_UUID)
     {
@@ -161,7 +161,8 @@ void PXMServer::tcpRead(struct bufferevent *bev, void *arg)
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
 #ifdef QT_DEBUG
         qDebug().noquote() << "Setting watermark to " + QString::number(bufLen) + " bytes";
-        qDebug().noquote() << "Setting timeout to " + QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) + " seconds";
+        qDebug().noquote() << "Setting timeout to " +
+                              QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) + " seconds";
 #endif
         return;
     }
@@ -283,7 +284,6 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     char buf[500] = {};
 
     recvfrom(socketfd, buf, sizeof(buf)-1, 0, (sockaddr *)&si_other, &si_other_len);
-    //qDebug() << inet_ntoa(si_other.sin_addr);
 
     if (strncmp(&buf[0], "/discover", 9) == 0)
     {
@@ -321,13 +321,13 @@ void PXMServer::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         }
         evutil_closesocket(replySocket);
     }
-    //This will get sent from anyone recieving a /discover packet
-    //when this is recieved it add the sender to the list of peers and connects to him
     else if ((strncmp(&buf[0], "/name:", 6)) == 0)
     {
-        qDebug() << "Name Packet:" << buf;
         memcpy(&si_other.sin_port, &buf[6], sizeof(uint16_t));
         QUuid uuid = UUIDCompression::unpackUUID((unsigned char*)&buf[8]);
+#ifdef QT_DEBUG
+        qDebug() << "Name Packet:" << ntohs(si_other.sin_port) << uuid.toString() << "from" << inet_ntoa(si_other.sin_addr);
+#endif
         realServer->attemptConnection(si_other, uuid);
     }
     else
@@ -397,7 +397,7 @@ evutil_socket_t PXMServer::setupUDPSocket(evutil_socket_t s_listen)
     qDebug().noquote() << "Port number for Multicast: " + QString::number(udpSocketNumber);
 
     //send our discover packet to find other computers
-    emit sendUDP("/discover:", udpSocketNumber);
+    emit sendUDP("/discover", udpSocketNumber);
 
     return socketUDP;
 }
