@@ -43,8 +43,8 @@ PXMWindow::~PXMWindow()
     {
         workerThread->quit();
         workerThread->wait(5000);
+        qDebug() << "Shutdown of WorkerThread Successful";
     }
-    qDebug() << "Shutdown of WorkerThread Successful";
 
     delete debugWindow;
 
@@ -158,7 +158,7 @@ void PXMWindow::createTextBrowser()
 
 void PXMWindow::resizeLabel(QRect size)
 {
-    if((loadingLabel))
+    if(loadingLabel)
     {
         loadingLabel->setGeometry(size);
     }
@@ -324,10 +324,22 @@ void PXMWindow::aboutActionSlot()
 void PXMWindow::settingsActionsSlot()
 {
     PXMSettingsDialog *setD = new PXMSettingsDialog(this);
+    QObject::connect(setD, &PXMSettingsDialog::nameChange, this, &PXMWindow::nameChange);
     setD->setupUi();
     setD->readIni();
-    setD->show();
+    setD->exec();
 }
+
+void PXMWindow::nameChange(QString hname)
+{
+#ifdef QT_DEBUG
+    qDebug() << "Self Name Change";
+#endif
+    this->setupHostname(0, hname);
+    this->messLineEdit->setText(localHostname);
+    emit sendMsg(localHostname.toUtf8(), PXMConsts::MSG_NAME, QUuid());
+}
+
 void PXMWindow::bloomActionsSlot()
 {
     QMessageBox box;
@@ -351,11 +363,11 @@ void PXMWindow::warnBox(QString title, QString msg)
 }
 void PXMWindow::setupHostname(int uuidNum, QString username)
 {
-    char computerHostname[256];
+    char computerHostname[256] = {};
 
     gethostname(computerHostname, sizeof computerHostname);
 
-    localHostname.append(username);
+    localHostname = username;
     if(uuidNum > 0)
     {
         char temp[3];
@@ -363,7 +375,7 @@ void PXMWindow::setupHostname(int uuidNum, QString username)
         localHostname.append(QString::fromUtf8(temp));
     }
     localHostname.append("@");
-    localHostname.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_HOSTNAME_LENGTH));
+    localHostname.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
 }
 void PXMWindow::debugActionSlot()
 {
@@ -521,11 +533,11 @@ int PXMWindow::sendButtonClicked()
 
         if( ( uuidOfSelectedItem == globalChatUuid) )
         {
-            emit sendMsg(msg, PXMConsts::MSG_GLOBAL, ourUUID, QUuid());
+            emit sendMsg(msg, PXMConsts::MSG_GLOBAL, QUuid());
         }
         else
         {
-            emit sendMsg(msg, PXMConsts::MSG_TEXT, ourUUID, uuidOfSelectedItem);
+            emit sendMsg(msg, PXMConsts::MSG_TEXT, uuidOfSelectedItem);
         }
         messTextEdit->setText("");
     }

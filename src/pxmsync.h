@@ -12,16 +12,16 @@
 class PXMSync : public QObject
 {
     Q_OBJECT
-    QHash<QUuid, peerDetails> *syncHash;
+    QHash<QUuid, Peers::PeerData> *syncHash;
 public:
     PXMSync(QObject *parent);
-    void setsyncHash(QHash<QUuid, peerDetails> *hash);
-    QHash<QUuid, peerDetails>::iterator hashIterator;
+    void setsyncHash(QHash<QUuid, Peers::PeerData> *hash);
+    QHash<QUuid, Peers::PeerData>::iterator hashIterator;
     void setIteratorToStart();
 public slots:
     void syncNext();
 signals:
-    void requestIps(BevWrapper*, QUuid);
+    void requestIps(Peers::BevWrapper*, QUuid);
     void syncComplete();
 };
 

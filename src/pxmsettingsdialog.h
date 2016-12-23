@@ -16,6 +16,7 @@
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFontComboBox>
+#include <QObject>
 
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
@@ -30,6 +31,8 @@
 
 class PXMSettingsDialog : public QDialog
 {
+    Q_OBJECT
+
     bool AllowMoreThanOneInstance;
     QString hostname;
     int tcpPort;
@@ -59,11 +62,13 @@ private slots:
     void valueChanged(int size);
 
 public:
-    explicit PXMSettingsDialog(QWidget* parent) : QDialog(parent) {}
+    explicit PXMSettingsDialog(QWidget* parent);
 
     void setupUi();
     void retranslateUi();
     void readIni();
+signals:
+    void nameChange(QString);
 };
 
 #endif

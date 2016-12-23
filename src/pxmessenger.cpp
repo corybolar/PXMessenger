@@ -36,7 +36,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
 #endif
     switch(type) {
     case QtDebugMsg:
-        fprintf(stdout, "%s\n", localMsg.constData());
+        fprintf(stderr, "%s\n", localMsg.constData());
         //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         break;
     case QtWarningMsg:
@@ -158,12 +158,15 @@ int main(int argc, char **argv)
     int result;
     {
         PXMWindow window(presets);
-        window.startThreadsAndShow();
+
 #ifdef QT_DEBUG
         qDebug() << "Running in debug mode";
 #else
         qDebug() << "Running in release mode";
 #endif
+
+        window.startThreadsAndShow();
+
         result = app.exec();
     }
 

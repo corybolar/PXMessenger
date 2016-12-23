@@ -28,8 +28,7 @@ size_t UUIDCompression::packUUID(char *buf, QUuid *uuid)
     uuidSectionS = htons(uuid->data3);
     memcpy(&buf[index], &(uuidSectionS), 2);
     index += 2;
-    unsigned char *uuidSectionC = uuid->data4;
-    memcpy(&buf[index], uuidSectionC, 8);
+    memcpy(&buf[index], &uuid->data4, 8);
     index += 8;
 
     return index;

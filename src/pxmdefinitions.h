@@ -13,6 +13,8 @@
 #include <QMutex>
 #include <QDebug>
 
+#include "uuidcompression.h"
+
 #ifdef _WIN32
 #include <winsock2.h>
 Q_DECLARE_METATYPE(intptr_t)
@@ -27,7 +29,7 @@ Q_DECLARE_METATYPE(bufferevent*)
 
 namespace PXMConsts {
 const int BACKLOG = 200;
-const char * const DEFAULT_MULTICAST_ADDRESS = "239.192.13.13";
+const char* const DEFAULT_MULTICAST_ADDRESS = "239.192.13.13";
 const int MESSAGE_HISTORY_LENGTH = 500;
 const int MIDNIGHT_TIMER_INTERVAL_MINUTES = 1;
 #ifdef QT_DEBUG
@@ -38,13 +40,22 @@ const int DEBUG_PADDING = 0;
 const unsigned short DEFAULT_UDP_PORT = 53273;
 const int TEXT_EDIT_MAX_LENGTH = 2000;
 const int MAX_HOSTNAME_LENGTH = 24;
-const int SYNC_TIMEOUT_MSECS = 2000;
-const int SYNC_TIMER = 900000;
-enum MESSAGE_TYPE : const uint8_t {MSG_UUID = 1, MSG_TEXT, MSG_SYNC,
-                                   MSG_SYNC_REQUEST, MSG_GLOBAL};
+const int MAX_COMPUTER_NAME = 36;
+const char* const PORT_SEPERATOR = ":::::";
+enum MESSAGE_TYPE : const uint32_t {MSG_TEXT = 			0x11111111,
+                                    MSG_GLOBAL =		0x22222222,
+                                    MSG_SYNC = 			0x33333333,
+                                    MSG_SYNC_REQUEST = 	0x44444444,
+                                    MSG_AUTH = 			0x55555555,
+                                    MSG_NAME = 			0x66666666,
+                                    MSG_DISOVER = 		0x77777777,
+                                    MSG_ID = 			0x88888888};
+
+const int MAX_UUID_PACKET_LENGTH = sizeof(MESSAGE_TYPE) + UUIDCompression::PACKED_UUID_LENGTH + MAX_HOSTNAME_LENGTH + MAX_COMPUTER_NAME + strlen(PORT_SEPERATOR) + 5 + 1;
 }
 Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE)
 
+namespace Peers{
 class BevWrapper {
 public:
     BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
@@ -62,7 +73,7 @@ private:
     QMutex *locker;
 };
 
-struct peerDetails{
+struct PeerData{
     QUuid identifier;
     sockaddr_in ipAddressRaw;
     QString hostname;
@@ -73,19 +84,19 @@ struct peerDetails{
     bool isAuthenticated;
 
     //Default Constructor
-    peerDetails() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
+    PeerData() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
             hostname(QString()), messages(QLinkedList<QString*>()),
             bw(nullptr), socket(-1), connectTo(false),
             isAuthenticated(false) {}
 
     //Copy
-    peerDetails (const peerDetails& p) : identifier(p.identifier),
+    PeerData (const Peers::PeerData& p) : identifier(p.identifier),
             ipAddressRaw(p.ipAddressRaw), hostname(p.hostname),
             messages(p.messages), bw(p.bw), socket(p.socket),
             connectTo(p.connectTo), isAuthenticated(p.isAuthenticated) {}
 
     //Move
-    peerDetails (peerDetails&& p) noexcept : identifier(p.identifier),
+    PeerData (Peers::PeerData&& p) noexcept : identifier(p.identifier),
             ipAddressRaw(p.ipAddressRaw), hostname(p.hostname),
             messages(p.messages), bw(p.bw), socket(p.socket),
             connectTo(p.connectTo), isAuthenticated(p.isAuthenticated)
@@ -94,17 +105,19 @@ struct peerDetails{
     }
 
     //Destructor
-    ~peerDetails() noexcept {}
+    ~PeerData() noexcept {}
 
     //Move assignment
-    peerDetails& operator= (peerDetails&& p) noexcept;
+    PeerData& operator= (Peers::PeerData&& p) noexcept;
 
     //Copy assignment
-    peerDetails& operator= (const peerDetails& p);
+    PeerData& operator= (const Peers::PeerData& p);
 
     //Return data of this struct as a string padded with the value in 'pad'
     QString toString(QString pad);
 };
+
+}
 
 struct initialSettings{
     int uuidNum;

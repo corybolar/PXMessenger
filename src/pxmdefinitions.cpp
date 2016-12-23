@@ -1,6 +1,6 @@
 #include "pxmdefinitions.h"
 
-peerDetails& peerDetails::operator= (peerDetails &&p) noexcept
+Peers::PeerData& Peers::PeerData::operator= (Peers::PeerData &&p) noexcept
 {
     if(this != &p)
     {
@@ -18,14 +18,14 @@ peerDetails& peerDetails::operator= (peerDetails &&p) noexcept
     return *this;
 }
 
-peerDetails& peerDetails::operator=(const peerDetails &p)
+Peers::PeerData& Peers::PeerData::operator=(const Peers::PeerData &p)
 {
-    peerDetails temp(p);
+    Peers::PeerData temp(p);
     *this = std::move(temp);
     return *this;
 }
 
-QString peerDetails::toString(QString pad)
+QString Peers::PeerData::toString(QString pad)
 {
     return QString(pad % QStringLiteral("Hostname: ") % hostname % QStringLiteral("\n")
                    % pad % QStringLiteral("UUID: ") % identifier.toString() % QStringLiteral("\n")

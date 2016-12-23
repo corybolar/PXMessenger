@@ -33,7 +33,8 @@ void PXMSettingsDialog::clickedme(QAbstractButton *button)
                                                "Allowing more than on instance lets the program be run multiple times under the same user.\n(Default:false)\n\n"
                                                "Hostname will only change the first half of your hostname, the computer name will remain.\n(Default:Your Username)\n\n"
                                                "The listener port should be changed only if needed to bypass firewall restrictions. 0 is Auto.\n(Default:0)\n\n"
-                                               "The discover port must be the same for all computers that wish to communicate together. 0 is 53273.\n(Default:0)\n\n"
+                                               "The discover port must be the same for all computers that wish to communicate together. 0 is " +
+                                                QString::number(PXMConsts::DEFAULT_UDP_PORT) + ".\n(Default:0)\n\n"
                                                "More information can be found at https://github.com/cbpeckles/PXMessenger.");
     }
 }
@@ -43,10 +44,15 @@ void PXMSettingsDialog::accept()
     MessIniReader iniReader;
     iniReader.setAllowMoreThanOne(this->checkBox->isChecked());
     iniReader.setHostname(this->lineEdit->text().simplified());
+    if(hostname != this->lineEdit->text().simplified())
+    {
+        emit nameChange(this->lineEdit->text().simplified());
+    }
     iniReader.setPort("TCP", this->spinBox->value());
     iniReader.setPort("UDP", this->spinBox_2->value());
     iniReader.setFont(qApp->font().toString());
-    QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
+    if(tcpPort != this->spinBox->value() || udpPort != this->spinBox_2->value() || AllowMoreThanOneInstance != this->checkBox->isChecked())
+        QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
     QDialog::accept();
 }
 
@@ -60,6 +66,11 @@ void PXMSettingsDialog::valueChanged(int size)
     iniFont = qApp->font();
     iniFont.setPointSize(size);
     qApp->setFont(iniFont);
+}
+
+PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent)
+{
+    this->setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
 void PXMSettingsDialog::setupUi()

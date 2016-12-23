@@ -22,10 +22,10 @@ void PXMSync::syncNext()
     hashIterator++;
 }
 
-void PXMSync::setsyncHash(QHash<QUuid, peerDetails> *hash)
+void PXMSync::setsyncHash(QHash<QUuid, Peers::PeerData> *hash)
 {
    syncHash = hash;
-   hashIterator = QHash<QUuid, peerDetails>::iterator();
+   hashIterator = QHash<QUuid, Peers::PeerData>::iterator();
 }
 void PXMSync::setIteratorToStart()
 {

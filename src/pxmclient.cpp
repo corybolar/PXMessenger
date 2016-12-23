@@ -1,10 +1,17 @@
 #include <pxmclient.h>
 
-PXMClient::PXMClient(QObject *parent, in_addr multicast) : QObject(parent)
+PXMClient::PXMClient(QObject *parent, in_addr multicast, QUuid localUUID) : QObject(parent)
 {
     this->setObjectName("PXMClient");
 
     multicastAddress = multicast;
+
+    setLocalUUID(localUUID);
+}
+
+void PXMClient::setLocalUUID(QUuid uuid)
+{
+    UUIDCompression::packUUID(&packedLocalUUID[0], &uuid);
 }
 int PXMClient::sendUDP(const char* msg, unsigned short port)
 {
@@ -54,17 +61,17 @@ void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
         realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev);
 }
 
-void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, bufferevent *bev)
+void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, Peers::BevWrapper *bw)
 {
-    bufferevent_setcb(bev, NULL, NULL, PXMClient::connectCB, (void*)this);
+    bufferevent_setcb(bw->getBev(), NULL, NULL, PXMClient::connectCB, (void*)this);
     timeval timeout = {5,0};
-    bufferevent_set_timeouts(bev, &timeout, &timeout);
-    bufferevent_socket_connect(bev, (struct sockaddr*)&socketAddr, sizeof(socketAddr));
+    bufferevent_set_timeouts(bw->getBev(), &timeout, &timeout);
+    bufferevent_socket_connect(bw->getBev(), (struct sockaddr*)&socketAddr, sizeof(socketAddr));
 }
 
-void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidSender, QUuid uuidReceiver)
+void PXMClient::sendMsg(Peers::BevWrapper *bw, const char * msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidReceiver)
 {
-    int bytesSent = 0;
+    int bytesSent = -1;
     int packetLen;
     uint16_t packetLenNBO;
     bool print = false;
@@ -74,7 +81,7 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
         emit resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
         return;
     }
-    packetLen = UUIDCompression::PACKED_UUID_BYTE_LENGTH + sizeof(uint8_t) + msgLen;
+    packetLen = UUIDCompression::PACKED_UUID_LENGTH + sizeof(PXMConsts::MESSAGE_TYPE) + msgLen;
 
     if(type == PXMConsts::MSG_TEXT)
         print = true;
@@ -83,31 +90,37 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
 
     packetLenNBO = htons(packetLen);
 
-    UUIDCompression::packUUID(full_mess, &uuidSender);
-    memcpy(full_mess+UUIDCompression::PACKED_UUID_BYTE_LENGTH, &type, sizeof(uint8_t));
-    memcpy(full_mess+UUIDCompression::PACKED_UUID_BYTE_LENGTH+sizeof(uint8_t), msg, msgLen);
+    memcpy(&full_mess[0], packedLocalUUID, UUIDCompression::PACKED_UUID_LENGTH);
+    memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH], &type, sizeof(PXMConsts::MESSAGE_TYPE));
+    memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH + sizeof(PXMConsts::MESSAGE_TYPE)], msg, msgLen);
     full_mess[packetLen] = 0;
 
     bw->lockBev();
 
     if((bw->getBev() == nullptr) || !(bufferevent_get_enabled(bw->getBev()) & EV_WRITE))
     {
-        bw->unlockBev();
-        emit resultOfTCPSend(-1, uuidReceiver, QStringLiteral("Peer is Disconnected, message not sent"), print, bw);
-        return;
-    }
-
-    if(bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(uint16_t)) == 0)
-    {
-        bytesSent = bufferevent_write(bw->getBev(), full_mess, packetLen);
-
-        bw->unlockBev();
+        msg = "Peer is Disconnected, message not sent";
     }
     else
     {
-        bytesSent = -1;
-        msg = "Message send failure, not sent\0";
+        if(bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(uint16_t)) == 0)
+        {
+            if(bufferevent_write(bw->getBev(), full_mess, packetLen) == 0)
+            {
+                bytesSent = 0;
+            }
+            else
+            {
+                msg = "Message send failure, not sent";
+            }
+        }
+        else
+        {
+            msg = "Message send failure, not sent";
+        }
     }
+
+    bw->unlockBev();
 
     if(!uuidReceiver.isNull())
     {
@@ -116,14 +129,14 @@ void PXMClient::sendMsg(BevWrapper *bw, const char *msg, size_t msgLen, PXMConst
 
     return;
 }
-void PXMClient::sendMsgSlot(BevWrapper *bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid)
+void PXMClient::sendMsgSlot(Peers::BevWrapper *bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid theiruuid)
 {
-    this->sendMsg(bw, msg.constData(), msg.length(), type, uuid, theiruuid);
+    this->sendMsg(bw, msg.constData(), msg.length(), type, theiruuid);
 }
 
-void PXMClient::sendIpsSlot(BevWrapper *bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid)
+void PXMClient::sendIpsSlot(Peers::BevWrapper *bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid theiruuid)
 {
-    this->sendMsg(bw, msg, len, type, uuid, theiruuid);
+    this->sendMsg(bw, msg, len, type, theiruuid);
     delete [] msg;
 }
 

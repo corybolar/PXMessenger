@@ -40,14 +40,14 @@
 #include <fcntl.h>
 #endif
 
+namespace PXMServer{
 const timeval READ_TIMEOUT = {1, 0};
 const timeval READ_TIMEOUT_RESET = {3600, 0};
-
-class PXMServer : public QThread
+const uint8_t PACKET_HEADER_LENGTH = 2;
+class ServerThread : public QThread
 {
     Q_OBJECT
 
-    QString localHostname;
     QUuid localUUID;
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
@@ -60,16 +60,16 @@ class PXMServer : public QThread
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 public:
-    PXMServer(QObject *parent, unsigned short tcpPort, unsigned short udpPort,
-              in_addr multicast);
-    PXMServer(PXMServer const&) = delete;
-    PXMServer& operator=(PXMServer const&) = delete;
-    PXMServer& operator=(PXMServer&&) noexcept = delete;
-    PXMServer(PXMServer&&) noexcept = delete;
+    ServerThread(QObject *parent, unsigned short tcpPort, unsigned short udpPort,
+                 in_addr multicast);
+    ServerThread(ServerThread const&) = delete;
+    ServerThread& operator=(ServerThread const&) = delete;
+    ServerThread& operator=(ServerThread&&) noexcept = delete;
+    ServerThread(ServerThread&&) noexcept = delete;
     void run() Q_DECL_OVERRIDE;
     int setLocalHostname(QString hostname);
     int setLocalUUID(QUuid uuid);
-    ~PXMServer();
+    ~ServerThread();
     static void tcpError(bufferevent *bev, short error, void *arg);
     static void tcpReadUUID(bufferevent *bev, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
@@ -95,6 +95,9 @@ signals:
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
     void serverSetupFailure();
+    void nameChange(QString, QUuid);
 };
+
+}
 
 #endif // MESS_SERV_H

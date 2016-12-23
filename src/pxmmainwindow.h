@@ -233,9 +233,10 @@ private slots:
     void settingsActionsSlot();
     void debugActionSlot();
     void warnBox(QString title, QString msg);
+    void nameChange(QString hname);
 signals:
     void connectToPeer(evutil_socket_t, sockaddr_in);
-    void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid, QUuid);
+    void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
     void sendUDP(const char*, unsigned short);
     void retryDiscover();
     void addMessageToPeer(QString, QUuid, bool, bool);

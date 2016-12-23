@@ -34,12 +34,14 @@ class PXMClient : public QObject
     Q_OBJECT
     int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
     in_addr multicastAddress;
+    char packedLocalUUID[16];
 public:
-    PXMClient(QObject *parent, in_addr multicast);
+    PXMClient(QObject *parent, in_addr multicast, QUuid localUUID);
     ~PXMClient() {qDebug() << "Shutdown of PXMClient Successful";}
+    void setLocalUUID(QUuid uuid);
 public slots:
-    void sendMsg(BevWrapper *bw, const char *msg, size_t msgLen,
-                 PXMConsts::MESSAGE_TYPE type, QUuid uuidSender,
+    void sendMsg(Peers::BevWrapper *bw, const char *msg, size_t msgLen,
+                 PXMConsts::MESSAGE_TYPE type,
                  QUuid uuidReceiver);
     /*!
      * \brief sendMsgSlot
@@ -53,8 +55,8 @@ public slots:
      * 			included in packet
      * \see sendMsg()
      */
-    void sendMsgSlot(BevWrapper *bw, QByteArray msg,
-                     PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid);
+    void sendMsgSlot(Peers::BevWrapper *bw, QByteArray msg,
+                     PXMConsts::MESSAGE_TYPE type, QUuid theiruuid = QUuid());
     /*!
      * \brief sendUDP
      *
@@ -77,13 +79,13 @@ public slots:
      * \see man connect
      */
     void connectToPeer(evutil_socket_t, sockaddr_in socketAddr,
-                       bufferevent *bev);
-    void sendIpsSlot(BevWrapper *bw, char *msg, size_t len,
-                     PXMConsts::MESSAGE_TYPE type, QUuid uuid, QUuid theiruuid);
+                       Peers::BevWrapper *bw);
+    void sendIpsSlot(Peers::BevWrapper *bw, char *msg, size_t len,
+                     PXMConsts::MESSAGE_TYPE type, QUuid theiruuid = QUuid());
     static void connectCB(bufferevent *bev, short event, void *arg);
 signals:
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*);
-    void resultOfTCPSend(unsigned int, QUuid, QString, bool, BevWrapper*);
+    void resultOfTCPSend(unsigned int, QUuid, QString, bool, Peers::BevWrapper*);
 };
 
 #endif // PXMCLIENT_H
