@@ -13,7 +13,7 @@ PXMWindow::PXMWindow(initialSettings presets)
 
     ourUUID = presets.uuid.toString();
 
-    qDebug() << "Our UUID:" << ourUUID.toString();
+    qInfo() << "Our UUID:" << ourUUID.toString();
 
     setupHostname(presets.uuidNum, presets.username);
     presets.username = localHostname;
@@ -332,9 +332,7 @@ void PXMWindow::settingsActionsSlot()
 
 void PXMWindow::nameChange(QString hname)
 {
-#ifdef QT_DEBUG
-    qDebug() << "Self Name Change";
-#endif
+    qInfo() << "Self Name Change";
     this->setupHostname(0, hname);
     this->messLineEdit->setText(localHostname);
     emit sendMsg(localHostname.toUtf8(), PXMConsts::MSG_NAME, QUuid());

@@ -26,7 +26,7 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
 
     if ( (socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
     {
-        qDebug() << "socket: " + QString::fromUtf8(strerror(errno));
+        qCritical() << "socket: " + QString::fromUtf8(strerror(errno));
         return -1;
     }
 
@@ -35,7 +35,7 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
     char loopback = 1;
     if(setsockopt(socketfd2, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback, sizeof(loopback)) < 0)
     {
-        qDebug() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        qCritical() << "setsockopt: " + QString::fromUtf8(strerror(errno));
         evutil_closesocket(socketfd2);
         return -1;
     }
@@ -44,7 +44,7 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
     {
         if(sendto(socketfd2, msg, len+1, 0, (struct sockaddr *)&broadaddr, sizeof(broadaddr)) != len+1)
         {
-            qDebug() << "sendto: " + QString::fromUtf8(strerror(errno));
+            qCritical() << "sendto: " + QString::fromUtf8(strerror(errno));
             evutil_closesocket(socketfd2);
             return -1;
         }
@@ -61,7 +61,7 @@ void PXMClient::connectCB(struct bufferevent *bev, short event, void *arg)
         realClient->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev);
 }
 
-void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, Peers::BevWrapper *bw)
+void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, QSharedPointer<Peers::BevWrapper> bw)
 {
     bufferevent_setcb(bw->getBev(), NULL, NULL, PXMClient::connectCB, (void*)this);
     timeval timeout = {5,0};
@@ -69,7 +69,7 @@ void PXMClient::connectToPeer(evutil_socket_t, sockaddr_in socketAddr, Peers::Be
     bufferevent_socket_connect(bw->getBev(), (struct sockaddr*)&socketAddr, sizeof(socketAddr));
 }
 
-void PXMClient::sendMsg(Peers::BevWrapper *bw, const char * msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidReceiver)
+void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw, const char * msg, size_t msgLen, PXMConsts::MESSAGE_TYPE type, QUuid uuidReceiver)
 {
     int bytesSent = -1;
     int packetLen;
@@ -107,6 +107,9 @@ void PXMClient::sendMsg(Peers::BevWrapper *bw, const char * msg, size_t msgLen, 
         {
             if(bufferevent_write(bw->getBev(), full_mess, packetLen) == 0)
             {
+#ifdef QT_DEBUG
+                qDebug() << "Successful Send";
+#endif
                 bytesSent = 0;
             }
             else
@@ -129,12 +132,12 @@ void PXMClient::sendMsg(Peers::BevWrapper *bw, const char * msg, size_t msgLen, 
 
     return;
 }
-void PXMClient::sendMsgSlot(Peers::BevWrapper *bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid theiruuid)
+void PXMClient::sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw, QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid theiruuid)
 {
     this->sendMsg(bw, msg.constData(), msg.length(), type, theiruuid);
 }
 
-void PXMClient::sendIpsSlot(Peers::BevWrapper *bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid theiruuid)
+void PXMClient::sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw, char *msg, size_t len, PXMConsts::MESSAGE_TYPE type, QUuid theiruuid)
 {
     this->sendMsg(bw, msg, len, type, theiruuid);
     delete [] msg;

@@ -10,6 +10,15 @@
 #include <QScrollBar>
 #include <QDebug>
 #include <QDialog>
+#include <QStringBuilder>
+
+namespace DebugMessageColors{
+const QString debugHtml = "";
+const QString infoHtml = "";
+const QString criticalHtml = "<font color=\"Red\">";
+const QString warningHtml = "<font color=\"Red\">";
+const QString endHtml = "</font><br>";
+}
 
 const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
 
@@ -24,7 +33,7 @@ public:
     QGridLayout *gridLayout_2;
     QPushButton *pushButton;
     QScrollBar *sb;
-    static QPlainTextEdit *textEdit;
+    static QTextEdit *textEdit;
 private slots:
     void adjustScrollBar(int i);
     void rangeChanged(int, int i2);
@@ -33,11 +42,13 @@ private slots:
 class AppendTextEvent : public QEvent
 {
 public:
-    AppendTextEvent(QString text) : QEvent((Type)type),text(text) {}
+    AppendTextEvent(QString text) : QEvent((Type)type),
+        text(text) {}
     QString getText()
     {
         return text;
     }
+
 private:
     static int type;
     QString text;
@@ -55,21 +66,26 @@ public:
 
         return loggerInstance;
     }
-    void setTextEdit(QPlainTextEdit *textEdit)
+    void setTextEdit(QTextEdit *textEdit)
     {
             logTextEdit = textEdit;
     }
+    static int getVerbosityLevel() {return verbosityLevel;}
+
+    static void setVerbosityLevel(int value) {verbosityLevel = value;}
+
 private:
     LoggerSingleton() : QObject() {}
     static LoggerSingleton* loggerInstance;
-    QPlainTextEdit *logTextEdit = 0;
+    QTextEdit *logTextEdit = 0;
+    static int verbosityLevel;
 protected:
     virtual void customEvent(QEvent *event)
     {
         AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
         if(text)
         {
-            logTextEdit->appendPlainText(text->getText());
+            logTextEdit->insertHtml(text->getText());
             event->accept();
         }
         else

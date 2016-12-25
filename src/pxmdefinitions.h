@@ -12,6 +12,7 @@
 #include <QtAlgorithms>
 #include <QMutex>
 #include <QDebug>
+#include <QSharedPointer>
 
 #include "uuidcompression.h"
 
@@ -51,7 +52,13 @@ enum MESSAGE_TYPE : const uint32_t {MSG_TEXT = 			0x11111111,
                                     MSG_DISOVER = 		0x77777777,
                                     MSG_ID = 			0x88888888};
 
-const int MAX_UUID_PACKET_LENGTH = sizeof(MESSAGE_TYPE) + UUIDCompression::PACKED_UUID_LENGTH + MAX_HOSTNAME_LENGTH + MAX_COMPUTER_NAME + strlen(PORT_SEPERATOR) + 5 + 1;
+const int MAX_UUID_PACKET_LENGTH = 	sizeof(MESSAGE_TYPE) +
+                                    UUIDCompression::PACKED_UUID_LENGTH +
+                                    MAX_HOSTNAME_LENGTH +
+                                    MAX_COMPUTER_NAME +
+                                    strlen(PORT_SEPERATOR) +
+                                    5/*port number*/ +
+                                    1/*null*/;
 }
 Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE)
 
@@ -60,8 +67,51 @@ class BevWrapper {
 public:
     BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
     BevWrapper() : bev(nullptr), locker(new QMutex) {}
-    ~BevWrapper() {delete locker;}
-    BevWrapper(const BevWrapper& b) : bev(b.bev) {}
+    ~BevWrapper()
+    {
+        if(locker)
+        {
+            locker->tryLock(500);
+            if(bev)
+            {
+                bufferevent_free(bev);
+                bev = nullptr;
+            }
+            locker->unlock();
+            delete locker;
+            locker = nullptr;
+        }
+        else if(bev)
+        {
+            bufferevent_free(bev);
+            bev = nullptr;
+        }
+    }
+    BevWrapper(const BevWrapper& b) : bev(b.bev), locker(b.locker) {}
+    BevWrapper(BevWrapper&& b) noexcept : bev(b.bev), locker(b.locker)
+    {
+        b.bev = nullptr;
+        b.locker = nullptr;
+    }
+    BevWrapper& operator =(BevWrapper&& b) noexcept
+    {
+        if(this != &b)
+        {
+            bev = b.bev;
+            locker = b.locker;
+            b.bev = nullptr;
+            b.locker = nullptr;
+        }
+        return *this;
+    }
+    bool operator ==(const BevWrapper& b)
+    {
+        return bev == b.bev;
+    }
+    bool operator !=(const BevWrapper &b)
+    {
+        return bev == b.bev;
+    }
 
     void setBev(bufferevent *buf) {bev = buf;}
     bufferevent* getBev() {return bev;}
@@ -78,7 +128,7 @@ struct PeerData{
     sockaddr_in ipAddressRaw;
     QString hostname;
     QLinkedList<QString*> messages;
-    BevWrapper *bw;
+    QSharedPointer<BevWrapper> bw;
     evutil_socket_t socket;
     bool connectTo;
     bool isAuthenticated;
@@ -86,7 +136,7 @@ struct PeerData{
     //Default Constructor
     PeerData() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
             hostname(QString()), messages(QLinkedList<QString*>()),
-            bw(nullptr), socket(-1), connectTo(false),
+            bw(QSharedPointer<BevWrapper>(new BevWrapper)), socket(-1), connectTo(false),
             isAuthenticated(false) {}
 
     //Copy
@@ -101,7 +151,7 @@ struct PeerData{
             messages(p.messages), bw(p.bw), socket(p.socket),
             connectTo(p.connectTo), isAuthenticated(p.isAuthenticated)
     {
-        p.bw = nullptr;
+        p.bw.clear();
     }
 
     //Destructor
@@ -114,10 +164,11 @@ struct PeerData{
     PeerData& operator= (const Peers::PeerData& p);
 
     //Return data of this struct as a string padded with the value in 'pad'
-    QString toString(QString pad);
+    QString toString();
 };
 
 }
+Q_DECLARE_METATYPE(QSharedPointer<Peers::BevWrapper>)
 
 struct initialSettings{
     int uuidNum;

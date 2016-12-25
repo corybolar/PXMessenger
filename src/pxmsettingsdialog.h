@@ -20,6 +20,7 @@
 
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
+#include "pxmdebugwindow.h"
 
 #ifdef _WIN32
 #include <lmcons.h>
@@ -50,11 +51,13 @@ class PXMSettingsDialog : public QDialog
     QLabel *label_4;
     QLabel *label_5;
     QLabel *label_6;
+    QLabel *label_7;
     QDialogButtonBox *buttonBox;
     QSpinBox *spinBox;
     QSpinBox *spinBox_2;
     QFontComboBox *fontComboBox;
     QSpinBox *spinBox_3;
+    QSpinBox *spinBox_4;
 private slots:
     void clickedme(QAbstractButton *button);
     void accept();

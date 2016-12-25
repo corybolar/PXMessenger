@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QMap>
 #include <QUuid>
+#include <QSharedPointer>
 
 #include <event2/util.h>
 
@@ -21,7 +22,7 @@ public:
 public slots:
     void syncNext();
 signals:
-    void requestIps(Peers::BevWrapper*, QUuid);
+    void requestIps(QSharedPointer<Peers::BevWrapper>, QUuid);
     void syncComplete();
 };
 

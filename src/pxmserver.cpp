@@ -36,7 +36,7 @@ void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
     result = accept(s, (struct sockaddr *)&ss, &addr_size);
     if(result < 0)
     {
-        qDebug() << "accept: " << QString::fromUtf8(strerror(errno));
+        qCritical() << "accept: " << QString::fromUtf8(strerror(errno));
     }
     else
     {
@@ -64,7 +64,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
         bufLen = ntohs(nboBufLen);
         if(bufLen == 0 || bufLen > MAX_UUID_PACKET_LENGTH)
         {
-            qDebug().noquote() << "Bad buffer length, disconnecting";
+            qWarning().noquote() << "Bad buffer length, disconnecting";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
             realServer->peerQuit(socket, bev);
             return;
@@ -79,7 +79,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     unsigned char bufUUID[UUIDCompression::PACKED_UUID_LENGTH];
     if(bufferevent_read(bev, bufUUID, UUIDCompression::PACKED_UUID_LENGTH) < UUIDCompression::PACKED_UUID_LENGTH)
     {
-        qDebug() << "Bad Auth packet length, closing socket...";
+        qWarning() << "Bad Auth packet length, closing socket...";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
         realServer->peerQuit(socket, bev);
         return;
@@ -88,7 +88,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     bufLen -= UUIDCompression::PACKED_UUID_LENGTH;
     if(quuid.isNull())
     {
-        qDebug() << "Bad Auth packet UUID, closing socket...";
+        qWarning() << "Bad Auth packet UUID, closing socket...";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
         realServer->peerQuit(socket, bev);
         return;
@@ -97,16 +97,14 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     char buf[bufLen + 1];
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
-#ifdef QT_DEBUG
     qDebug().noquote() << QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)]);
-#endif
     if(*(MESSAGE_TYPE*)&buf[0] == MSG_AUTH)
     {
         bufLen -= sizeof(MESSAGE_TYPE);
         QStringList hpsplit = (QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(PORT_SEPERATOR);
         if(hpsplit.length() != 2)
         {
-            qDebug() << "Bad Auth packet, closing socket...";
+            qWarning() << "Bad Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
             realServer->peerQuit(socket, bev);
             return;
@@ -114,7 +112,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
         unsigned short port = hpsplit[1].toUShort();
         if(port == 0)
         {
-            qDebug() << "Bad port in Auth packet, closing socket...";
+            qWarning() << "Bad port in Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
             realServer->peerQuit(socket, bev);
             return;
@@ -125,7 +123,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     }
     else
     {
-        qDebug() << "Non-Auth packet, closing socket...";
+        qWarning() << "Non-Auth packet, closing socket...";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
         realServer->peerQuit(socket, bev);
     }
@@ -138,37 +136,29 @@ void ServerThread::tcpRead(struct bufferevent *bev, void *arg)
     evbuffer *input = bufferevent_get_input(bev);
     if(evbuffer_get_length(input) == 1)
     {
-#ifdef QT_DEBUG
         qDebug().noquote() << "Setting timeout, 1 byte recieved";
-#endif
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
         return;
     }
     if(evbuffer_get_length(bufferevent_get_input(bev)) <= PACKET_HEADER_LENGTH)
     {
-#ifdef QT_DEBUG
         qDebug().noquote() << "Recieved bufferlength value";
-#endif
         evbuffer_copyout(input, &nboBufLen, PACKET_HEADER_LENGTH);
         bufLen = ntohs(nboBufLen);
         if(bufLen == 0)
         {
-            qDebug().noquote() << "Bad buffer length, draining...";
+            qWarning().noquote() << "Bad buffer length, draining...";
             evbuffer_drain(input, UINT16_MAX);
             return;
         }
         bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LENGTH, bufLen + PACKET_HEADER_LENGTH);
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
-#ifdef QT_DEBUG
         qDebug().noquote() << "Setting watermark to " + QString::number(bufLen) + " bytes";
         qDebug().noquote() << "Setting timeout to " +
                               QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) + " seconds";
-#endif
         return;
     }
-#ifdef QT_DEBUG
     qDebug() << "Full packet received";
-#endif
     bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
 
     bufferevent_read(bev, &nboBufLen, PACKET_HEADER_LENGTH);
@@ -189,10 +179,9 @@ void ServerThread::tcpRead(struct bufferevent *bev, void *arg)
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
         return;
     }
-    qDebug() << "Sender Uuid for message" << uuid.toString();
+    qInfo() << "Sender Uuid for message" << uuid.toString();
 
     bufLen -= UUIDCompression::PACKED_UUID_LENGTH;
-    //char *buf = new char[bufLen + 1];
     char *buf = new char[bufLen + 1];
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
@@ -200,6 +189,7 @@ void ServerThread::tcpRead(struct bufferevent *bev, void *arg)
     realServer->singleMessageIterator(bev, buf, bufLen, uuid);
 
     bufferevent_set_timeouts(bev, &READ_TIMEOUT_RESET, NULL);
+
     delete [] buf;
 }
 
@@ -242,7 +232,7 @@ int ServerThread::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bu
     using namespace PXMConsts;
     if(bufLen == 0)
     {
-        qDebug() << "Blank message! -- Not Good!";
+        qCritical() << "Blank message! -- Not Good!";
         return -1;
     }
     MESSAGE_TYPE* type = (MESSAGE_TYPE*)(&buf[0]);
@@ -251,35 +241,35 @@ int ServerThread::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bu
     switch (*type)
     {
     case MSG_TEXT:
-        qDebug().noquote() << "MSG :" << QString::fromUtf8(&buf[0], bufLen);
+        qInfo().noquote() << "MSG :" << QString::fromUtf8(&buf[0], bufLen);
         emit messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, false);
         break;
     case MSG_SYNC:
     {
         char *ipHeapArray = new char[bufLen];
         memcpy(ipHeapArray, &buf[0], bufLen);
-        qDebug().noquote() << "SYNC received";
+        qInfo().noquote() << "SYNC received";
         emit syncPacketIterator(ipHeapArray, bufLen, quuid);
         break;
     }
     case MSG_SYNC_REQUEST:
-        qDebug().noquote() << "SYNC_REQUEST received" << QString::fromUtf8(&buf[0], bufLen);
+        qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8(&buf[0], bufLen);
         emit sendSyncPacket(bev, quuid);
         break;
     case MSG_GLOBAL:
-        qDebug().noquote() << "GLOBAL :" << QString::fromUtf8(&buf[0], bufLen);
+        qInfo().noquote() << "GLOBAL :" << QString::fromUtf8(&buf[0], bufLen);
         emit messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, true);
         break;
     case MSG_NAME:
-        qDebug().noquote() << "NAME :" << QString::fromUtf8(&buf[0], bufLen);
+        qInfo().noquote() << "NAME :" << QString::fromUtf8(&buf[0], bufLen);
         emit nameChange(QString::fromUtf8(&buf[0], bufLen), quuid);
         break;
     case MSG_AUTH:
-        qDebug().noquote() << "AUTH packet recieved after alread authenticated, disregarding...";
+        qInfo().noquote() << "AUTH packet recieved after alread authenticated, disregarding...";
         return -1;
         break;
     default:
-        qDebug().noquote() << "Bad message type in the packet, discarding the rest";
+        qInfo().noquote() << "Bad message type in the packet, discarding the rest";
         return -1;
         break;
     }
@@ -305,7 +295,8 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         evutil_socket_t replySocket;
         if ( (replySocket = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0)
         {
-            qDebug().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
+            qCritical().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
+            qCritical().noquote() << "Reply to /discover packet not sent";
             return;
         }
 
@@ -326,7 +317,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
         for(int k = 0; k < 2; k++)
         {
             if(sendto(replySocket, name, len, 0, (sockaddr *)&si_other, si_other_len) != len)
-                qDebug().noquote() << "sendto: " + QString::fromUtf8(strerror(errno));
+                qCritical().noquote() << "sendto: " + QString::fromUtf8(strerror(errno));
         }
         evutil_closesocket(replySocket);
     }
@@ -334,14 +325,12 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     {
         memcpy(&si_other.sin_port, &buf[6], sizeof(uint16_t));
         QUuid uuid = UUIDCompression::unpackUUID((unsigned char*)&buf[8]);
-#ifdef QT_DEBUG
         qDebug() << "Name Packet:" << inet_ntoa(si_other.sin_addr) << ":" << ntohs(si_other.sin_port) << "with id:" << uuid.toString();
-#endif
         realServer->attemptConnection(si_other, uuid);
     }
     else
     {
-        qDebug() << "Bad udp packet!";
+        qWarning() << "Bad udp packet!";
         return;
     }
 
@@ -371,7 +360,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
     multicastGroup.imr_interface.s_addr = INADDR_ANY;
     if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
     {
-        qDebug().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        qCritical().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
         evutil_closesocket(socketUDP);
         return -1;
     }
@@ -384,7 +373,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     if(setsockopt(socketUDP, SOL_SOCKET, SO_REUSEADDR, "true", sizeof(int)) < 0)
     {
-        qDebug().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+        qCritical().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
         evutil_closesocket(socketUDP);
         return -1;
     }
@@ -393,7 +382,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     if(bind(socketUDP, (sockaddr *)&si_me, sizeof(sockaddr)))
     {
-        qDebug().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
+        qCritical().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
         evutil_closesocket(socketUDP);
         return -1;
     }
@@ -404,7 +393,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     emit setListenerPorts(tcpListenerPort, udpSocketNumber);
 
-    qDebug().noquote() << "Port number for Multicast: " + QString::number(udpSocketNumber);
+    qInfo().noquote() << "Port number for Multicast: " + QString::number(udpSocketNumber);
 
     //send our discover packet to find other computers
     emit sendUDP("/discover", udpSocketNumber);
@@ -426,7 +415,7 @@ evutil_socket_t ServerThread::setupTCPSocket()
 
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
     {
-        qDebug().noquote() << "getaddrinfo: " + QString::fromUtf8(strerror(errno));
+        qCritical().noquote() << "getaddrinfo: " + QString::fromUtf8(strerror(errno));
         return -1;
     }
 
@@ -435,27 +424,27 @@ evutil_socket_t ServerThread::setupTCPSocket()
         evutil_socket_t socketTCP;
         if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
         {
-            qDebug().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
+            qCritical().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
         }
         if(setsockopt(socketTCP, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int)) < 0)
         {
-            qDebug().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+            qCritical().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
         }
 
         evutil_make_socket_nonblocking(socketTCP);
 
         if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
         {
-            qDebug().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
+            qCritical().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
         }
         if(listen(socketTCP, BACKLOG) < 0)
         {
-            qDebug().noquote() << "listen: " + QString::fromUtf8(strerror(errno));
+            qCritical().noquote() << "listen: " + QString::fromUtf8(strerror(errno));
         }
         tcpSockets.append(socketTCP);
-        qDebug().noquote() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
+        qInfo().noquote() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
     }
-    qDebug().noquote() << "Number of tcp sockets:" << tcpSockets.length();
+    qInfo().noquote() << "Number of tcp sockets:" << tcpSockets.length();
 
     freeaddrinfo(res);
 
@@ -486,12 +475,12 @@ void ServerThread::run()
 
     if(!base)
     {
-        qDebug() << "FATAL:event_base_new returned NULL";
+        qCritical() << "FATAL:event_base_new returned NULL";
         serverSetupFailure();
         return;
     }
 
-    qDebug().noquote() << "Using " + QString::fromUtf8(event_base_get_method(base)) + " as the libevent backend";
+    qInfo().noquote() << "Using " + QString::fromUtf8(event_base_get_method(base)) + " as the libevent backend";
     emit libeventBackend(QString::fromUtf8(event_base_get_method(base)));
 
     //Pair for self communication
@@ -508,7 +497,7 @@ void ServerThread::run()
     s_listen = setupTCPSocket();
     if(s_listen < 0)
     {
-        qDebug() << "FATAL:TCP socket setup has failed";
+        qCritical() << "FATAL:TCP socket setup has failed";
         serverSetupFailure();
         return;
     }
@@ -517,7 +506,7 @@ void ServerThread::run()
     s_discover = setupUDPSocket(s_listen);
     if(s_discover < 0)
     {
-        qDebug() << "FATAL:UDP socket setup has failed";
+        qCritical() << "FATAL:UDP socket setup has failed";
         serverSetupFailure();
         return;
     }
@@ -525,7 +514,7 @@ void ServerThread::run()
     eventDiscover = event_new(base, s_discover, EV_READ|EV_PERSIST, udpRecieve, this);
     if(!eventDiscover)
     {
-        qDebug() << "FATAL:event_new returned NULL";
+        qCritical() << "FATAL:event_new returned NULL";
         serverSetupFailure();
         return;
     }
@@ -533,7 +522,7 @@ void ServerThread::run()
     failureCodes = event_add(eventDiscover, NULL);
     if(failureCodes < 0)
     {
-        qDebug() << "FATAL:event_add returned -1";
+        qCritical() << "FATAL:event_add returned -1";
         serverSetupFailure();
         return;
     }
@@ -541,7 +530,7 @@ void ServerThread::run()
     eventAccept = event_new(base, s_listen, EV_READ|EV_PERSIST, accept_new, this);
     if(!eventAccept)
     {
-        qDebug() << "FATAL:event_new returned NULL";
+        qCritical() << "FATAL:event_new returned NULL";
         serverSetupFailure();
         return;
     }
@@ -549,7 +538,7 @@ void ServerThread::run()
     failureCodes = event_add(eventAccept, NULL);
     if(failureCodes < 0)
     {
-        qDebug() << "FATAL:event_add returned -1";
+        qCritical() << "FATAL:event_add returned -1";
         serverSetupFailure();
         return;
     }
@@ -577,6 +566,7 @@ void ServerThread::run()
     bufferevent_free(closePair[0]);
 
     bufferevent_free(selfCommsPair[0]);
+    //bufferevent_free(selfCommsPair[1]);
 
     event_base_free(base);
 

@@ -1,6 +1,6 @@
 #include "pxmdebugwindow.h"
 
-QPlainTextEdit * PXMDebugWindow::textEdit = 0;
+QTextEdit * PXMDebugWindow::textEdit = 0;
 PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
 {
     this->setObjectName("Debug Console");
@@ -11,10 +11,10 @@ PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
     gridLayout_2->setObjectName(QStringLiteral("gridLayout_2"));
     gridLayout = new QGridLayout();
     gridLayout->setObjectName(QStringLiteral("gridLayout"));
-    textEdit = new QPlainTextEdit(centralwidget);
+    textEdit = new QTextEdit(centralwidget);
     textEdit->setObjectName(QStringLiteral("plainTextEdit"));
     textEdit->setReadOnly(true);
-    textEdit->setMaximumBlockCount(DEBUG_WINDOW_HISTORY_LIMIT);
+    textEdit->document()->setMaximumBlockCount(DEBUG_WINDOW_HISTORY_LIMIT);
     LoggerSingleton::getInstance()->setTextEdit(textEdit);
     pushButton = new QPushButton(centralwidget);
     pushButton->setText("Print Info");

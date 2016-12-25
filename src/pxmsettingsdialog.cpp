@@ -41,6 +41,8 @@ void PXMSettingsDialog::clickedme(QAbstractButton *button)
 
 void PXMSettingsDialog::accept()
 {
+    LoggerSingleton *logger = LoggerSingleton::getInstance();
+    logger->setVerbosityLevel(this->spinBox_4->value());
     MessIniReader iniReader;
     iniReader.setAllowMoreThanOne(this->checkBox->isChecked());
     iniReader.setHostname(this->lineEdit->text().simplified());
@@ -154,11 +156,21 @@ void PXMSettingsDialog::setupUi()
     label_6 = new QLabel(this);
     gridLayout->addWidget(label_6, 5, 0, 1, 1);
 
+    label_7 = new QLabel(this);
+    gridLayout->addWidget(label_7, 6, 0, 1, 1);
+
     spinBox_3 = new QSpinBox(this);
     spinBox_3->setMaximum(24);
     spinBox_3->setMinimum(8);
     spinBox_3->setValue(qApp->font().pointSize());
     gridLayout->addWidget(spinBox_3, 5, 1, 1, 1);
+
+    LoggerSingleton *logger = LoggerSingleton::getInstance();
+    spinBox_4 = new QSpinBox(this);
+    spinBox_4->setMaximum(2);
+    spinBox_4->setMinimum(0);
+    spinBox_4->setValue(logger->getVerbosityLevel());
+    gridLayout->addWidget(spinBox_4, 6, 1, 1, 1);
 
 
     retranslateUi();
@@ -199,6 +211,7 @@ void PXMSettingsDialog::retranslateUi()
     label_4->setText(QApplication::translate("Settings", "Preferred UDP Listener port", 0));
     label_5->setText(QApplication::translate("Settings", "Font Family", 0));
     label_6->setText(QApplication::translate("Settings", "Font Size", 0));
+    label_7->setText(QApplication::translate("Settings", "Debug Verbosity", 0));
 }
 
 void PXMSettingsDialog::readIni()

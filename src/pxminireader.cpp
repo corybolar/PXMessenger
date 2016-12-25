@@ -154,3 +154,12 @@ int MessIniReader::setMulticastAddress(QStringList ip)
 
     return 0;
 }
+int MessIniReader::getVerbosity()
+{
+    return inisettings->value("config/DebugVerbosity", 0).toInt();
+}
+
+void MessIniReader::setVerbosity(int level)
+{
+    inisettings->setValue("config/DebugVerbosity", level);
+}

@@ -40,52 +40,22 @@ public:
     ~PXMClient() {qDebug() << "Shutdown of PXMClient Successful";}
     void setLocalUUID(QUuid uuid);
 public slots:
-    void sendMsg(Peers::BevWrapper *bw, const char *msg, size_t msgLen,
-                 PXMConsts::MESSAGE_TYPE type,
+    void sendMsg(QSharedPointer<Peers::BevWrapper> bw, const char *msg,
+                 size_t msgLen,PXMConsts::MESSAGE_TYPE type,
                  QUuid uuidReceiver);
-    /*!
-     * \brief sendMsgSlot
-     *
-     * Slot for calling sendMsg.  QString to char* converstion
-     * \param s socket to send on
-     * \param msg message to send
-     * \param type packet type to send as
-     * \param uuid our UUID
-     * \param theiruuid recipient UUID, only used to report results, not
-     * 			included in packet
-     * \see sendMsg()
-     */
-    void sendMsgSlot(Peers::BevWrapper *bw, QByteArray msg,
+    void sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw, QByteArray msg,
                      PXMConsts::MESSAGE_TYPE type, QUuid theiruuid = QUuid());
-    /*!
-     * \brief sendUDP
-     *
-     * Sends a udp packet to the multicast group defined by MULTICAST_ADDRESS.
-     * Important:These messages are currently send twice to improves odds that
-     * one of them gets their.
-     * \param msg Message to send
-     * \param port Port to send to in the multicast group
-     */
     int sendUDP(const char* msg, unsigned short port);
-    /*!
-     * \brief connectToPeer
-     *
-     * Establish connection to peer.
-     * \param socketfd Socket to connect on
-     * \param socketAddr sockaddr_in structure containing port and ip to connect
-     * 			to
-     * \return emits resultOfConnectionAttempt() with the socket number and a
-     * 			bool variable containing the result.
-     * \see man connect
-     */
     void connectToPeer(evutil_socket_t, sockaddr_in socketAddr,
-                       Peers::BevWrapper *bw);
-    void sendIpsSlot(Peers::BevWrapper *bw, char *msg, size_t len,
-                     PXMConsts::MESSAGE_TYPE type, QUuid theiruuid = QUuid());
+                       QSharedPointer<Peers::BevWrapper> bw);
+    void sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw, char *msg,
+                     size_t len, PXMConsts::MESSAGE_TYPE type,
+                     QUuid theiruuid = QUuid());
     static void connectCB(bufferevent *bev, short event, void *arg);
 signals:
-    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*);
-    void resultOfTCPSend(unsigned int, QUuid, QString, bool, Peers::BevWrapper*);
+    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent *);
+    void resultOfTCPSend(unsigned int, QUuid, QString, bool,
+                         QSharedPointer<Peers::BevWrapper>);
 };
 
 #endif // PXMCLIENT_H

@@ -35,6 +35,8 @@ public:
     void setAllowMoreThanOne(bool value);
     int setMulticastAddress(QStringList ip);
     QString getMulticastAddress();
+    int getVerbosity();
+    void setVerbosity(int level);
 };
 
 #endif // MESSINIREADER_H
