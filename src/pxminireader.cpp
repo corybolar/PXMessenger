@@ -60,14 +60,14 @@ void MessIniReader::setPort(QString protocol, int portNumber)
 unsigned short MessIniReader::getPort(QString protocol)
 {
     unsigned short portNumber = inisettings->value("port/" + protocol, 0).toUInt();
-    if( portNumber == 0)
-    {
-        inisettings->setValue("port/" + protocol, 0);
-    }
-    else if( portNumber == 13649 )
+    if( portNumber == 13649 )
     {
         inisettings->setValue("port/" + protocol, 0);
         portNumber = 0;
+    }
+    else if(portNumber != 0 && protocol == QLatin1String("TCP"))
+    {
+        portNumber += getUUIDNumber();
     }
     return portNumber;
 }
@@ -125,19 +125,9 @@ void MessIniReader::setFont(QString font)
 QString MessIniReader::getMulticastAddress()
 {
     QString ipFull = inisettings->value("net/MulticastAddress", "").toString();
-    if(ipFull.isEmpty())
-    {
-        return QString("");
-    }
+    if(ipFull.isEmpty() || strlen(ipFull.toLatin1().constData()) > INET_ADDRSTRLEN)
+        return QString::fromLocal8Bit(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
     return ipFull;
-    /*
-    QStringList ipList = ipFull.split(".");
-    for(int i = 0; i < 4; i++)
-    {
-        if(ipList[i].toUInt() > 255)
-            ipList[i] = "0";
-    }
-    */
 }
 int MessIniReader::setMulticastAddress(QStringList ip)
 {

@@ -1,20 +1,17 @@
 #include <pxmpeerworker.h>
 using namespace PXMConsts;
 
-PXMPeerWorker::PXMPeerWorker(QObject *parent, initialSettings presets, QUuid globaluuid) : QObject(parent)
+PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
+                             QString multicast, unsigned short tcpPort,
+                             unsigned short udpPort, QUuid globaluuid) : QObject(parent),
+    localHostname(username), localUUID(selfUUID), multicastAddress(multicast),
+    serverTCPPort(tcpPort), serverUDPPort(udpPort), globalUUID(globaluuid)
 {
     //Init
     areWeSyncing = false;
     syncablePeers = new TimedVector<QUuid>(SYNC_TIMEOUT_MSECS, SECONDS);
     messClient = nullptr;
     //End of Init
-
-    localHostname = presets.username;
-    localUUID = presets.uuid;
-    globalUUID = globaluuid;
-    multicastAddress = presets.multicast;
-    serverTCPPort = presets.tcpPort;
-    serverUDPPort = presets.udpPort;
 
     //Prevent race condition when starting threads, a bufferevent
     //for this (us) is coming soon.
@@ -648,4 +645,9 @@ void PXMPeerWorker::serverSetupFailure()
 void PXMPeerWorker::setLocalHostname(QString hname)
 {
     localHostname = hname;
+}
+
+void PXMPeerWorker::sendUDPAccessor(const char *msg)
+{
+    emit sendUDP(msg, serverUDPPort);
 }

@@ -11,7 +11,12 @@ ServerThread::ServerThread(QObject *parent, unsigned short tcpPort, unsigned sho
     //End of Init
 
     tcpListenerPort = tcpPort;
-    udpListenerPort = udpPort;
+
+    if(udpPort == 0)
+        udpListenerPort = PXMConsts::DEFAULT_UDP_PORT;
+    else
+        udpListenerPort = udpPort;
+
     multicastAddress = multicast;
     this->setObjectName("PXMServer");
 }

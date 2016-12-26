@@ -1,70 +1,28 @@
 #include <pxmmainwindow.h>
+#include "ui_pxmmainwindow.h"
 
-PXMWindow::PXMWindow(initialSettings presets)
+PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat) :
+    ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
 {
-    //Init
-    localHostname = QString();
-    multicastFunctioning = false;
-    debugWindow = nullptr;
-    globalChatUuid = QUuid::createUuid();
-    //End of Init
-
     debugWindow = new PXMDebugWindow();
-
-    ourUUID = presets.uuid.toString();
-
-    qInfo() << "Our UUID:" << ourUUID.toString();
-
-    setupHostname(presets.uuidNum, presets.username);
-    presets.username = localHostname;
-
-    if(presets.tcpPort != 0)
-        presets.tcpPort += presets.uuidNum;
-    if(presets.udpPort == 0)
-        presets.udpPort = PXMConsts::DEFAULT_UDP_PORT;
-    ourUDPListenerPort = presets.udpPort;
-
-    if(presets.multicast.isEmpty() || strlen(presets.multicast.toLatin1().constData()) > INET_ADDRSTRLEN)
-        presets.multicast = QString::fromLocal8Bit(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
-
-    workerThread = new QThread(this);
-    peerWorker = new PXMPeerWorker(nullptr, presets, globalChatUuid);
 
     setupGui();
 
-    focusCheckBox->setChecked(presets.preventFocus);
-    muteCheckBox->setChecked(presets.mute);
+    ui->focusCheckBox->setChecked(focus);
+    ui->muteCheckBox->setChecked(mute);
 
-    this->resize(presets.windowSize);
+    this->resize(windowSize);
 }
 PXMWindow::~PXMWindow()
 {
-    if(workerThread != 0 && workerThread->isRunning())
-    {
-        workerThread->quit();
-        workerThread->wait(5000);
-        qDebug() << "Shutdown of WorkerThread Successful";
-    }
-
     delete debugWindow;
+
+    delete ui;
 
     qDebug() << "Shutdown of PXMWindow Successful";
 }
-void PXMWindow::startThreadsAndShow()
-{
-    connectPeerClassSignalsAndSlots();
-
-    startWorkerThread();
-
-    this->show();
-}
 void PXMWindow::setupMenuBar()
 {
-    menubar = new QMenuBar(this);
-    menubar->setObjectName(QStringLiteral("menubar"));
-    menubar->setGeometry(QRect(0, 0, 835, 27));
-    menubar->setDefaultUp(false);
-    this->setMenuBar(menubar);
     QMenu *fileMenu;
     QAction *quitAction = new QAction("&Quit", this);
 
@@ -90,70 +48,15 @@ void PXMWindow::setupMenuBar()
     QObject::connect(aboutAction, &QAction::triggered, this, &PXMWindow::aboutActionSlot);
     QObject::connect(debugAction, &QAction::triggered, this, &PXMWindow::debugActionSlot);
 }
-void PXMWindow::setupTooltips()
+
+void PXMWindow::setupLabels()
 {
-#ifndef QT_NO_TOOLTIP
-    messSendButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Send a Message</p></body></html>", 0));
-#endif // QT_NO_TOOLTIP
-    messSendButton->setText(QApplication::translate("PXMessenger", "Send", 0));
-#ifndef QT_NO_TOOLTIP
-    messQuitButton->setToolTip(QApplication::translate("PXMessenger", "<html><head/><body><p>Quit PXMessenger</p></body></html>", 0));
-#endif // QT_NO_TOOLTIP
-    messQuitButton->setText(QApplication::translate("PXMessenger", "Quit", 0));
-}
-void PXMWindow::setupLayout()
-{
-    if (this->objectName().isEmpty())
-        this->setObjectName(QStringLiteral("PXMessenger"));
-    this->resize(835, 567);
-
-    centralwidget = new QWidget(this);
-    centralwidget->setObjectName(QStringLiteral("centralwidget"));
-    layout = new QGridLayout(centralwidget);
-    layout->setObjectName(QStringLiteral("layout"));
-
-    horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-    layout->addItem(horizontalSpacer, 3, 0, 1, 1);
-    horizontalSpacer_3 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-    layout->addItem(horizontalSpacer_3, 5, 2, 1, 1);
-    horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-    layout->addItem(horizontalSpacer_2, 3, 2, 1, 1);
-    horizontalSpacer_4 = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
-    layout->addItem(horizontalSpacer_4, 5, 0, 1, 1);
-}
-void PXMWindow::createTextEdit()
-{
-    messTextEdit = new PXMTextEdit(centralwidget);
-    messTextEdit->setObjectName(QStringLiteral("messTextEdit"));
-    QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    sizePolicy1.setHorizontalStretch(0);
-    sizePolicy1.setVerticalStretch(0);
-    sizePolicy1.setHeightForWidth(messTextEdit->sizePolicy().hasHeightForWidth());
-    messTextEdit->setSizePolicy(sizePolicy1);
-    messTextEdit->setMaximumSize(QSize(16777215, 150));
-    messTextEdit->setPlaceholderText(QStringLiteral("Enter a message to send here!"));
-
-    layout->addWidget(messTextEdit, 2, 0, 1, 3);
-}
-void PXMWindow::createTextBrowser()
-{
-    messTextBrowser = new PXMTextBrowser(centralwidget);
-    messTextBrowser->setObjectName(QStringLiteral("messTextBrowser"));
-    QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    sizePolicy.setHorizontalStretch(1);
-    sizePolicy.setVerticalStretch(2);
-    sizePolicy.setHeightForWidth(messTextBrowser->sizePolicy().hasHeightForWidth());
-    messTextBrowser->setSizePolicy(sizePolicy);
-    messTextBrowser->setMinimumSize(QSize(300, 200));
-
-    layout->addWidget(messTextBrowser, 0, 0, 2, 3);
-
-    loadingLabel = new QLabel(centralwidget);
+    loadingLabel = new QLabel(ui->centralwidget);
     loadingLabel->setText("Select a Friend on the right to begin messaging!");
     loadingLabel->setAlignment(Qt::AlignCenter);
-    loadingLabel->setGeometry(messTextBrowser->geometry());
+    loadingLabel->setGeometry(ui->messTextBrowser->geometry());
     loadingLabel->show();
-    resizeLabel(messTextBrowser->geometry());
+    resizeLabel(ui->messTextBrowser->geometry());
 }
 
 void PXMWindow::resizeLabel(QRect size)
@@ -164,59 +67,23 @@ void PXMWindow::resizeLabel(QRect size)
     }
 }
 
-void PXMWindow::createLineEdit()
+void PXMWindow::initListWidget()
 {
-    messLineEdit = new QLineEdit(centralwidget);
-    messLineEdit->setObjectName(QStringLiteral("messLineEdit"));
-    messLineEdit->setMinimumSize(QSize(200, 0));
-    messLineEdit->setMaximumSize(QSize(300, 16777215));
-    messLineEdit->setText(localHostname);
-    messLineEdit->setReadOnly(true);
-
-    layout->addWidget(messLineEdit, 0, 3, 1, 1);
-}
-
-void PXMWindow::createButtons()
-{
-    messSendButton = new QPushButton(centralwidget);
-    messSendButton->setObjectName(QStringLiteral("messSendButton"));
-    messSendButton->setMaximumSize(QSize(250, 16777215));
-    messSendButton->setLayoutDirection(Qt::LeftToRight);
-    messSendButton->setText(QStringLiteral("Send"));
-
-    layout->addWidget(messSendButton, 3, 1, 1, 1);
-
-    messQuitButton = new QPushButton(centralwidget);
-    messQuitButton->setObjectName(QStringLiteral("messQuitButton"));
-    messQuitButton->setMaximumSize(QSize(250, 16777215));
-    messQuitButton->setText(QStringLiteral("Quit"));
-
-    layout->addWidget(messQuitButton, 5, 1, 1, 1);
-}
-void PXMWindow::createListWidget()
-{
-
-    messListWidget = new QListWidget(centralwidget);
-    messListWidget->setObjectName(QStringLiteral("messListWidget"));
-    messListWidget->setMinimumSize(QSize(200, 0));
-    messListWidget->setMaximumSize(QSize(300, 16777215));
-
-    layout->addWidget(messListWidget, 1, 3, 2, 1);
-    messListWidget->insertItem(0, QStringLiteral("Global Chat"));
-    QListWidgetItem *seperator = new QListWidgetItem(messListWidget);
+    ui->messListWidget->setSortingEnabled(false);
+    ui->messListWidget->insertItem(0, QStringLiteral("Global Chat"));
+    QListWidgetItem *seperator = new QListWidgetItem(ui->messListWidget);
     seperator->setSizeHint(QSize(200, 10));
     seperator->setFlags(Qt::NoItemFlags);
-    messListWidget->insertItem(1, seperator);
-    fsep = new QFrame(messListWidget);
+    ui->messListWidget->insertItem(1, seperator);
+    fsep = new QFrame(ui->messListWidget);
     fsep->setFrameStyle(QFrame::HLine | QFrame::Plain);
     fsep->setLineWidth(2);
-    messListWidget->setItemWidget(seperator, fsep);
-    messListWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
-    messListWidget->setSortingEnabled(false);
+    ui->messListWidget->setItemWidget(seperator, fsep);
+    ui->messListWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
 }
 void PXMWindow::createSystemTray()
 {
-    QIcon trayIcon(":/resources/resources/70529.ico");
+    QIcon trayIcon(":/resources/resources/PXM_Icon.ico");
     this->setWindowIcon(trayIcon);
 
     messSystemTrayMenu = new QMenu(this);
@@ -229,84 +96,36 @@ void PXMWindow::createSystemTray()
     messSystemTray->setContextMenu(messSystemTrayMenu);
     messSystemTray->show();
 }
-void PXMWindow::createCheckBoxes()
-{
-    muteCheckBox = new QCheckBox(centralwidget);
-    muteCheckBox->setObjectName(QStringLiteral("muteCheckBox"));
-    muteCheckBox->setLayoutDirection(Qt::RightToLeft);
-    muteCheckBox->setText(QStringLiteral("Mute"));
-    layout->addWidget(muteCheckBox, 3, 3, 1, 1);
-
-    focusCheckBox = new QCheckBox(centralwidget);
-    focusCheckBox->setObjectName(QStringLiteral("focusCheckBox"));
-    focusCheckBox->setLayoutDirection(Qt::RightToLeft);
-    focusCheckBox->setText(QStringLiteral("Prevent focus stealing"));
-
-    layout->addWidget(focusCheckBox, 5, 3, 1, 1);
-}
-
 void PXMWindow::setupGui()
 {
-    setupLayout();
+    ui->setupUi(this);
+    ui->messLineEdit->setText(localHostname);
 
-    createTextBrowser();
+    if (this->objectName().isEmpty())
+        this->setObjectName(QStringLiteral("PXMessenger"));
 
-    createTextEdit();
-
-    createLineEdit();
-
-    createButtons();
-
-    createListWidget();
-
-    createSystemTray();
-
-    createCheckBoxes();
+    setupLabels();
 
     setupMenuBar();
 
-    setupTooltips();
+    initListWidget();
+
+    createSystemTray();
 
     connectGuiSignalsAndSlots();
-
-    this->setCentralWidget(centralwidget);
-}
-void PXMWindow::startWorkerThread()
-{
-    workerThread->setObjectName("WorkerThread");
-    peerWorker->moveToThread(workerThread);
-    QObject::connect(workerThread, &QThread::started, peerWorker, &PXMPeerWorker::currentThreadInit);
-    QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
-    QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
-    QObject::connect(workerThread, &QThread::finished, peerWorker, &QThread::deleteLater);
-
-    workerThread->start();
 }
 void PXMWindow::connectGuiSignalsAndSlots()
 {
-    QObject::connect(messSendButton, &QAbstractButton::clicked, this, &PXMWindow::sendButtonClicked);
-    QObject::connect(messQuitButton, &QAbstractButton::clicked, this, &PXMWindow::quitButtonClicked);
-    QObject::connect(messListWidget, &QListWidget::currentItemChanged, this, &PXMWindow::currentItemChanged);
-    QObject::connect(messTextEdit, &PXMTextEdit::returnPressed, this, &PXMWindow::sendButtonClicked);
+    QObject::connect(ui->messSendButton, &QAbstractButton::clicked, this, &PXMWindow::sendButtonClicked);
+    QObject::connect(ui->messQuitButton, &QAbstractButton::clicked, this, &PXMWindow::quitButtonClicked);
+    QObject::connect(ui->messListWidget, &QListWidget::currentItemChanged, this, &PXMWindow::currentItemChanged);
+    QObject::connect(ui->messTextEdit, &PXMTextEdit::returnPressed, this, &PXMWindow::sendButtonClicked);
     QObject::connect(messSystemTray, &QSystemTrayIcon::activated, this, &PXMWindow::showWindow);
     QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
-    QObject::connect(messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
+    QObject::connect(ui->messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);;
-    QObject::connect(messTextBrowser, &PXMTextBrowser::resizeLabel, this, &PXMWindow::resizeLabel);
+    QObject::connect(ui->messTextBrowser, &PXMTextBrowser::resizeLabel, this, &PXMWindow::resizeLabel);
 }
-void PXMWindow::connectPeerClassSignalsAndSlots()
-{
-    QObject::connect(peerWorker, &PXMPeerWorker::printToTextBrowser, this, &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
-    QObject::connect(peerWorker, &PXMPeerWorker::setItalicsOnItem, this, &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
-    QObject::connect(peerWorker, &PXMPeerWorker::updateListWidget, this, &PXMWindow::updateListWidget, Qt::QueuedConnection);
-    QObject::connect(peerWorker, &PXMPeerWorker::warnBox, this, &PXMWindow::warnBox, Qt::AutoConnection);
-    QObject::connect(this, &PXMWindow::addMessageToPeer, peerWorker, &PXMPeerWorker::addMessageToPeer, Qt::QueuedConnection);
-    QObject::connect(this, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
-    QObject::connect(this, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDP, Qt::QueuedConnection);
-    QObject::connect(this, &PXMWindow::requestFullHistory, peerWorker, &PXMPeerWorker::printFullHistory, Qt::QueuedConnection);
-    QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, peerWorker, &PXMPeerWorker::printInfoToDebug);
-}
-
 void PXMWindow::aboutActionSlot()
 {
     QMessageBox::about(this, "About", "<br><center>PXMessenger v"
@@ -333,9 +152,8 @@ void PXMWindow::settingsActionsSlot()
 void PXMWindow::nameChange(QString hname)
 {
     qInfo() << "Self Name Change";
-    this->setupHostname(0, hname);
-    this->messLineEdit->setText(localHostname);
-    emit sendMsg(localHostname.toUtf8(), PXMConsts::MSG_NAME, QUuid());
+    this->ui->messLineEdit->setText(hname);
+    emit sendMsg(hname.toUtf8(), PXMConsts::MSG_NAME, QUuid());
 }
 
 void PXMWindow::bloomActionsSlot()
@@ -351,7 +169,7 @@ void PXMWindow::bloomActionsSlot()
     if(box.clickedButton() == bloomButton)
     {
         qDebug() << "User triggered bloom";
-        emit sendUDP("/discover", ourUDPListenerPort);
+        emit sendUDP("/discover");
     }
 }
 
@@ -359,22 +177,7 @@ void PXMWindow::warnBox(QString title, QString msg)
 {
     QMessageBox::warning(this, title, msg);
 }
-void PXMWindow::setupHostname(int uuidNum, QString username)
-{
-    char computerHostname[256] = {};
 
-    gethostname(computerHostname, sizeof computerHostname);
-
-    localHostname = username;
-    if(uuidNum > 0)
-    {
-        char temp[3];
-        sprintf(temp, "%d", uuidNum);
-        localHostname.append(QString::fromUtf8(temp));
-    }
-    localHostname.append("@");
-    localHostname.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
-}
 void PXMWindow::debugActionSlot()
 {
     if(debugWindow)
@@ -386,41 +189,41 @@ void PXMWindow::debugActionSlot()
 
 void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
-    for(int i = 0; i < messListWidget->count(); i++)
+    for(int i = 0; i < ui->messListWidget->count(); i++)
     {
-        if(messListWidget->item(i)->data(Qt::UserRole) == uuid)
+        if(ui->messListWidget->item(i)->data(Qt::UserRole) == uuid)
         {
-            QFont mfont = messListWidget->item(i)->font();
+            QFont mfont = ui->messListWidget->item(i)->font();
             if(mfont.italic() == italics)
                 return;
             mfont.setItalic(italics);
-            messListWidget->item(i)->setFont(mfont);
+            ui->messListWidget->item(i)->setFont(mfont);
             QString changeInConnection;
             if(italics)
                 changeInConnection = " disconnected";
             else
                 changeInConnection = " reconnected";
-            emit addMessageToPeer(messListWidget->item(i)->text() % changeInConnection, uuid, false, true);
+            emit addMessageToPeer(ui->messListWidget->item(i)->text() % changeInConnection, uuid, false, true);
             return;
         }
     }
 }
 void PXMWindow::textEditChanged()
 {
-    if(messTextEdit->toPlainText().length() > PXMConsts::TEXT_EDIT_MAX_LENGTH)
+    if(ui->messTextEdit->toPlainText().length() > PXMConsts::TEXT_EDIT_MAX_LENGTH)
     {
-        int diff = messTextEdit->toPlainText().length() - PXMConsts::TEXT_EDIT_MAX_LENGTH;
-        QString temp = messTextEdit->toPlainText();
+        int diff = ui->messTextEdit->toPlainText().length() - PXMConsts::TEXT_EDIT_MAX_LENGTH;
+        QString temp = ui->messTextEdit->toPlainText();
         temp.chop(diff);
-        messTextEdit->setText(temp);
-        QTextCursor cursor(messTextEdit->textCursor());
+        ui->messTextEdit->setText(temp);
+        QTextCursor cursor(ui->messTextEdit->textCursor());
         cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-        messTextEdit->setTextCursor(cursor);
+        ui->messTextEdit->setTextCursor(cursor);
     }
 }
 void PXMWindow::showWindow(QSystemTrayIcon::ActivationReason reason)
 {
-    if( ( ( reason == QSystemTrayIcon::DoubleClick ) || ( reason == QSystemTrayIcon::Trigger ) ) && ! ( this->isVisible() ) )
+    if( ( ( reason == QSystemTrayIcon::DoubleClick ) || ( reason == QSystemTrayIcon::Trigger ) ) )
     {
         this->setWindowState(Qt::WindowMaximized);
         this->show();
@@ -443,7 +246,7 @@ void PXMWindow::changeEvent(QEvent *event)
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
     loadingLabel->setText("Loading history...");
-    messTextBrowser->clear();
+    ui->messTextBrowser->clear();
     QUuid uuid = item1->data(Qt::UserRole).toString();
     loadingLabel->show();
     emit requestFullHistory(uuid);
@@ -451,7 +254,7 @@ void PXMWindow::currentItemChanged(QListWidgetItem *item1)
     {
         this->changeListItemColor(uuid, 0);
     }
-    QScrollBar *sb = this->messTextBrowser->verticalScrollBar();
+    QScrollBar *sb = this->ui->messTextBrowser->verticalScrollBar();
     sb->setValue(sb->maximum());
     return;
 }
@@ -461,34 +264,34 @@ void PXMWindow::quitButtonClicked()
 }
 void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 {
-    messListWidget->setUpdatesEnabled(false);
-    for(int i = 2; i < messListWidget->count(); i++)
+    ui->messListWidget->setUpdatesEnabled(false);
+    for(int i = 2; i < ui->messListWidget->count(); i++)
     {
-        if(messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid)
+        if(ui->messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid)
         {
-            if(messListWidget->item(i)->text() != hostname)
+            if(ui->messListWidget->item(i)->text() != hostname)
             {
-                emit addMessageToPeer(messListWidget->item(i)->text() % " has changed their name to " % hostname, uuid, false, false);
-                messListWidget->item(i)->setText(hostname);
-                QListWidgetItem *global = messListWidget->takeItem(0);
-                messListWidget->sortItems();
-                messListWidget->insertItem(0, global);
+                emit addMessageToPeer(ui->messListWidget->item(i)->text() % " has changed their name to " % hostname, uuid, false, false);
+                ui->messListWidget->item(i)->setText(hostname);
+                QListWidgetItem *global = ui->messListWidget->takeItem(0);
+                ui->messListWidget->sortItems();
+                ui->messListWidget->insertItem(0, global);
             }
             setItalicsOnItem(uuid, 0);
-            messListWidget->setUpdatesEnabled(true);
+            ui->messListWidget->setUpdatesEnabled(true);
             return;
         }
     }
 
-    QListWidgetItem *global = messListWidget->takeItem(0);
-    QListWidgetItem *item = new QListWidgetItem(hostname, messListWidget);
+    QListWidgetItem *global = ui->messListWidget->takeItem(0);
+    QListWidgetItem *item = new QListWidgetItem(hostname, ui->messListWidget);
 
     item->setData(Qt::UserRole, uuid);
-    messListWidget->addItem(item);
-    messListWidget->sortItems();
-    messListWidget->insertItem(0, global);
+    ui->messListWidget->addItem(item);
+    ui->messListWidget->sortItems();
+    ui->messListWidget->insertItem(0, global);
 
-    messListWidget->setUpdatesEnabled(true);
+    ui->messListWidget->setUpdatesEnabled(true);
 }
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
@@ -506,25 +309,25 @@ void PXMWindow::closeEvent(QCloseEvent *event)
     MessIniReader iniReader;
     qDebug() << "creating iniReader";
     iniReader.setWindowSize(this->size());
-    iniReader.setMute(muteCheckBox->isChecked());
-    iniReader.setFocus(focusCheckBox->isChecked());
+    iniReader.setMute(ui->muteCheckBox->isChecked());
+    iniReader.setFocus(ui->focusCheckBox->isChecked());
     qDebug() << "ini done";
 
-    qDebug() << "closeEvent calling event->accept()";
     debugWindow->hide();
+    qDebug() << "closeEvent calling event->accept()";
     event->accept();
 }
 int PXMWindow::sendButtonClicked()
 {
-    if(!messListWidget->currentItem())
+    if(!ui->messListWidget->currentItem())
     {
         return -1;
     }
-    QByteArray msg = messTextEdit->toPlainText().toUtf8();
+    QByteArray msg = ui->messTextEdit->toPlainText().toUtf8();
     if(!(msg.isEmpty()))
     {
-        int index = messListWidget->currentRow();
-        QUuid uuidOfSelectedItem = messListWidget->item(index)->data(Qt::UserRole).toString();
+        int index = ui->messListWidget->currentRow();
+        QUuid uuidOfSelectedItem = ui->messListWidget->item(index)->data(Qt::UserRole).toString();
 
         if(uuidOfSelectedItem.isNull())
             return -1;
@@ -537,7 +340,7 @@ int PXMWindow::sendButtonClicked()
         {
             emit sendMsg(msg, PXMConsts::MSG_TEXT, uuidOfSelectedItem);
         }
-        messTextEdit->setText("");
+        ui->messTextEdit->setText("");
     }
     else
     {
@@ -547,14 +350,14 @@ int PXMWindow::sendButtonClicked()
 }
 int PXMWindow::changeListItemColor(QUuid uuid, int style)
 {
-    for(int i = 0; i < messListWidget->count(); i++)
+    for(int i = 0; i < ui->messListWidget->count(); i++)
     {
-        if(messListWidget->item(i)->data(Qt::UserRole) == uuid)
+        if(ui->messListWidget->item(i)->data(Qt::UserRole) == uuid)
         {
             if(!style)
-                messListWidget->item(i)->setBackground(QGuiApplication::palette().base());
+                ui->messListWidget->item(i)->setBackground(QGuiApplication::palette().base());
             else
-                messListWidget->item(i)->setBackground(QBrush(QColor(Qt::red)));
+                ui->messListWidget->item(i)->setBackground(QBrush(QColor(Qt::red)));
             continue;
         }
     }
@@ -562,7 +365,7 @@ int PXMWindow::changeListItemColor(QUuid uuid, int style)
 }
 int PXMWindow::focusWindow()
 {
-    if(!(muteCheckBox->isChecked()))
+    if(!(ui->muteCheckBox->isChecked()))
         QSound::play(":/resources/resources/message.wav");
 
     if(!(this->isMinimized()) && (this->windowState() != Qt::WindowActive))
@@ -571,7 +374,7 @@ int PXMWindow::focusWindow()
     }
     else if(this->isMinimized())
     {
-        if(!this->focusCheckBox->isChecked())
+        if(!this->ui->focusCheckBox->isChecked())
         {
             this->setWindowState(Qt::WindowActive);
         }
@@ -586,9 +389,9 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
 {
     if(alert)
     {
-        if(messListWidget->currentItem())
+        if(ui->messListWidget->currentItem())
         {
-            if(messListWidget->currentItem()->data(Qt::UserRole) != uuid)
+            if(ui->messListWidget->currentItem()->data(Qt::UserRole) != uuid)
             {
                 changeListItemColor(uuid, 1);
             }
@@ -599,16 +402,16 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
         }
         this->focusWindow();
     }
-    if(!messListWidget->currentItem() || messListWidget->currentItem()->data(Qt::UserRole) != uuid)
+    if(!ui->messListWidget->currentItem() || ui->messListWidget->currentItem()->data(Qt::UserRole) != uuid)
     {
         return -1;
     }
 
-    messTextBrowser->setUpdatesEnabled(false);
-    messTextBrowser->append(str);
+    ui->messTextBrowser->setUpdatesEnabled(false);
+    ui->messTextBrowser->append(str);
     if(loadingLabel)
         loadingLabel->hide();
-    messTextBrowser->setUpdatesEnabled(true);
+    ui->messTextBrowser->setUpdatesEnabled(true);
 
     return 0;
 }

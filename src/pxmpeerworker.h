@@ -42,7 +42,12 @@ class PXMPeerWorker : public QObject
 {
     Q_OBJECT
 public:
-    explicit PXMPeerWorker(QObject *parent, initialSettings presets,
+    explicit PXMPeerWorker(QObject *parent,
+                           QString username,
+                           QUuid selfUUID,
+                           QString multicast,
+                           unsigned short tcpPort,
+                           unsigned short udpPort,
                            QUuid globaluuid);
     ~PXMPeerWorker();
     PXMPeerWorker(PXMPeerWorker const&) = delete;
@@ -54,11 +59,11 @@ public:
 private:
     QHash<QUuid,Peers::PeerData>peerDetailsHash;
     QString localHostname;
+    QUuid localUUID;
+    QString multicastAddress;
     unsigned short serverTCPPort;
     unsigned short serverUDPPort;
     QString libeventBackend;
-    QString multicastAddress;
-    QUuid localUUID;
     QUuid globalUUID;
     QTimer *syncTimer;
     QTimer *nextSyncTimer;
@@ -108,6 +113,7 @@ public slots:
     void multicastIsFunctional();
     void serverSetupFailure();
     void setLocalHostname(QString);
+    void sendUDPAccessor(const char* msg);
 private slots:
     void beginSync();
     void doneSync();

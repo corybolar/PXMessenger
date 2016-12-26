@@ -48,7 +48,9 @@ void PXMSettingsDialog::accept()
     iniReader.setHostname(this->lineEdit->text().simplified());
     if(hostname != this->lineEdit->text().simplified())
     {
-        emit nameChange(this->lineEdit->text().simplified());
+        char computerHostname[255] = {};
+        gethostname(computerHostname, sizeof(computerHostname));
+        emit nameChange(this->lineEdit->text().simplified() % "@" % QString::fromUtf8(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
     }
     iniReader.setPort("TCP", this->spinBox->value());
     iniReader.setPort("UDP", this->spinBox_2->value());

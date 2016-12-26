@@ -2,15 +2,14 @@
 #include <QDir>
 #include <QLockFile>
 #include <QFontDatabase>
-#include <QSharedPointer>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <QSplashScreen>
+#include <QElapsedTimer>
 
 #include "pxmmainwindow.h"
 #include "pxmdebugwindow.h"
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
+#include "pxmpeerworker.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -43,6 +42,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
 
     QByteArray localMsg;
     QString htmlMessage;
+
 #ifdef QT_DEBUG
     QString filename = QString::fromUtf8(context.file);
     filename = filename.right(filename.length() - filename.lastIndexOf(QChar('/')) - 1);
@@ -59,6 +59,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     localMsg = msg.toLocal8Bit();
     htmlMessage = msg.toLocal8Bit();
 #endif
+
     for(int i = 0; i < htmlMessage.length(); i++)
     {
         switch(htmlMessage.at(i).toLatin1())
@@ -127,6 +128,55 @@ char* getHostname()
 
     return localHostname;
 }
+QString setupHostname(int uuidNum, QString username)
+{
+    char computerHostname[256] = {};
+
+    gethostname(computerHostname, sizeof computerHostname);
+
+    if(uuidNum > 0)
+    {
+        char temp[3];
+        sprintf(temp, "%d", uuidNum);
+        username.append(QString::fromUtf8(temp));
+    }
+    username.append("@");
+    username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
+    return username;
+}
+int checkLockFile(bool allow, QString localHostname)
+{
+    if(allow)
+        return 0;
+    else
+    {
+        QString tmpDir = QDir::tempPath();
+        QLockFile lockFile(tmpDir + "/pxmessenger" + localHostname + ".lock");
+        if(!lockFile.tryLock(100))
+        {
+            QMessageBox msgBox;
+            msgBox.setIcon(QMessageBox::Warning);
+            msgBox.setText("You already have this app running."
+                           "\r\nOnly one instance is allowed.");
+            msgBox.exec();
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void connectPeerAndWindow(PXMPeerWorker* peerWorker, PXMWindow* window)
+{
+    QObject::connect(peerWorker, &PXMPeerWorker::printToTextBrowser, window, &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
+    QObject::connect(peerWorker, &PXMPeerWorker::setItalicsOnItem, window, &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
+    QObject::connect(peerWorker, &PXMPeerWorker::updateListWidget, window, &PXMWindow::updateListWidget, Qt::QueuedConnection);
+    QObject::connect(peerWorker, &PXMPeerWorker::warnBox, window, &PXMWindow::warnBox, Qt::AutoConnection);
+    QObject::connect(window, &PXMWindow::addMessageToPeer, peerWorker, &PXMPeerWorker::addMessageToPeer, Qt::QueuedConnection);
+    QObject::connect(window, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
+    QObject::connect(window, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDPAccessor, Qt::QueuedConnection);
+    QObject::connect(window, &PXMWindow::requestFullHistory, peerWorker, &PXMPeerWorker::printFullHistory, Qt::QueuedConnection);
+    QObject::connect(window->debugWindow->pushButton, &QAbstractButton::clicked, peerWorker, &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);
+}
 
 int main(int argc, char **argv)
 {
@@ -142,6 +192,15 @@ int main(int argc, char **argv)
 
     QApplication app (argc, argv);
 
+#ifndef QT_DEBUG
+    QPixmap splashImage(":/resources/resources/PXMessenger_wBackground.png");
+    splashImage = splashImage.scaledToHeight(300);
+    QSplashScreen splash(splashImage);
+    splash.show();
+    QElapsedTimer startupTimer;
+    startupTimer.start();
+    qApp->processEvents();
+#endif
 #ifdef _WIN32
     WSADATA wsa;
     if(WSAStartup(MAKEWORD(2,2), &wsa) != 0)
@@ -168,42 +227,41 @@ int main(int argc, char **argv)
 
     char* localHostname = getHostname();
 
-    QString tmpDir = QDir::tempPath();
-    QLockFile lockFile(tmpDir + "/pxmessenger" + QString::fromLatin1(localHostname) + ".lock");
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
-
-    if(allowMoreThanOne)
-    {
-        presets.uuidNum = iniReader.getUUIDNumber();
-    }
-    else
-    {
-        if(!lockFile.tryLock(100))
-        {
-            QMessageBox msgBox;
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.setText("You already have this app running."
-                           "\r\nOnly one instance is allowed.");
-            msgBox.exec();
-            return 1;
-        }
-    }
+    if(checkLockFile(allowMoreThanOne, QString::fromUtf8(localHostname)))
+        return -1;
 
     LoggerSingleton *logger = LoggerSingleton::getInstance();
     logger->setVerbosityLevel(iniReader.getVerbosity());
+    presets.uuidNum = iniReader.getUUIDNumber();
     presets.uuid = iniReader.getUUID(presets.uuidNum, allowMoreThanOne);
-    presets.username = iniReader.getHostname(QString::fromLatin1(localHostname));
+    presets.username = setupHostname(presets.uuidNum, QString::fromUtf8(localHostname).left(PXMConsts::MAX_HOSTNAME_LENGTH));
     presets.tcpPort = iniReader.getPort("TCP");
     presets.udpPort = iniReader.getPort("UDP");
     presets.windowSize = iniReader.getWindowSize(QSize(700, 500));
     presets.mute = iniReader.getMute();
     presets.preventFocus = iniReader.getFocus();
     presets.multicast = iniReader.getMulticastAddress();
+    QUuid globalChat = QUuid::createUuid();
 
     int result;
     {
-        PXMWindow window(presets);
+        QThread *workerThread = new QThread;
+        workerThread->setObjectName("WorkerThread");
+        PXMPeerWorker *pWorker = new PXMPeerWorker(nullptr, presets.username,
+                                                   presets.uuid, presets.multicast,
+                                                   presets.tcpPort, presets.udpPort,
+                                                   globalChat);
+        pWorker->moveToThread(workerThread);
+        QObject::connect(workerThread, &QThread::started, pWorker, &PXMPeerWorker::currentThreadInit);
+        //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
+        QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+        QObject::connect(workerThread, &QThread::finished, pWorker, &PXMPeerWorker::deleteLater);
+        PXMWindow *window = new PXMWindow(presets.username, presets.windowSize,
+                                          presets.mute, presets.preventFocus, globalChat);
+        connectPeerAndWindow(pWorker, window);
+        workerThread->start();
 
 #ifdef QT_DEBUG
         qInfo() << "Running in debug mode";
@@ -211,9 +269,31 @@ int main(int argc, char **argv)
         qInfo() << "Running in release mode";
 #endif
 
-        window.startThreadsAndShow();
+        qInfo() << "Our UUID:" << presets.uuid.toString();
+
+#ifndef QT_DEBUG
+        splash.finish(window);
+        while(startupTimer.elapsed() < 1500)
+        {
+            qApp->processEvents();
+            usleep(100.000);
+        }
+        qInfo() << "Startup Timer:" << startupTimer.elapsed();
+#endif
+        window->show();
 
         result = app.exec();
+
+        if(workerThread)
+        {
+            workerThread->quit();
+            workerThread->wait(3000);
+            qInfo() << "Shutdown of WorkerThread";
+            delete workerThread;
+        }
+
+        if(window)
+            delete window;
     }
 
     iniReader.resetUUID(presets.uuidNum, presets.uuid);
@@ -221,7 +301,7 @@ int main(int argc, char **argv)
 
     delete[] localHostname;
 
-    qDebug() << "Exiting PXMessenger";
+    qInfo() << "Exiting PXMessenger";
 
     return result;
 }
