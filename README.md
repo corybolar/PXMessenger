@@ -79,3 +79,5 @@ Windows executable and setup included in the releases section
 
 While this should theoretically work under Mac OSX, it has never been
 tested as I do not have access to a Mac.
+
+Artwork created by Scott Bolar.

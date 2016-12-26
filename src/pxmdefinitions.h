@@ -18,6 +18,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <ws2tcpip.h>
 Q_DECLARE_METATYPE(intptr_t)
 #else
 #include <arpa/inet.h>
