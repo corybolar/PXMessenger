@@ -102,7 +102,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     }
 }
 
-char* getHostname()
+char* getUsername()
 {
 #ifdef _WIN32
     size_t len = UNLEN+1;
@@ -225,18 +225,17 @@ int main(int argc, char **argv)
         app.setFont(font);
     }
 
-    char* localHostname = getHostname();
-
+    QString localHostname = iniReader.getHostname(QString::fromUtf8(getUsername()));
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
-    if(checkLockFile(allowMoreThanOne, QString::fromUtf8(localHostname)))
+    if(checkLockFile(allowMoreThanOne, localHostname))
         return -1;
 
     LoggerSingleton *logger = LoggerSingleton::getInstance();
     logger->setVerbosityLevel(iniReader.getVerbosity());
     presets.uuidNum = iniReader.getUUIDNumber();
     presets.uuid = iniReader.getUUID(presets.uuidNum, allowMoreThanOne);
-    presets.username = setupHostname(presets.uuidNum, QString::fromUtf8(localHostname).left(PXMConsts::MAX_HOSTNAME_LENGTH));
+    presets.username = setupHostname(presets.uuidNum, localHostname.left(PXMConsts::MAX_HOSTNAME_LENGTH));
     presets.tcpPort = iniReader.getPort("TCP");
     presets.udpPort = iniReader.getPort("UDP");
     presets.windowSize = iniReader.getWindowSize(QSize(700, 500));
@@ -256,7 +255,7 @@ int main(int argc, char **argv)
         pWorker->moveToThread(workerThread);
         QObject::connect(workerThread, &QThread::started, pWorker, &PXMPeerWorker::currentThreadInit);
         //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
-        QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+        //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
         QObject::connect(workerThread, &QThread::finished, pWorker, &PXMPeerWorker::deleteLater);
         PXMWindow *window = new PXMWindow(presets.username, presets.windowSize,
                                           presets.mute, presets.preventFocus, globalChat);
@@ -298,8 +297,6 @@ int main(int argc, char **argv)
 
     iniReader.resetUUID(presets.uuidNum, presets.uuid);
     iniReader.setVerbosity(logger->getVerbosityLevel());
-
-    delete[] localHostname;
 
     qInfo() << "Exiting PXMessenger";
 

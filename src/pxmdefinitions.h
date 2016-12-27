@@ -13,6 +13,7 @@
 #include <QMutex>
 #include <QDebug>
 #include <QSharedPointer>
+#include <QDataStream>
 
 #include "uuidcompression.h"
 
@@ -68,56 +69,22 @@ class BevWrapper {
 public:
     BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
     BevWrapper() : bev(nullptr), locker(new QMutex) {}
-    ~BevWrapper()
-    {
-        if(locker)
-        {
-            locker->tryLock(500);
-            if(bev)
-            {
-                bufferevent_free(bev);
-                bev = nullptr;
-            }
-            locker->unlock();
-            delete locker;
-            locker = nullptr;
-        }
-        else if(bev)
-        {
-            bufferevent_free(bev);
-            bev = nullptr;
-        }
-    }
+    ~BevWrapper();
     BevWrapper(const BevWrapper& b) : bev(b.bev), locker(b.locker) {}
     BevWrapper(BevWrapper&& b) noexcept : bev(b.bev), locker(b.locker)
     {
         b.bev = nullptr;
         b.locker = nullptr;
     }
-    BevWrapper& operator =(BevWrapper&& b) noexcept
-    {
-        if(this != &b)
-        {
-            bev = b.bev;
-            locker = b.locker;
-            b.bev = nullptr;
-            b.locker = nullptr;
-        }
-        return *this;
-    }
-    bool operator ==(const BevWrapper& b)
-    {
-        return bev == b.bev;
-    }
-    bool operator !=(const BevWrapper &b)
-    {
-        return bev == b.bev;
-    }
+    BevWrapper &operator =(BevWrapper&& b) noexcept;
+    bool operator ==(const BevWrapper& b) {return bev == b.bev;}
+    bool operator !=(const BevWrapper& b) {return !(bev == b.bev);}
 
     void setBev(bufferevent *buf) {bev = buf;}
     bufferevent* getBev() {return bev;}
     void lockBev() {locker->lock();}
     void unlockBev() {locker->unlock();}
+    int freeBev();
 
 private:
     bufferevent *bev;
@@ -141,31 +108,31 @@ struct PeerData{
             isAuthenticated(false) {}
 
     //Copy
-    PeerData (const Peers::PeerData& p) : identifier(p.identifier),
-            ipAddressRaw(p.ipAddressRaw), hostname(p.hostname),
-            messages(p.messages), bw(p.bw), socket(p.socket),
-            connectTo(p.connectTo), isAuthenticated(p.isAuthenticated) {}
+    PeerData (const PeerData& pd) : identifier(pd.identifier),
+            ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
+            messages(pd.messages), bw(pd.bw), socket(pd.socket),
+            connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated) {}
 
     //Move
-    PeerData (Peers::PeerData&& p) noexcept : identifier(p.identifier),
-            ipAddressRaw(p.ipAddressRaw), hostname(p.hostname),
-            messages(p.messages), bw(p.bw), socket(p.socket),
-            connectTo(p.connectTo), isAuthenticated(p.isAuthenticated)
+    PeerData (PeerData&& pd) noexcept : identifier(pd.identifier),
+            ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
+            messages(pd.messages), bw(pd.bw), socket(pd.socket),
+            connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated)
     {
-        p.bw.clear();
+        pd.bw.clear();
     }
 
     //Destructor
     ~PeerData() noexcept {}
 
     //Move assignment
-    PeerData& operator= (Peers::PeerData&& p) noexcept;
+    PeerData& operator= (PeerData&& pd) noexcept;
 
     //Copy assignment
-    PeerData& operator= (const Peers::PeerData& p);
+    PeerData& operator= (const PeerData& pd);
 
     //Return data of this struct as a string padded with the value in 'pad'
-    QString toString();
+    QString toInfoString();
 };
 
 }
@@ -189,7 +156,7 @@ struct initialSettings{
         mute = false;
         preventFocus = false;
         username = QString();
-        windowSize = QSize(700,500);
+        windowSize = QSize(800,600);
         uuid = QUuid();
         multicast = QString(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
     }

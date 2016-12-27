@@ -559,7 +559,7 @@ void PXMPeerWorker::printInfoToDebug()
     int peerCount = 0;
     for(auto &itr : peerDetailsHash)
     {
-        str.append(QStringLiteral("---Peer #") % QString::number(peerCount) % QStringLiteral("---\n") % itr.toString());
+        str.append(QStringLiteral("---Peer #") % QString::number(peerCount) % QStringLiteral("---\n") % itr.toInfoString());
         peerCount++;
     }
 

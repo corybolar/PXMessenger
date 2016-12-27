@@ -77,4 +77,5 @@ UI_DIR = ../build-unix/ui
 
 FORMS += \
     pxmmainwindow.ui \
-    aboutdialog.ui
+    pxmaboutdialog.ui \
+    pxmsettingsdialog.ui

@@ -25,7 +25,7 @@ PeerData& PeerData::operator=(const PeerData &p)
     return *this;
 }
 
-QString PeerData::toString()
+QString PeerData::toInfoString()
 {
     return QString(QStringLiteral("Hostname: ") % hostname % QStringLiteral("\n")
                    % QStringLiteral("UUID: ") % identifier.toString() % QStringLiteral("\n")
@@ -36,4 +36,51 @@ QString PeerData::toString()
                    % QStringLiteral("SocketDescriptor: ") % QString::number(socket) % QStringLiteral("\n")
                    % QStringLiteral("History Length: ") % QString::number(messages.count()) % QStringLiteral("\n")
                    % QStringLiteral("Bufferevent: ") % (bw->getBev() ? QString::asprintf("%8p",bw->getBev()) : QStringLiteral("NULL")) % QStringLiteral("\n"));
+}
+
+BevWrapper::~BevWrapper()
+{
+    if(locker)
+    {
+        locker->tryLock(500);
+        if(bev)
+        {
+            bufferevent_free(bev);
+            bev = nullptr;
+        }
+        locker->unlock();
+        delete locker;
+        locker = nullptr;
+    }
+    else if(bev)
+    {
+        bufferevent_free(bev);
+        bev = nullptr;
+    }
+}
+
+BevWrapper &BevWrapper::operator =(BevWrapper &&b) noexcept
+{
+    if(this != &b)
+    {
+        bev = b.bev;
+        locker = b.locker;
+        b.bev = nullptr;
+        b.locker = nullptr;
+    }
+    return *this;
+}
+
+int BevWrapper::freeBev()
+{
+    if(bev)
+    {
+        lockBev();
+        bufferevent_free(bev);
+        bev = nullptr;
+        unlockBev();
+        return 0;
+    }
+    else
+        return -1;
 }

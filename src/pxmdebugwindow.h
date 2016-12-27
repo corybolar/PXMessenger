@@ -13,7 +13,7 @@
 #include <QStringBuilder>
 
 namespace DebugMessageColors{
-const QString debugHtml = "";
+const QString debugHtml = "<font color=\"Orange\">";
 const QString infoHtml = "";
 const QString criticalHtml = "<font color=\"Red\">";
 const QString warningHtml = "<font color=\"Red\">";

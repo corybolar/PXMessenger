@@ -24,6 +24,7 @@
 #include "pxmsettingsdialog.h"
 #include "pxmdebugwindow.h"
 #include "pxmtextbrowser.h"
+#include "ui_pxmaboutdialog.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -34,6 +35,7 @@
 
 namespace Ui {
 class PXMWindow;
+class PXMAboutDialog;
 }
 
 class PXMWindow : public QMainWindow
@@ -189,6 +191,35 @@ signals:
     void retryDiscover();
     void addMessageToPeer(QString, QUuid, bool, bool);
     void requestFullHistory(QUuid);
+};
+class PXMAboutDialog : public QDialog
+{
+    Q_OBJECT
+
+    Ui::PXMAboutDialog *ui;
+    QIcon icon;
+public:
+    PXMAboutDialog(QWidget *parent = 0, QIcon icon = QIcon()) : QDialog(parent), ui(new Ui::PXMAboutDialog), icon(icon)
+    {
+        ui->setupUi(this);
+        ui->label_2->setPixmap(icon.pixmap(QSize(64,64)));
+        ui->label->setText("<br><center>PXMessenger v"
+                           + qApp->applicationVersion() +
+                           "</center>"
+                           "<br>"
+                           "<center>Author: Cory Bolar</center>"
+                           "<br>"
+                           "<center>"
+                           "<a href=\"https://github.com/cbpeckles/PXMessenger\">"
+                           "https://github.com/cbpeckles/PXMessenger</a>"
+                           "</center>"
+                           "<br><br><br><br>");
+        this->setAttribute(Qt::WA_DeleteOnClose, true);
+    }
+    ~PXMAboutDialog()
+    {
+        delete ui;
+    }
 };
 
 #endif

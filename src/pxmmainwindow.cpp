@@ -1,11 +1,10 @@
 #include <pxmmainwindow.h>
 #include "ui_pxmmainwindow.h"
+#include "ui_pxmaboutdialog.h"
 
 PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat) :
-    ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
+    debugWindow(new PXMDebugWindow()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
 {
-    debugWindow = new PXMDebugWindow();
-
     setupGui();
 
     ui->focusCheckBox->setChecked(focus);
@@ -128,25 +127,17 @@ void PXMWindow::connectGuiSignalsAndSlots()
 }
 void PXMWindow::aboutActionSlot()
 {
-    QMessageBox::about(this, "About", "<br><center>PXMessenger v"
-                                      + qApp->applicationVersion() +
-                                      "</center>"
-                                      "<br>"
-                                      "<center>Author: Cory Bolar</center>"
-                                      "<br>"
-                                      "<center>"
-                                      "<a href=\"https://github.com/cbpeckles/PXMessenger\">"
-                                      "https://github.com/cbpeckles/PXMessenger</a>"
-                                      "</center>"
-                                      "<br>");
-}
+    PXMAboutDialog *about = new PXMAboutDialog(this, QIcon(":/resources/resources/PXM_Icon.ico"));
+    QObject::connect(about, &PXMAboutDialog::finished, about, &PXMAboutDialog::deleteLater);
+    about->open();
+ }
 void PXMWindow::settingsActionsSlot()
 {
     PXMSettingsDialog *setD = new PXMSettingsDialog(this);
     QObject::connect(setD, &PXMSettingsDialog::nameChange, this, &PXMWindow::nameChange);
     setD->setupUi();
     setD->readIni();
-    setD->exec();
+    setD->open();
 }
 
 void PXMWindow::nameChange(QString hname)
@@ -159,6 +150,7 @@ void PXMWindow::nameChange(QString hname)
 void PXMWindow::bloomActionsSlot()
 {
     QMessageBox box;
+    box.setWindowTitle("Bloom");
     box.setText("This will resend our initial discovery "
                 "packet to the multicast group.  If we "
                 "have only found ourselves this is happening "
@@ -225,23 +217,27 @@ void PXMWindow::showWindow(QSystemTrayIcon::ActivationReason reason)
 {
     if( ( ( reason == QSystemTrayIcon::DoubleClick ) || ( reason == QSystemTrayIcon::Trigger ) ) )
     {
-        this->setWindowState(Qt::WindowMaximized);
         this->show();
+        this->raise();
+        this->setFocus();
         this->setWindowState(Qt::WindowActive);
     }
     return;
 }
 void PXMWindow::changeEvent(QEvent *event)
 {
-    if(event->type() == QEvent::WindowStateChange)
+    switch(event->type())
     {
+    case QEvent::WindowStateChange:
         if(this->isMinimized())
         {
             this->hide();
-            event->ignore();
         }
+        break;
+    default:
+        break;
     }
-    QWidget::changeEvent(event);
+    QMainWindow::changeEvent(event);
 }
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
@@ -377,6 +373,7 @@ int PXMWindow::focusWindow()
         if(!this->ui->focusCheckBox->isChecked())
         {
             this->setWindowState(Qt::WindowActive);
+            this->setFocus();
         }
         else
             this->setWindowState(Qt::WindowNoState);
@@ -409,9 +406,9 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
 
     ui->messTextBrowser->setUpdatesEnabled(false);
     ui->messTextBrowser->append(str);
+    ui->messTextBrowser->setUpdatesEnabled(true);
     if(loadingLabel)
         loadingLabel->hide();
-    ui->messTextBrowser->setUpdatesEnabled(true);
 
     return 0;
 }
