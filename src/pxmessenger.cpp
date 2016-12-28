@@ -41,7 +41,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     }
 
     QByteArray localMsg;
-    QString htmlMessage;
+    QByteArray htmlMessage;
 
 #ifdef QT_DEBUG
     QString filename = QString::fromUtf8(context.file);
@@ -62,7 +62,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
 
     for(int i = 0; i < htmlMessage.length(); i++)
     {
-        switch(htmlMessage.at(i).toLatin1())
+        switch(htmlMessage.at(i))
         {
         case '\n':
             htmlMessage.replace(i, 1, "<br>");
@@ -76,15 +76,15 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     }
     switch(type) {
     case QtDebugMsg:
-        fprintf(stderr, "%s\n", localMsg.constData());
-        htmlMessage = debugHtml % htmlMessage % endHtml;
+        fprintf(stderr, "DEBUG:    %s\n", localMsg.constData());
+        htmlMessage = debugHtml + htmlMessage + endHtml;
         break;
     case QtWarningMsg:
-        fprintf(stderr, "%s\n", localMsg.constData());
+        fprintf(stderr, "WARNING:  %s\n", localMsg.constData());
         htmlMessage = warningHtml % htmlMessage % endHtml;
         break;
     case QtCriticalMsg:
-        fprintf(stderr, "%s\n", localMsg.constData());
+        fprintf(stderr, "CRITICAL: %s\n", localMsg.constData());
         htmlMessage = criticalHtml % htmlMessage % endHtml;
         break;
     case QtFatalMsg:
@@ -92,11 +92,11 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         abort();
         break;
     case QtInfoMsg:
-        fprintf(stderr, "%s\n", localMsg.constData());
+        fprintf(stderr, "INFO:     %s\n", localMsg.constData());
         htmlMessage = htmlMessage % endHtml;
         break;
     }
-    if(PXMDebugWindow::textEdit != 0)
+    if(PXMDebugWindow::textEdit)
     {
         qApp->postEvent(logger, new AppendTextEvent(htmlMessage), Qt::LowEventPriority);
     }
@@ -143,26 +143,6 @@ QString setupHostname(int uuidNum, QString username)
     username.append("@");
     username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
     return username;
-}
-int checkLockFile(bool allow, QString localHostname)
-{
-    if(allow)
-        return 0;
-    else
-    {
-        QString tmpDir = QDir::tempPath();
-        QLockFile lockFile(tmpDir + "/pxmessenger" + localHostname + ".lock");
-        if(!lockFile.tryLock(100))
-        {
-            QMessageBox msgBox;
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.setText("You already have this app running."
-                           "\r\nOnly one instance is allowed.");
-            msgBox.exec();
-            return 1;
-        }
-    }
-    return 0;
 }
 
 void connectPeerAndWindow(PXMPeerWorker* peerWorker, PXMWindow* window)
@@ -213,23 +193,28 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.3.1");
+    QApplication::setApplicationVersion("1.3.2");
 
     MessIniReader iniReader;
     initialSettings presets;
 
-    QFont font;
-    if(!(iniReader.getFont().isEmpty()))
-    {
-        font.fromString(iniReader.getFont());
-        app.setFont(font);
-    }
-
     QString localHostname = iniReader.getHostname(QString::fromUtf8(getUsername()));
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
-    if(checkLockFile(allowMoreThanOne, localHostname))
-        return -1;
+    if(!allowMoreThanOne)
+    {
+        QString tmpDir = QDir::tempPath();
+        QLockFile lockFile(tmpDir + "/pxmessenger" + localHostname + ".lock");
+        if(!lockFile.tryLock(100))
+        {
+            QMessageBox msgBox;
+            msgBox.setIcon(QMessageBox::Warning);
+            msgBox.setText("You already have this app running."
+                           "\r\nOnly one instance is allowed.");
+            msgBox.exec();
+            return 1;
+        }
+    }
 
     LoggerSingleton *logger = LoggerSingleton::getInstance();
     logger->setVerbosityLevel(iniReader.getVerbosity());
@@ -243,57 +228,60 @@ int main(int argc, char **argv)
     presets.preventFocus = iniReader.getFocus();
     presets.multicast = iniReader.getMulticastAddress();
     QUuid globalChat = QUuid::createUuid();
-
-    int result;
+    if(!(iniReader.getFont().isEmpty()))
     {
-        QThread *workerThread = new QThread;
-        workerThread->setObjectName("WorkerThread");
-        PXMPeerWorker *pWorker = new PXMPeerWorker(nullptr, presets.username,
-                                                   presets.uuid, presets.multicast,
-                                                   presets.tcpPort, presets.udpPort,
-                                                   globalChat);
-        pWorker->moveToThread(workerThread);
-        QObject::connect(workerThread, &QThread::started, pWorker, &PXMPeerWorker::currentThreadInit);
-        //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
-        //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
-        QObject::connect(workerThread, &QThread::finished, pWorker, &PXMPeerWorker::deleteLater);
-        PXMWindow *window = new PXMWindow(presets.username, presets.windowSize,
-                                          presets.mute, presets.preventFocus, globalChat);
-        connectPeerAndWindow(pWorker, window);
-        workerThread->start();
+        QFont font;
+        font.fromString(iniReader.getFont());
+        app.setFont(font);
+    }
+
+    QThread *workerThread = new QThread;
+    workerThread->setObjectName("WorkerThread");
+    PXMPeerWorker *pWorker = new PXMPeerWorker(nullptr, presets.username,
+                                               presets.uuid, presets.multicast,
+                                               presets.tcpPort, presets.udpPort,
+                                               globalChat);
+    pWorker->moveToThread(workerThread);
+    QObject::connect(workerThread, &QThread::started, pWorker, &PXMPeerWorker::currentThreadInit);
+    //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
+    //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
+    QObject::connect(workerThread, &QThread::finished, pWorker, &PXMPeerWorker::deleteLater);
+    PXMWindow *window = new PXMWindow(presets.username, presets.windowSize,
+                                      presets.mute, presets.preventFocus, globalChat);
+    connectPeerAndWindow(pWorker, window);
+    workerThread->start();
 
 #ifdef QT_DEBUG
-        qInfo() << "Running in debug mode";
+    qInfo() << "Running in debug mode";
 #else
-        qInfo() << "Running in release mode";
+    qInfo() << "Running in release mode";
 #endif
 
-        qInfo() << "Our UUID:" << presets.uuid.toString();
+    qInfo() << "Our UUID:" << presets.uuid.toString();
 
 #ifndef QT_DEBUG
-        splash.finish(window);
-        while(startupTimer.elapsed() < 1500)
-        {
-            qApp->processEvents();
-            usleep(100.000);
-        }
-        qInfo() << "Startup Timer:" << startupTimer.elapsed();
-#endif
-        window->show();
-
-        result = app.exec();
-
-        if(workerThread)
-        {
-            workerThread->quit();
-            workerThread->wait(3000);
-            qInfo() << "Shutdown of WorkerThread";
-            delete workerThread;
-        }
-
-        if(window)
-            delete window;
+    splash.finish(window);
+    while(startupTimer.elapsed() < 1500)
+    {
+        qApp->processEvents();
+        usleep(100.000);
     }
+    qDebug() << "Startup Timer:" << startupTimer.elapsed();
+#endif
+    window->show();
+
+    int result = app.exec();
+
+    if(workerThread)
+    {
+        workerThread->quit();
+        workerThread->wait(3000);
+        qInfo() << "Shutdown of WorkerThread";
+        delete workerThread;
+    }
+
+    if(window)
+        delete window;
 
     iniReader.resetUUID(presets.uuidNum, presets.uuid);
     iniReader.setVerbosity(logger->getVerbosityLevel());

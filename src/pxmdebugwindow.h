@@ -13,11 +13,11 @@
 #include <QStringBuilder>
 
 namespace DebugMessageColors{
-const QString debugHtml = "<font color=\"Orange\">";
-const QString infoHtml = "";
-const QString criticalHtml = "<font color=\"Red\">";
-const QString warningHtml = "<font color=\"Red\">";
-const QString endHtml = "</font><br>";
+const QByteArray debugHtml = "<font color=\"Orange\">";
+const QByteArray infoHtml = "";
+const QByteArray criticalHtml = "<font color=\"Red\">";
+const QByteArray warningHtml = "<font color=\"Red\">";
+const QByteArray endHtml = "</font><br>";
 }
 
 const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;

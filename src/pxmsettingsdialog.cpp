@@ -30,11 +30,14 @@ void PXMSettingsDialog::clickedme(QAbstractButton *button)
     {
         QMessageBox::information(this, "Help", "Changes to these settings should not be needed under normal conditions.\n\n"
                                                "Care should be taken in adjusting them as they can prevent PXMessenger from functioning properly.\n\n"
-                                               "Allowing more than on instance lets the program be run multiple times under the same user.\n(Default:false)\n\n"
+                                               "Allowing more than one instance lets the program be run multiple times under the same user.\n(Default:false)\n\n"
                                                "Hostname will only change the first half of your hostname, the computer name will remain.\n(Default:Your Username)\n\n"
                                                "The listener port should be changed only if needed to bypass firewall restrictions. 0 is Auto.\n(Default:0)\n\n"
                                                "The discover port must be the same for all computers that wish to communicate together. 0 is " +
                                                 QString::number(PXMConsts::DEFAULT_UDP_PORT) + ".\n(Default:0)\n\n"
+                                               "Debug Verbosity will increase the number of message printed to both the debugging window\n"
+                                               "and stdout.  0 hides warnings and debug messages, 1 only hides debug messages, 0 shows all\n"
+                                               "(Default:0)\n\n"
                                                "More information can be found at https://github.com/cbpeckles/PXMessenger.");
     }
 }
