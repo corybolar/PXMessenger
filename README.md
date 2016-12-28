@@ -1,4 +1,4 @@
-# PXMessenger
+![alt tag] (https://github.com/cbpeckles/PXMessenger/raw/master/src/resources/PXMessenger_TightCrop_100px.png)
 
 ###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
 -------------
