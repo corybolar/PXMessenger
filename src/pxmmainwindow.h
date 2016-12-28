@@ -21,10 +21,10 @@
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
 #include "pxmpeerworker.h"
-#include "pxmsettingsdialog.h"
-#include "pxmdebugwindow.h"
+#include "pxmconsolewindow.h"
 #include "pxmtextbrowser.h"
 #include "ui_pxmaboutdialog.h"
+#include "ui_pxmsettingsdialog.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -36,6 +36,7 @@
 namespace Ui {
 class PXMWindow;
 class PXMAboutDialog;
+class PXMSettingsDialog;
 }
 
 class PXMWindow : public QMainWindow
@@ -49,7 +50,7 @@ public:
     PXMWindow& operator=(PXMWindow const&) = delete;
     PXMWindow& operator=(PXMWindow&&) noexcept = delete;
     PXMWindow(PXMWindow&&) noexcept = delete;
-    PXMDebugWindow *debugWindow = nullptr;
+    PXMConsole::PXMConsoleWindow *debugWindow = nullptr;
 public slots:
     void bloomActionsSlot();
     void resizeLabel(QRect size);
@@ -220,6 +221,28 @@ public:
     {
         delete ui;
     }
+};
+class PXMSettingsDialog : public QDialog
+{
+    Q_OBJECT
+
+    bool AllowMoreThanOneInstance;
+    QString hostname;
+    int tcpPort;
+    int udpPort;
+    QFont iniFont;
+    int fontSize;
+    Ui::PXMSettingsDialog *ui;
+public:
+    PXMSettingsDialog(QWidget *parent = 0);
+    void readIni();
+private slots:
+    void clickedme(QAbstractButton *button);
+    void accept();
+    void currentFontChanged(QFont font);
+    void valueChanged(int size);
+signals:
+    void nameChange(QString);
 };
 
 #endif

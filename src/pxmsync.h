@@ -2,7 +2,7 @@
 #define PXMSYNC_H
 
 #include <QWidget>
-#include <QMap>
+#include <QHash>
 #include <QUuid>
 #include <QSharedPointer>
 

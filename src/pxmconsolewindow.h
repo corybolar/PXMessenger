@@ -1,5 +1,5 @@
-#ifndef PXMDEBUGWINDOW_H
-#define PXMDEBUGWINDOW_H
+#ifndef PXMCONSOLEWINDOW_H
+#define PXMCONSOLEWINDOW_H
 
 #include <QWidget>
 #include <QMainWindow>
@@ -12,22 +12,20 @@
 #include <QDialog>
 #include <QStringBuilder>
 
-namespace DebugMessageColors{
-const QByteArray debugHtml = "<font color=\"Orange\">";
+namespace PXMConsole {
+const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
+const QByteArray debugHtml = "<font color=\"Grey\">";
 const QByteArray infoHtml = "";
 const QByteArray criticalHtml = "<font color=\"Red\">";
-const QByteArray warningHtml = "<font color=\"Red\">";
+const QByteArray warningHtml = "<font color=\"Orange\">";
 const QByteArray endHtml = "</font><br>";
-}
 
-const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
-
-class PXMDebugWindow : public QMainWindow
+class PXMConsoleWindow : public QMainWindow
 {
     Q_OBJECT
     bool atMaximum = false;
 public:
-    explicit PXMDebugWindow(QWidget *parent = 0);
+    explicit PXMConsoleWindow(QWidget *parent = 0);
     QWidget *centralwidget;
     QGridLayout *gridLayout;
     QGridLayout *gridLayout_2;
@@ -92,5 +90,7 @@ protected:
             QObject::customEvent(event);
     }
 };
+}
 
-#endif // PXMDEBUGWINDOW_H
+
+#endif // PXMCONSOLEWINDOW_H

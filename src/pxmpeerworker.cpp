@@ -239,7 +239,7 @@ void PXMPeerWorker::peerNameChange(QString hname, QUuid uuid)
 }
 void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent *bev)
 {
-    for(auto &itr : peerDetailsHash)
+    for(Peers::PeerData &itr : peerDetailsHash)
     {
         if(itr.bw->getBev() == bev)
         {
@@ -280,7 +280,7 @@ void PXMPeerWorker::sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid u
     qInfo() << "Sending ips to" << peerDetailsHash.value(uuid).hostname;
     char *msgRaw = new char[peerDetailsHash.size() * (sizeof(uint32_t) + sizeof(uint16_t) + UUIDCompression::PACKED_UUID_LENGTH) + 1];
     size_t index = 0;
-    for(auto & itr : peerDetailsHash)
+    for(Peers::PeerData &itr : peerDetailsHash)
     {
         if(itr.isAuthenticated)
         {
@@ -304,7 +304,7 @@ void PXMPeerWorker::sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid u
 void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent *bev)
 {
     QUuid uuid = QUuid();
-    for(auto &itr : peerDetailsHash)
+    for(Peers::PeerData &itr : peerDetailsHash)
     {
         if(itr.bw->getBev() == bev)
         {
@@ -523,7 +523,7 @@ void PXMPeerWorker::printFullHistory(QUuid uuid)
 {
     QString str = QString();
 
-    for(auto &itr : peerDetailsHash.value(uuid).messages)
+    for(QString* const &itr : peerDetailsHash.value(uuid).messages)
     {
         str.append(*itr % QStringLiteral("\n"));
     }
@@ -557,7 +557,7 @@ void PXMPeerWorker::printInfoToDebug()
                % QStringLiteral("---Peer Details---\n"));
 
     int peerCount = 0;
-    for(auto &itr : peerDetailsHash)
+    for(Peers::PeerData &itr : peerDetailsHash)
     {
         str.append(QStringLiteral("---Peer #") % QString::number(peerCount) % QStringLiteral("---\n") % itr.toInfoString());
         peerCount++;

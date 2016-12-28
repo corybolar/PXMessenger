@@ -33,26 +33,25 @@ SOURCES += \
     pxmserver.cpp \
     pxmmainwindow.cpp \
     pxmessenger.cpp \
-    pxmdebugwindow.cpp \
     pxmsettingsdialog.cpp \
     pxmtextbrowser.cpp \
     uuidcompression.cpp \
-    pxmdefinitions.cpp
+    pxmdefinitions.cpp \
+    pxmconsolewindow.cpp
 
 HEADERS += \
     pxmdefinitions.h \
     pxmpeerworker.h \
-    pxmsettingsdialog.h \
     pxmmainwindow.h \
     pxmsync.h \
     pxminireader.h \
     pxmtextedit.h \
     pxmserver.h \
     pxmclient.h \
-    pxmdebugwindow.h \
     pxmtextbrowser.h \
     uuidcompression.h \
-    timedvector.h
+    timedvector.h \
+    pxmconsolewindow.h
 
 DISTFILES +=
 

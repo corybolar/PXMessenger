@@ -6,17 +6,9 @@
 #include <QUuid>
 #include <QDebug>
 
-//TEMP
-#include <QMessageBox>
-
-#include <ctime>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <assert.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -36,7 +28,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/select.h>
-#include <ctime>
 #include <fcntl.h>
 #endif
 

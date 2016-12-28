@@ -103,7 +103,8 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
     qDebug().noquote() << QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)]);
-    if(*(MESSAGE_TYPE*)&buf[0] == MSG_AUTH)
+    MESSAGE_TYPE *type = (MESSAGE_TYPE*)&buf[0];
+    if(*type == MSG_AUTH)
     {
         bufLen -= sizeof(MESSAGE_TYPE);
         QStringList hpsplit = (QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(PORT_SEPERATOR);
@@ -560,7 +561,7 @@ void ServerThread::run()
     failureCodes = event_base_dispatch(ServerThread::base);
     if(failureCodes < 0)
     {
-        qDebug() << "event_base_dispatch shutdown with error";
+        qWarning() << "event_base_dispatch shutdown with error";
     }
 
     qDebug() << "Freeing events...";

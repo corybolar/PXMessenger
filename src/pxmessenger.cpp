@@ -6,26 +6,28 @@
 #include <QElapsedTimer>
 
 #include "pxmmainwindow.h"
-#include "pxmdebugwindow.h"
+#include "pxmconsolewindow.h"
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
 #include "pxmpeerworker.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#else
+#include <pwd.h>
 #endif
 
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 
-int AppendTextEvent::type = QEvent::registerEventType();
-LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
-int LoggerSingleton::verbosityLevel = 0;
+int PXMConsole::AppendTextEvent::type = QEvent::registerEventType();
+PXMConsole::LoggerSingleton* PXMConsole::LoggerSingleton::loggerInstance = nullptr;
+int PXMConsole::LoggerSingleton::verbosityLevel = 0;
 
 void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    using namespace DebugMessageColors;
+    using namespace PXMConsole;
     LoggerSingleton *logger = LoggerSingleton::getInstance();
 
     switch (logger->getVerbosityLevel()) {
@@ -40,10 +42,12 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         break;
     }
 
-    QByteArray localMsg;
-    QByteArray htmlMessage;
+    QByteArray localMsg = QByteArray();
+    QByteArray htmlMessage = QByteArray();
 
 #ifdef QT_DEBUG
+    localMsg.reserve(128);
+    htmlMessage.reserve(128);
     QString filename = QString::fromUtf8(context.file);
     filename = filename.right(filename.length() - filename.lastIndexOf(QChar('/')) - 1);
     filename.append(":" + QByteArray::number(context.line));
@@ -77,15 +81,18 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     switch(type) {
     case QtDebugMsg:
         fprintf(stderr, "DEBUG:    %s\n", localMsg.constData());
-        htmlMessage = debugHtml + htmlMessage + endHtml;
+        htmlMessage.prepend(debugHtml);
+        htmlMessage.append(endHtml);
         break;
     case QtWarningMsg:
         fprintf(stderr, "WARNING:  %s\n", localMsg.constData());
-        htmlMessage = warningHtml % htmlMessage % endHtml;
+        htmlMessage.prepend(warningHtml);
+        htmlMessage.append(endHtml);
         break;
     case QtCriticalMsg:
         fprintf(stderr, "CRITICAL: %s\n", localMsg.constData());
-        htmlMessage = criticalHtml % htmlMessage % endHtml;
+        htmlMessage.prepend(criticalHtml);
+        htmlMessage.append(endHtml);
         break;
     case QtFatalMsg:
         fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
@@ -93,10 +100,11 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         break;
     case QtInfoMsg:
         fprintf(stderr, "INFO:     %s\n", localMsg.constData());
-        htmlMessage = htmlMessage % endHtml;
+        htmlMessage.prepend(infoHtml);
+        htmlMessage.append(endHtml);
         break;
     }
-    if(PXMDebugWindow::textEdit)
+    if(PXMConsoleWindow::textEdit)
     {
         qApp->postEvent(logger, new AppendTextEvent(htmlMessage), Qt::LowEventPriority);
     }
@@ -216,7 +224,7 @@ int main(int argc, char **argv)
         }
     }
 
-    LoggerSingleton *logger = LoggerSingleton::getInstance();
+    PXMConsole::LoggerSingleton *logger = PXMConsole::LoggerSingleton::getInstance();
     logger->setVerbosityLevel(iniReader.getVerbosity());
     presets.uuidNum = iniReader.getUUIDNumber();
     presets.uuid = iniReader.getUUID(presets.uuidNum, allowMoreThanOne);
@@ -243,8 +251,6 @@ int main(int argc, char **argv)
                                                globalChat);
     pWorker->moveToThread(workerThread);
     QObject::connect(workerThread, &QThread::started, pWorker, &PXMPeerWorker::currentThreadInit);
-    //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::quit);
-    //QObject::connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
     QObject::connect(workerThread, &QThread::finished, pWorker, &PXMPeerWorker::deleteLater);
     PXMWindow *window = new PXMWindow(presets.username, presets.windowSize,
                                       presets.mute, presets.preventFocus, globalChat);

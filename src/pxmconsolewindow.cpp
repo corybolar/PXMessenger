@@ -1,7 +1,9 @@
-#include "pxmdebugwindow.h"
+#include "pxmconsolewindow.h"
 
-QTextEdit * PXMDebugWindow::textEdit = 0;
-PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
+using namespace PXMConsole;
+
+QTextEdit * PXMConsoleWindow::textEdit = 0;
+PXMConsoleWindow::PXMConsoleWindow(QWidget *parent) : QMainWindow(parent)
 {
     this->setObjectName("Debug Console");
     this->setWindowTitle("Debug Console");
@@ -25,24 +27,24 @@ PXMDebugWindow::PXMDebugWindow(QWidget *parent) : QMainWindow(parent)
 
     gridLayout_2->addLayout(gridLayout, 0, 0, 1, 1);
 
-    sb = PXMDebugWindow::textEdit->verticalScrollBar();
+    sb = PXMConsoleWindow::textEdit->verticalScrollBar();
     sb->setTracking(true);
 
     this->setCentralWidget(centralwidget);
     this->resize(1000, 300);
     sb->setValue(sb->maximum());
     this->atMaximum = true;
-    QObject::connect(sb, &QAbstractSlider::valueChanged, this, &PXMDebugWindow::adjustScrollBar);
-    QObject::connect(sb, &QAbstractSlider::rangeChanged, this, &PXMDebugWindow::rangeChanged);
+    QObject::connect(sb, &QAbstractSlider::valueChanged, this, &PXMConsoleWindow::adjustScrollBar);
+    QObject::connect(sb, &QAbstractSlider::rangeChanged, this, &PXMConsoleWindow::rangeChanged);
 }
-void PXMDebugWindow::adjustScrollBar(int i)
+void PXMConsoleWindow::adjustScrollBar(int i)
 {
     if(i == sb->maximum())
         this->atMaximum = true;
     else
         this->atMaximum = false;
 }
-void PXMDebugWindow::rangeChanged(int, int i2)
+void PXMConsoleWindow::rangeChanged(int, int i2)
 {
     if(this->atMaximum)
 	sb->setValue(i2);

@@ -3,7 +3,7 @@
 #include "ui_pxmaboutdialog.h"
 
 PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat) :
-    debugWindow(new PXMDebugWindow()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
+    debugWindow(new PXMConsole::PXMConsoleWindow()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
 {
     setupGui();
 
@@ -135,8 +135,6 @@ void PXMWindow::settingsActionsSlot()
 {
     PXMSettingsDialog *setD = new PXMSettingsDialog(this);
     QObject::connect(setD, &PXMSettingsDialog::nameChange, this, &PXMWindow::nameChange);
-    setD->setupUi();
-    setD->readIni();
     setD->open();
 }
 

@@ -20,7 +20,7 @@
 
 #include "pxminireader.h"
 #include "pxmdefinitions.h"
-#include "pxmdebugwindow.h"
+#include "pxmconsolewindow.h"
 
 #ifdef _WIN32
 #include <lmcons.h>
