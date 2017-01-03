@@ -11,7 +11,7 @@ PXMClient::PXMClient(QObject *parent, in_addr multicast, QUuid localUUID) : QObj
 
 void PXMClient::setLocalUUID(QUuid uuid)
 {
-    UUIDCompression::packUUID(&packedLocalUUID[0], &uuid);
+    UUIDCompression::packUUID(&packedLocalUUID[0], uuid);
 }
 int PXMClient::sendUDP(const char* msg, unsigned short port)
 {
@@ -107,9 +107,7 @@ void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw, const char * msg, 
         {
             if(bufferevent_write(bw->getBev(), full_mess, packetLen) == 0)
             {
-#ifdef QT_DEBUG
                 qDebug() << "Successful Send";
-#endif
                 bytesSent = 0;
             }
             else

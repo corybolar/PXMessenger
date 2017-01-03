@@ -11,6 +11,7 @@
 #include <QBuffer>
 #include <QApplication>
 #include <QDateTime>
+#include <QRegularExpression>
 
 #include <sys/unistd.h>
 #include <stdio.h>
@@ -79,9 +80,11 @@ private:
     QVector<QSharedPointer<Peers::BevWrapper>> extraBufferevents;
     TimedVector<QUuid> *syncablePeers;
 
+
     void sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw);
     void startServer();
     void connectClient();
+    int formatMessage(QString &str, QUuid uuid, QString color);
 public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);

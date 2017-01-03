@@ -43,6 +43,7 @@ class PXMWindow : public QMainWindow
 {
     Q_OBJECT
 
+
 public:
     PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat);
     ~PXMWindow();
@@ -175,12 +176,13 @@ private:
     void setupTooltips();
     void setupMenuBar();
     void setupGui();
+    int formatMessage(QString &str, QUuid uuid, QString color);
 private slots:
     int sendButtonClicked();
     void quitButtonClicked();
     void currentItemChanged(QListWidgetItem *item1);
     void textEditChanged();
-    void showWindow(QSystemTrayIcon::ActivationReason reason);
+    void systemTrayAction(QSystemTrayIcon::ActivationReason reason);
     void aboutActionSlot();
     void settingsActionsSlot();
     void debugActionSlot();
@@ -232,10 +234,12 @@ class PXMSettingsDialog : public QDialog
     int udpPort;
     QFont iniFont;
     int fontSize;
+    QString multicastAddress;
     Ui::PXMSettingsDialog *ui;
 public:
     PXMSettingsDialog(QWidget *parent = 0);
     void readIni();
+    ~PXMSettingsDialog();
 private slots:
     void clickedme(QAbstractButton *button);
     void accept();

@@ -254,6 +254,7 @@ int ServerThread::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bu
     {
         char *ipHeapArray = new char[bufLen];
         memcpy(ipHeapArray, &buf[0], bufLen);
+        QByteArray qba = QByteArray::fromRawData(&buf[0], bufLen);
         qInfo().noquote() << "SYNC received";
         emit syncPacketIterator(ipHeapArray, bufLen, quuid);
         break;
@@ -316,7 +317,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 
         uint16_t port = htons(realServer->tcpListenerPort);
         memcpy(&name[strlen("/name:")], &(port), sizeof(port));
-        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], &(realServer->localUUID));
+        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], realServer->localUUID);
 
         name[len+1] = 0;
 

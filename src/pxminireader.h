@@ -33,7 +33,7 @@ public:
     int getFontSize();
     void setFontSize(int size);
     void setAllowMoreThanOne(bool value);
-    int setMulticastAddress(QStringList ip);
+    int setMulticastAddress(QString ip);
     QString getMulticastAddress();
     int getVerbosity();
     void setVerbosity(int level);

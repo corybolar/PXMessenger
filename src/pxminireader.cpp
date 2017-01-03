@@ -129,18 +129,9 @@ QString MessIniReader::getMulticastAddress()
         return QString::fromLocal8Bit(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
     return ipFull;
 }
-int MessIniReader::setMulticastAddress(QStringList ip)
+int MessIniReader::setMulticastAddress(QString ip)
 {
-    QString ipFull = QString();
-    for(int i = 0; i < 4; i++)
-    {
-        if(ip[i].toUInt() > 255)
-            return -1;
-        ip.append(ip[i] + QString("."));
-    }
-    ipFull.chop(1);
-
-    inisettings->setValue("net/MulticastAddress", ipFull);
+    inisettings->setValue("net/MulticastAddress", ip);
 
     return 0;
 }

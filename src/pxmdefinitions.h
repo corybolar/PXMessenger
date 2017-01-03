@@ -61,23 +61,43 @@ const int MAX_UUID_PACKET_LENGTH = 	sizeof(MESSAGE_TYPE) +
                                     strlen(PORT_SEPERATOR) +
                                     5/*port number*/ +
                                     1/*null*/;
+
 }
 Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE)
 
 namespace Peers{
+const QString selfColor = "#6495ED"; //Cornflower Blue
+const QString peerColor = "#FF0000"; //Red
+const QVector<QString> textColors = {"#808000", //Olive
+                                     "#FFA500", //Orange
+                                     "#FF00FF", //Fuschia
+                                     "#DC143C", //Crimson
+                                     "#FF69B4", //HotPink
+                                     "#708090", //SlateGrey
+                                     "#008000", //Green
+                                     "#00FF00"}; //Lime
+extern int textColorsNext;
 class BevWrapper {
 public:
-    BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
+    //Default Constructor
     BevWrapper() : bev(nullptr), locker(new QMutex) {}
+    //Constructor with a bufferevent
+    BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
+    //Destructor
     ~BevWrapper();
+    //Copy Constructor
     BevWrapper(const BevWrapper& b) : bev(b.bev), locker(b.locker) {}
+    //Move Constructor
     BevWrapper(BevWrapper&& b) noexcept : bev(b.bev), locker(b.locker)
     {
         b.bev = nullptr;
         b.locker = nullptr;
     }
+    //Move Assignment
     BevWrapper &operator =(BevWrapper&& b) noexcept;
+    //Eqaul
     bool operator ==(const BevWrapper& b) {return bev == b.bev;}
+    //Not Equal
     bool operator !=(const BevWrapper& b) {return !(bev == b.bev);}
 
     void setBev(bufferevent *buf) {bev = buf;}
@@ -95,6 +115,7 @@ struct PeerData{
     QUuid identifier;
     sockaddr_in ipAddressRaw;
     QString hostname;
+    QString textColor;
     QLinkedList<QString*> messages;
     QSharedPointer<BevWrapper> bw;
     evutil_socket_t socket;
@@ -102,20 +123,19 @@ struct PeerData{
     bool isAuthenticated;
 
     //Default Constructor
-    PeerData() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
-            hostname(QString()), messages(QLinkedList<QString*>()),
-            bw(QSharedPointer<BevWrapper>(new BevWrapper)), socket(-1), connectTo(false),
-            isAuthenticated(false) {}
+    PeerData();
 
     //Copy
     PeerData (const PeerData& pd) : identifier(pd.identifier),
             ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
+            textColor(pd.textColor),
             messages(pd.messages), bw(pd.bw), socket(pd.socket),
             connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated) {}
 
     //Move
     PeerData (PeerData&& pd) noexcept : identifier(pd.identifier),
             ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
+            textColor(pd.textColor),
             messages(pd.messages), bw(pd.bw), socket(pd.socket),
             connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated)
     {

@@ -119,7 +119,7 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(ui->messQuitButton, &QAbstractButton::clicked, this, &PXMWindow::quitButtonClicked);
     QObject::connect(ui->messListWidget, &QListWidget::currentItemChanged, this, &PXMWindow::currentItemChanged);
     QObject::connect(ui->messTextEdit, &PXMTextEdit::returnPressed, this, &PXMWindow::sendButtonClicked);
-    QObject::connect(messSystemTray, &QSystemTrayIcon::activated, this, &PXMWindow::showWindow);
+    QObject::connect(messSystemTray, &QSystemTrayIcon::activated, this, &PXMWindow::systemTrayAction);
     QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
     QObject::connect(ui->messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);;
@@ -211,7 +211,7 @@ void PXMWindow::textEditChanged()
         ui->messTextEdit->setTextCursor(cursor);
     }
 }
-void PXMWindow::showWindow(QSystemTrayIcon::ActivationReason reason)
+void PXMWindow::systemTrayAction(QSystemTrayIcon::ActivationReason reason)
 {
     if( ( ( reason == QSystemTrayIcon::DoubleClick ) || ( reason == QSystemTrayIcon::Trigger ) ) )
     {
@@ -241,10 +241,12 @@ void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
     loadingLabel->setText("Loading history...");
     ui->messTextBrowser->clear();
+    ui->messTextBrowser->setStyleSheet(QString());
     QUuid uuid = item1->data(Qt::UserRole).toString();
     loadingLabel->show();
+
     emit requestFullHistory(uuid);
-    if(item1->background() == Qt::red)
+    if(item1->background() != QGuiApplication::palette().base())
     {
         this->changeListItemColor(uuid, 0);
     }
@@ -287,6 +289,7 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 
     ui->messListWidget->setUpdatesEnabled(true);
 }
+
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
 #ifndef __unix
@@ -317,7 +320,8 @@ int PXMWindow::sendButtonClicked()
     {
         return -1;
     }
-    QByteArray msg = ui->messTextEdit->toPlainText().toUtf8();
+    QByteArray msg = ui->messTextEdit->toHtml().toUtf8();
+    qInfo() << msg;
     if(!(msg.isEmpty()))
     {
         int index = ui->messListWidget->currentRow();
@@ -334,7 +338,8 @@ int PXMWindow::sendButtonClicked()
         {
             emit sendMsg(msg, PXMConsts::MSG_TEXT, uuidOfSelectedItem);
         }
-        ui->messTextEdit->setText("");
+        ui->messTextEdit->setText(QString());
+        ui->messTextEdit->setStyleSheet(QString());
     }
     else
     {
@@ -351,8 +356,14 @@ int PXMWindow::changeListItemColor(QUuid uuid, int style)
             if(!style)
                 ui->messListWidget->item(i)->setBackground(QGuiApplication::palette().base());
             else
+            {
+#ifdef _WIN32
                 ui->messListWidget->item(i)->setBackground(QBrush(QColor(Qt::red)));
-            continue;
+#else
+                ui->messListWidget->item(i)->setBackground(QBrush(QColor(0xff0094ff)));
+#endif
+            }
+            break;
         }
     }
     return 0;
@@ -382,6 +393,12 @@ int PXMWindow::focusWindow()
 }
 int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
 {
+    if(str.isEmpty())
+    {
+        if(loadingLabel)
+            loadingLabel->hide();
+        return -1;
+    }
     if(alert)
     {
         if(ui->messListWidget->currentItem())
@@ -408,5 +425,6 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     if(loadingLabel)
         loadingLabel->hide();
 
+    qInfo() << ui->messTextBrowser->toHtml();
     return 0;
 }

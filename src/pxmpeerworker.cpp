@@ -1,4 +1,5 @@
 #include <pxmpeerworker.h>
+#include <QTextCursor>
 using namespace PXMConsts;
 
 PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
@@ -288,7 +289,7 @@ void PXMPeerWorker::sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid u
             index += sizeof(uint32_t);
             memcpy(&msgRaw[index], &(itr.ipAddressRaw.sin_port), sizeof(uint16_t));
             index += sizeof(uint16_t);
-            index += UUIDCompression::packUUID(&msgRaw[index], &(itr.identifier));
+            index += UUIDCompression::packUUID(&msgRaw[index], itr.identifier);
         }
     }
     msgRaw[index+1] = 0;
@@ -351,9 +352,9 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
     {
         if(levelOfSuccess == 0)
         {
-            msg.prepend(localHostname % ": ");
+            formatMessage(msg, localUUID, Peers::selfColor);
         }
-        else if(levelOfSuccess < 0)
+        else
         {
             qInfo() << "Send Failure";
         }
@@ -444,11 +445,18 @@ int PXMPeerWorker::recieveServerMessage(QString str, QUuid uuid, bufferevent *be
         }
     }
 
-    str.prepend(peerDetailsHash.value(uuid).hostname % ": ");
-
     if(global)
     {
+        if(uuid == localUUID)
+            formatMessage(str, uuid, Peers::selfColor);
+        else
+            formatMessage(str, uuid, peerDetailsHash.value(uuid).textColor);
+
         uuid = globalUUID;
+    }
+    else
+    {
+        formatMessage(str, uuid, Peers::peerColor);
     }
 
     addMessageToPeer(str, uuid, true, true);
@@ -456,8 +464,20 @@ int PXMPeerWorker::recieveServerMessage(QString str, QUuid uuid, bufferevent *be
 }
 void PXMPeerWorker::addMessageToAllPeers(QString str, bool alert, bool formatAsMessage)
 {
-    for(auto &itr : peerDetailsHash)
+    for(Peers::PeerData &itr : peerDetailsHash)
         addMessageToPeer(str, itr.identifier, alert, formatAsMessage);
+}
+
+int PXMPeerWorker::formatMessage(QString& str, QUuid uuid, QString color)
+{
+    QRegularExpression qre("(<p.*?>)");
+    QRegularExpressionMatch qrem = qre.match(str);
+    int offset = qrem.capturedEnd(1);
+    QDateTime dt = QDateTime::currentDateTime();
+    QString date = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
+    str.insert(offset, QString("<span style=\"color: " % color % ";\">" % date % peerDetailsHash.value(uuid).hostname % ":&nbsp;</span>"));
+
+    return 0;
 }
 
 int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool formatAsMessage)
@@ -465,12 +485,6 @@ int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool fo
     if(!peerDetailsHash.contains(uuid))
     {
         return -1;
-    }
-
-    if(formatAsMessage)
-    {
-        QDateTime dt = QDateTime::currentDateTime();
-        str = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ") % str;
     }
 
     peerDetailsHash[uuid].messages.append(new QString(str.toUtf8()));
@@ -525,9 +539,8 @@ void PXMPeerWorker::printFullHistory(QUuid uuid)
 
     for(QString* const &itr : peerDetailsHash.value(uuid).messages)
     {
-        str.append(*itr % QStringLiteral("\n"));
+        str.append(*itr);
     }
-    str.chop(1);
     emit printToTextBrowser(str, uuid, false);
 }
 

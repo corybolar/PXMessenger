@@ -27,6 +27,7 @@ void PXMSettingsDialog::clickedme(QAbstractButton *button)
         ui->udpPortSpinBox->setValue(0);
         ui->hostnameLineEdit->setText(QString::fromLatin1(localHostname).left(PXMConsts::MAX_HOSTNAME_LENGTH));
         ui->allowMultipleCheckBox->setChecked(false);
+        ui->multicastLineEdit->setText(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
     }
     if((QPushButton*)button == ui->buttonBox->button(QDialogButtonBox::Help))
     {
@@ -36,11 +37,14 @@ void PXMSettingsDialog::clickedme(QAbstractButton *button)
                                                "Hostname will only change the first half of your hostname, the computer name will remain.\n(Default:Your Username)\n\n"
                                                "The listener port should be changed only if needed to bypass firewall restrictions. 0 is Auto.\n(Default:0)\n\n"
                                                "The discover port must be the same for all computers that wish to communicate together. 0 is " +
-                                                QString::number(PXMConsts::DEFAULT_UDP_PORT) + ".\n(Default:0)\n\n"
-                                               "Debug Verbosity will increase the number of message printed to both the debugging window\n"
-                                               "and stdout.  0 hides warnings and debug messages, 1 only hides debug messages, 0 shows all\n"
-                                               "(Default:0)\n\n"
-                                               "More information can be found at https://github.com/cbpeckles/PXMessenger.");
+                                 QString::number(PXMConsts::DEFAULT_UDP_PORT) + ".\n(Default:0)\n\n" +
+                                 "Multicast Address must be the same for all computers that wish to discover each other. Changes "
+                                 "from the default value should only be necessary if firewall restrictions require it."
+                                 "\n(Default:" + PXMConsts::DEFAULT_MULTICAST_ADDRESS+ ")\n\n" +
+                                 "Debug Verbosity will increase the number of message printed to both the debugging window\n"
+                                 "and stdout.  0 hides warnings and debug messages, 1 only hides debug messages, 2 shows all\n"
+                                 "(Default:0)\n\n"
+                                 "More information can be found at https://github.com/cbpeckles/PXMessenger.");
     }
 }
 
@@ -60,8 +64,14 @@ void PXMSettingsDialog::accept()
     iniReader.setPort("TCP", ui->tcpPortSpinBox->value());
     iniReader.setPort("UDP", ui->udpPortSpinBox->value());
     iniReader.setFont(qApp->font().toString());
-    if(tcpPort != ui->tcpPortSpinBox->value() || udpPort != ui->udpPortSpinBox->value() || AllowMoreThanOneInstance != ui->allowMultipleCheckBox->isChecked())
+    iniReader.setMulticastAddress(ui->multicastLineEdit->text());
+    if(tcpPort != ui->tcpPortSpinBox->value()
+                    || udpPort != ui->udpPortSpinBox->value()
+                    || AllowMoreThanOneInstance != ui->allowMultipleCheckBox->isChecked()
+                    || multicastAddress != ui->multicastLineEdit->text())
+    {
         QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
+    }
     QDialog::accept();
 }
 
@@ -81,6 +91,14 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent), ui(new 
 {
     this->setAttribute(Qt::WA_DeleteOnClose, true);
     ui->setupUi(this);
+    QString ipRange = "(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])";
+    // You may want to use QRegularExpression for new code with Qt 5 (not mandatory).
+    QRegExp ipRegex ("^" + ipRange
+                     + "\\." + ipRange
+                     + "\\." + ipRange
+                     + "\\." + ipRange + "$");
+    QRegExpValidator *ipValidator = new QRegExpValidator(ipRegex, this);
+    ui->multicastLineEdit->setValidator(ipValidator);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
     QObject::connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
@@ -91,6 +109,10 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent), ui(new 
 
     readIni();
 }
+PXMSettingsDialog::~PXMSettingsDialog()
+{
+    delete ui;
+}
 
 void PXMSettingsDialog::readIni()
 {
@@ -99,10 +121,12 @@ void PXMSettingsDialog::readIni()
     hostname = iniReader.getHostname(hostname);
     tcpPort = iniReader.getPort("TCP");
     udpPort = iniReader.getPort("UDP");
+    multicastAddress = iniReader.getMulticastAddress();
     fontSize = qApp->font().pointSize();
     ui->fontSizeSpinBox->setValue(fontSize);
     ui->tcpPortSpinBox->setValue(tcpPort);
     ui->udpPortSpinBox->setValue(udpPort);
     ui->hostnameLineEdit->setText(hostname.simplified());
     ui->allowMultipleCheckBox->setChecked(AllowMoreThanOneInstance);
+    ui->multicastLineEdit->setText(multicastAddress);
 }

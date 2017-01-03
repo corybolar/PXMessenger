@@ -1,6 +1,17 @@
 #include "pxmdefinitions.h"
 using namespace Peers;
 
+int Peers::textColorsNext = 0;
+
+PeerData::PeerData() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
+    hostname(QString()), messages(QLinkedList<QString*>()),
+    bw(QSharedPointer<BevWrapper>(new BevWrapper)), socket(-1), connectTo(false),
+    isAuthenticated(false)
+{
+    textColor = textColors.at(textColorsNext % textColors.length());
+    textColorsNext++;
+}
+
 PeerData& PeerData::operator= (PeerData &&p) noexcept
 {
     if(this != &p)
@@ -10,6 +21,7 @@ PeerData& PeerData::operator= (PeerData &&p) noexcept
         identifier = p.identifier;
         ipAddressRaw = p.ipAddressRaw;
         hostname = p.hostname;
+        textColor = p.textColor;
         messages = p.messages;
         socket = p.socket;
         connectTo = p.connectTo;
@@ -29,10 +41,11 @@ QString PeerData::toInfoString()
 {
     return QString(QStringLiteral("Hostname: ") % hostname % QStringLiteral("\n")
                    % QStringLiteral("UUID: ") % identifier.toString() % QStringLiteral("\n")
+                   % QStringLiteral("Text Color: ") % textColor % QStringLiteral("\n")
                    % QStringLiteral("IP Address: ") % QString::fromLocal8Bit(inet_ntoa(ipAddressRaw.sin_addr))
                    % QStringLiteral(":") % QString::number(ntohs(ipAddressRaw.sin_port)) % QStringLiteral("\n")
                    % QStringLiteral("IsAuthenticated: ") % QString::fromLocal8Bit((isAuthenticated? "true" : "false")) % QStringLiteral("\n")
-                   % QStringLiteral("preventAttempConnection: ") % QString::fromLocal8Bit((connectTo ? "true" : "false")) % QStringLiteral("\n")
+                   % QStringLiteral("preventAttemptConnection: ") % QString::fromLocal8Bit((connectTo ? "true" : "false")) % QStringLiteral("\n")
                    % QStringLiteral("SocketDescriptor: ") % QString::number(socket) % QStringLiteral("\n")
                    % QStringLiteral("History Length: ") % QString::number(messages.count()) % QStringLiteral("\n")
                    % QStringLiteral("Bufferevent: ") % (bw->getBev() ? QString::asprintf("%8p",bw->getBev()) : QStringLiteral("NULL")) % QStringLiteral("\n"));

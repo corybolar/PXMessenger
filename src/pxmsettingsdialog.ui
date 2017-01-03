@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>549</width>
-    <height>280</height>
+    <width>488</width>
+    <height>315</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -20,96 +20,38 @@
    <string>Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="6" column="0" colspan="2">
-    <widget class="QLabel" name="verbosityLabel">
-     <property name="text">
-      <string>Debug Verbosity</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="2">
+   <item row="2" column="0">
     <widget class="QLabel" name="fontLabel">
      <property name="text">
       <string>Font</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="4">
+   <item row="3" column="0">
+    <widget class="QLabel" name="fontSizeLabel">
+     <property name="text">
+      <string>Font Size</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0" colspan="2">
+    <widget class="QLabel" name="verbosityLabel">
+     <property name="text">
+      <string>Debug Verbosity</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="4" alignment="Qt::AlignRight">
     <widget class="QSpinBox" name="tcpPortSpinBox">
      <property name="enabled">
       <bool>true</bool>
      </property>
-     <property name="maximumSize">
-      <size>
-       <width>100</width>
-       <height>16777215</height>
-      </size>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-     <property name="accelerated">
-      <bool>true</bool>
-     </property>
-     <property name="maximum">
-      <number>65535</number>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0" colspan="2">
-    <widget class="QLabel" name="udpPortLabel">
-     <property name="text">
-      <string>UDP Port number</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0" colspan="2">
-    <widget class="QLabel" name="tcpPortLabel">
-     <property name="text">
-      <string>TCP Port number</string>
-     </property>
-    </widget>
-   </item>
-   <item row="7" column="0" colspan="5">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="focusPolicy">
-      <enum>Qt::StrongFocus</enum>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
-     </property>
-     <property name="centerButtons">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="4">
-    <widget class="QSpinBox" name="fontSizeSpinBox">
-     <property name="maximumSize">
-      <size>
-       <width>100</width>
-       <height>16777215</height>
-      </size>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-     </property>
-     <property name="minimum">
-      <number>8</number>
-     </property>
-     <property name="maximum">
-      <number>24</number>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="4">
-    <widget class="QSpinBox" name="udpPortSpinBox">
      <property name="maximumSize">
       <size>
        <width>100</width>
@@ -131,28 +73,60 @@
     </widget>
    </item>
    <item row="5" column="0" colspan="2">
-    <widget class="QLabel" name="fontSizeLabel">
+    <widget class="QLabel" name="udpPortLabel">
      <property name="text">
-      <string>Font Size</string>
+      <string>UDP Port number</string>
      </property>
     </widget>
    </item>
-   <item row="0" column="4">
-    <widget class="QCheckBox" name="allowMultipleCheckBox">
-     <property name="enabled">
+   <item row="4" column="0" colspan="2">
+    <widget class="QLabel" name="tcpPortLabel">
+     <property name="text">
+      <string>TCP Port number</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0" colspan="5">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="focusPolicy">
+      <enum>Qt::StrongFocus</enum>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
+     </property>
+     <property name="centerButtons">
       <bool>true</bool>
      </property>
+    </widget>
+   </item>
+   <item row="5" column="4" alignment="Qt::AlignRight">
+    <widget class="QSpinBox" name="udpPortSpinBox">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
+     <property name="maximumSize">
+      <size>
+       <width>100</width>
+       <height>16777215</height>
+      </size>
      </property>
-     <property name="text">
-      <string/>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+     <property name="accelerated">
+      <bool>true</bool>
+     </property>
+     <property name="maximum">
+      <number>65535</number>
      </property>
     </widget>
    </item>
@@ -170,8 +144,14 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="4">
+   <item row="8" column="4" alignment="Qt::AlignRight">
     <widget class="QSpinBox" name="verbositySpinBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="maximumSize">
       <size>
        <width>100</width>
@@ -186,55 +166,90 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="2" colspan="2">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+   <item row="3" column="4" alignment="Qt::AlignRight">
+    <widget class="QSpinBox" name="fontSizeSpinBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="sizeHint" stdset="0">
+     <property name="maximumSize">
       <size>
-       <width>40</width>
-       <height>20</height>
+       <width>100</width>
+       <height>16777215</height>
       </size>
      </property>
-    </spacer>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+     <property name="minimum">
+      <number>8</number>
+     </property>
+     <property name="maximum">
+      <number>24</number>
+     </property>
+    </widget>
    </item>
-   <item row="2" column="2">
-    <spacer name="horizontalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+   <item row="0" column="3" colspan="2">
+    <widget class="QCheckBox" name="allowMultipleCheckBox">
+     <property name="enabled">
+      <bool>true</bool>
      </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::MinimumExpanding</enum>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>60</width>
-       <height>20</height>
-      </size>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
      </property>
-    </spacer>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
    </item>
-   <item row="2" column="3">
-    <spacer name="horizontalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+   <item row="1" column="4">
+    <widget class="QLineEdit" name="hostnameLineEdit">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
      </property>
-    </spacer>
+     <property name="maxLength">
+      <number>24</number>
+     </property>
+    </widget>
    </item>
-   <item row="1" column="2" colspan="3">
-    <widget class="QLineEdit" name="hostnameLineEdit"/>
-   </item>
-   <item row="4" column="3" colspan="2">
+   <item row="2" column="4">
     <widget class="QFontComboBox" name="fontComboBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="layoutDirection">
       <enum>Qt::LeftToRight</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="multicastLabel">
+     <property name="text">
+      <string>Multicast Address</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="4">
+    <widget class="QLineEdit" name="multicastLineEdit">
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
      </property>
     </widget>
    </item>

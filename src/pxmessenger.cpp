@@ -110,31 +110,26 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     }
 }
 
-char* getUsername()
+QByteArray getUsername()
 {
 #ifdef _WIN32
     size_t len = UNLEN+1;
-    char* localHostname = new char[len];
-    memset(localHostname, 0, len);
+    char localHostname[len];
     TCHAR t_user[len];
     DWORD user_size = len;
     if(GetUserName(t_user, &user_size))
         wcstombs(localHostname, t_user, len);
+        return QByteArray(localHostname);
     else
-        strcpy(localHostname, "user");
+        return QByteArray("user");
 #else
-    size_t len = sysconf(_SC_GETPW_R_SIZE_MAX);
-    char* localHostname = new char[len];
-    memset(localHostname, 0, len);
     struct passwd *user;
     user = getpwuid(getuid());
     if(!user)
-        strcpy(localHostname, "user");
+        return QByteArray("user");
     else
-        strcpy(localHostname, user->pw_name);
+        return QByteArray(user->pw_name);
 #endif
-
-    return localHostname;
 }
 QString setupHostname(int uuidNum, QString username)
 {
@@ -206,13 +201,13 @@ int main(int argc, char **argv)
     MessIniReader iniReader;
     initialSettings presets;
 
-    QString localHostname = iniReader.getHostname(QString::fromUtf8(getUsername()));
+    QString localHostname = iniReader.getHostname(QString(getUsername()));
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
+    QString tmpDir = QDir::tempPath();
+    QLockFile lockFile(tmpDir + "/pxmessenger" + localHostname + ".lock");
     if(!allowMoreThanOne)
     {
-        QString tmpDir = QDir::tempPath();
-        QLockFile lockFile(tmpDir + "/pxmessenger" + localHostname + ".lock");
         if(!lockFile.tryLock(100))
         {
             QMessageBox msgBox;

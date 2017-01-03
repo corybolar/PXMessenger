@@ -15,20 +15,20 @@ QUuid UUIDCompression::unpackUUID(const unsigned char *src)
 
     return uuid;
 }
-size_t UUIDCompression::packUUID(char *buf, QUuid *uuid)
+size_t UUIDCompression::packUUID(char *buf, const QUuid& uuid)
 {
     int index = 0;
 
-    uint32_t uuidSectionL = htonl(uuid->data1);
+    uint32_t uuidSectionL = htonl(uuid.data1);
     memcpy(&buf[index], &(uuidSectionL), 4);
     index += 4;
-    uint16_t uuidSectionS = htons(uuid->data2);
+    uint16_t uuidSectionS = htons(uuid.data2);
     memcpy(&buf[index], &(uuidSectionS), 2);
     index += 2;
-    uuidSectionS = htons(uuid->data3);
+    uuidSectionS = htons(uuid.data3);
     memcpy(&buf[index], &(uuidSectionS), 2);
     index += 2;
-    memcpy(&buf[index], &uuid->data4, 8);
+    memcpy(&buf[index], &uuid.data4, 8);
     index += 8;
 
     return index;
