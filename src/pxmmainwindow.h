@@ -176,7 +176,7 @@ private:
     void setupTooltips();
     void setupMenuBar();
     void setupGui();
-    int formatMessage(QString &str, QUuid uuid, QString color);
+    int removeBodyFormatting(QByteArray &str);
 private slots:
     int sendButtonClicked();
     void quitButtonClicked();

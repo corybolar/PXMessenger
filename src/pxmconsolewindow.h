@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QDialog>
 #include <QStringBuilder>
+#include <QLabel>
 
 namespace PXMConsole {
 const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
@@ -31,6 +32,7 @@ public:
     QGridLayout *gridLayout_2;
     QPushButton *pushButton;
     QScrollBar *sb;
+    QLabel *verbosity;
     static QTextEdit *textEdit;
 private slots:
     void adjustScrollBar(int i);
@@ -40,16 +42,15 @@ private slots:
 class AppendTextEvent : public QEvent
 {
 public:
-    AppendTextEvent(QString text) : QEvent((Type)type),
-        text(text) {}
-    QString getText()
-    {
-        return text;
-    }
+    AppendTextEvent(QString text, QColor color) : QEvent((Type)type),
+        text(text), textColor(color) {}
+    QString getText() {return text;}
+    QColor getColor() {return textColor;}
 
 private:
     static int type;
     QString text;
+    QColor textColor;
 };
 
 class LoggerSingleton : public QObject
@@ -83,7 +84,8 @@ protected:
         AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
         if(text)
         {
-            logTextEdit->insertHtml(text->getText());
+            logTextEdit->setTextColor(text->getColor());
+            logTextEdit->insertPlainText(text->getText());
             event->accept();
         }
         else

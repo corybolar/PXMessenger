@@ -43,56 +43,31 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
     }
 
     QByteArray localMsg = QByteArray();
-    QByteArray htmlMessage = QByteArray();
 
 #ifdef QT_DEBUG
     localMsg.reserve(128);
-    htmlMessage.reserve(128);
     QString filename = QString::fromUtf8(context.file);
     filename = filename.right(filename.length() - filename.lastIndexOf(QChar('/')) - 1);
     filename.append(":" + QByteArray::number(context.line));
-    htmlMessage.append(filename);
-    for(int i = 0; i < PXMConsts::DEBUG_PADDING - filename.length();i++)
-    {
-        htmlMessage.append(QStringLiteral("&nbsp;"));
-    }
     filename.append(QString(PXMConsts::DEBUG_PADDING - filename.length(), QChar(' ')));
     localMsg = filename.toUtf8() % msg.toUtf8();
-    htmlMessage = htmlMessage % msg.toUtf8();
 #else
     localMsg = msg.toLocal8Bit();
-    htmlMessage = msg.toLocal8Bit();
 #endif
 
-    for(int i = 0; i < htmlMessage.length(); i++)
-    {
-        switch(htmlMessage.at(i))
-        {
-        case '\n':
-            htmlMessage.replace(i, 1, "<br>");
-            break;
-        case '\r':
-            htmlMessage.replace(i, 1, "<br>");
-            break;
-        default:
-            break;
-        }
-    }
+    QColor msgColor;
     switch(type) {
     case QtDebugMsg:
         fprintf(stderr, "DEBUG:    %s\n", localMsg.constData());
-        htmlMessage.prepend(debugHtml);
-        htmlMessage.append(endHtml);
+        msgColor = Qt::gray;
         break;
     case QtWarningMsg:
         fprintf(stderr, "WARNING:  %s\n", localMsg.constData());
-        htmlMessage.prepend(warningHtml);
-        htmlMessage.append(endHtml);
+        msgColor = Qt::darkYellow;
         break;
     case QtCriticalMsg:
         fprintf(stderr, "CRITICAL: %s\n", localMsg.constData());
-        htmlMessage.prepend(criticalHtml);
-        htmlMessage.append(endHtml);
+        msgColor = Qt::red;
         break;
     case QtFatalMsg:
         fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
@@ -100,13 +75,13 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         break;
     case QtInfoMsg:
         fprintf(stderr, "INFO:     %s\n", localMsg.constData());
-        htmlMessage.prepend(infoHtml);
-        htmlMessage.append(endHtml);
+        msgColor = QGuiApplication::palette().foreground().color();
         break;
     }
     if(PXMConsoleWindow::textEdit)
     {
-        qApp->postEvent(logger, new AppendTextEvent(htmlMessage), Qt::LowEventPriority);
+        localMsg.append(QChar('\n'));
+        qApp->postEvent(logger, new AppendTextEvent(localMsg, msgColor), Qt::LowEventPriority);
     }
 }
 
@@ -118,8 +93,10 @@ QByteArray getUsername()
     TCHAR t_user[len];
     DWORD user_size = len;
     if(GetUserName(t_user, &user_size))
+    {
         wcstombs(localHostname, t_user, len);
         return QByteArray(localHostname);
+    }
     else
         return QByteArray("user");
 #else
@@ -196,7 +173,7 @@ int main(int argc, char **argv)
     QApplication::setApplicationName("PXMessenger");
     QApplication::setOrganizationName("PXMessenger");
     QApplication::setOrganizationDomain("PXMessenger");
-    QApplication::setApplicationVersion("1.3.2");
+    QApplication::setApplicationVersion("1.4.0");
 
     MessIniReader iniReader;
     initialSettings presets;

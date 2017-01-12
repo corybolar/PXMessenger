@@ -1,7 +1,10 @@
 #include "pxmmainwindow.h"
+#ifndef __WIN32
 #include "pwd.h"
+#endif
 #include "ui_pxmsettingsdialog.h"
 #include "QDialogButtonBox"
+#include "QSpinBox"
 void PXMSettingsDialog::clickedme(QAbstractButton *button)
 {
     if((QPushButton*)button == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults))
@@ -92,7 +95,6 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent), ui(new 
     this->setAttribute(Qt::WA_DeleteOnClose, true);
     ui->setupUi(this);
     QString ipRange = "(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])";
-    // You may want to use QRegularExpression for new code with Qt 5 (not mandatory).
     QRegExp ipRegex ("^" + ipRange
                      + "\\." + ipRange
                      + "\\." + ipRange
@@ -100,6 +102,7 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent), ui(new 
     QRegExpValidator *ipValidator = new QRegExpValidator(ipRegex, this);
     ui->multicastLineEdit->setValidator(ipValidator);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+    ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getVerbosityLevel());
     QObject::connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
     QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);

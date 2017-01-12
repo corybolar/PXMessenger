@@ -314,6 +314,21 @@ void PXMWindow::closeEvent(QCloseEvent *event)
     qDebug() << "closeEvent calling event->accept()";
     event->accept();
 }
+int PXMWindow::removeBodyFormatting(QByteArray& str)
+{
+    QRegularExpression qre("((?<=<body) style.*?\"(?=>))");
+    QRegularExpressionMatch qrem = qre.match(str);
+    if(qrem.hasMatch())
+    {
+        int startoffset = qrem.capturedStart(1);
+        int endoffset = qrem.capturedEnd(1);
+        str.remove(startoffset, endoffset - startoffset);
+        return 0;
+    }
+    else
+        return -1;
+}
+
 int PXMWindow::sendButtonClicked()
 {
     if(!ui->messListWidget->currentItem())
@@ -321,9 +336,15 @@ int PXMWindow::sendButtonClicked()
         return -1;
     }
     QByteArray msg = ui->messTextEdit->toHtml().toUtf8();
-    qInfo() << msg;
+
     if(!(msg.isEmpty()))
     {
+        if(removeBodyFormatting(msg))
+        {
+            qWarning() << "Bad Html";
+            qWarning() << msg;
+            return -1;
+        }
         int index = ui->messListWidget->currentRow();
         QUuid uuidOfSelectedItem = ui->messListWidget->item(index)->data(Qt::UserRole).toString();
 
@@ -357,11 +378,8 @@ int PXMWindow::changeListItemColor(QUuid uuid, int style)
                 ui->messListWidget->item(i)->setBackground(QGuiApplication::palette().base());
             else
             {
-#ifdef _WIN32
-                ui->messListWidget->item(i)->setBackground(QBrush(QColor(Qt::red)));
-#else
-                ui->messListWidget->item(i)->setBackground(QBrush(QColor(0xff0094ff)));
-#endif
+                //ui->messListWidget->item(i)->setBackground(QBrush(QColor(0xFF6495ED)));
+                ui->messListWidget->item(i)->setBackground(QBrush(Qt::red));
             }
             break;
         }
@@ -425,6 +443,5 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     if(loadingLabel)
         loadingLabel->hide();
 
-    qInfo() << ui->messTextBrowser->toHtml();
     return 0;
 }

@@ -22,8 +22,12 @@ PXMConsoleWindow::PXMConsoleWindow(QWidget *parent) : QMainWindow(parent)
     pushButton->setText("Print Info");
     pushButton->setMaximumSize(QSize(250, 16777215));
 
-    gridLayout->addWidget(textEdit, 0, 0, 1, 1);
-    gridLayout->addWidget(pushButton, 1, 0, 1, 1);
+    verbosity = new QLabel(centralwidget);
+    verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+    gridLayout->addWidget(verbosity, 1, 2, 1, 2);
+
+    gridLayout->addWidget(textEdit, 0, 0, 1, 4);
+    gridLayout->addWidget(pushButton, 1, 0, 1, 2);
 
     gridLayout_2->addLayout(gridLayout, 0, 0, 1, 1);
 
