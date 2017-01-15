@@ -247,6 +247,7 @@ private slots:
     void valueChanged(int size);
 signals:
     void nameChange(QString);
+    void verbosityChanged();
 };
 
 #endif

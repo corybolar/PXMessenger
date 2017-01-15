@@ -135,6 +135,7 @@ void PXMWindow::settingsActionsSlot()
 {
     PXMSettingsDialog *setD = new PXMSettingsDialog(this);
     QObject::connect(setD, &PXMSettingsDialog::nameChange, this, &PXMWindow::nameChange);
+    QObject::connect(setD, &PXMSettingsDialog::verbosityChanged, debugWindow, &PXMConsole::PXMConsoleWindow::verbosityChanged);
     setD->open();
 }
 

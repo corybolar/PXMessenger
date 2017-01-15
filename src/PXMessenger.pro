@@ -10,10 +10,12 @@ CONFIG += c++11
 
 unix: LIBS += -levent -levent_pthreads
 
-win32 { LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
+win32 { LIBS += -L$$PWD/../../libevent/build/lib -levent -levent_core
 
-INCLUDEPATH += $$PWD/../../libevent-2.0.22-stable/include
-DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
+INCLUDEPATH += $$PWD/../../libevent/include \
+                $$PWD/../../libevent/build/include
+
+DEPENDPATH += $$PWD/../../libevent/include
 }
 
 win32 {

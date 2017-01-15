@@ -34,6 +34,8 @@ public:
     QScrollBar *sb;
     QLabel *verbosity;
     static QTextEdit *textEdit;
+public slots:
+    void verbosityChanged();
 private slots:
     void adjustScrollBar(int i);
     void rangeChanged(int, int i2);

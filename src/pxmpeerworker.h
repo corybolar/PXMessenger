@@ -69,6 +69,7 @@ private:
     QTimer *syncTimer;
     QTimer *nextSyncTimer;
     QTimer *discoveryTimer;
+    QTimer *discoveryTimerSingle;
     QTimer *midnightTimer;
     bool areWeSyncing;
     bool multicastIsFunctioning;
@@ -100,10 +101,9 @@ public slots:
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result,
                                    bufferevent *bev);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
-                         bool print, QSharedPointer<Peers::BevWrapper> bw);
+                         bool print, QSharedPointer<Peers::BevWrapper>);
     void currentThreadInit();
-    int addMessageToPeer(QString str, QUuid uuid, bool alert,
-                         bool formatAsMessage);
+    int addMessageToPeer(QString str, QUuid uuid, bool alert, bool);
     void printInfoToDebug();
     void setlibeventBackend(QString str);
     int recieveServerMessage(QString str, QUuid uuid, bufferevent *bev,

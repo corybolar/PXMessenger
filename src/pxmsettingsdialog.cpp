@@ -55,6 +55,7 @@ void PXMSettingsDialog::accept()
 {
     PXMConsole::LoggerSingleton *logger = PXMConsole::LoggerSingleton::getInstance();
     logger->setVerbosityLevel(ui->verbositySpinBox->value());
+    emit verbosityChanged();
     MessIniReader iniReader;
     iniReader.setAllowMoreThanOne(ui->allowMultipleCheckBox->isChecked());
     iniReader.setHostname(ui->hostnameLineEdit->text().simplified());

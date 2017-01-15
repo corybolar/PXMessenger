@@ -73,7 +73,10 @@ void PXMPeerWorker::currentThreadInit()
     nextSyncTimer->setInterval(2000);
     QObject::connect(nextSyncTimer, &QTimer::timeout, syncer, &PXMSync::syncNext);
 
-    QTimer::singleShot(10000, this, SLOT(discoveryTimerSingleShot()));
+    discoveryTimerSingle = new QTimer(this);
+    discoveryTimerSingle->setSingleShot(true);
+    discoveryTimerSingle->setInterval(10000);
+    QObject::connect(discoveryTimerSingle, &QTimer::timeout, this, &PXMPeerWorker::discoveryTimerSingleShot);
 
     midnightTimer = new QTimer(this);
     midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
@@ -346,7 +349,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
         peerDetailsHash[uuid].socket = -1;
     }
 }
-void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg, bool print, QSharedPointer<Peers::BevWrapper> bw)
+void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg, bool print, QSharedPointer<Peers::BevWrapper>)
 {
     if(print)
     {
@@ -480,7 +483,7 @@ int PXMPeerWorker::formatMessage(QString& str, QUuid uuid, QString color)
     return 0;
 }
 
-int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool formatAsMessage)
+int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool)
 {
     if(!peerDetailsHash.contains(uuid))
     {
@@ -646,6 +649,7 @@ void PXMPeerWorker::multicastIsFunctional()
 void PXMPeerWorker::serverSetupFailure()
 {
     discoveryTimer->stop();
+    discoveryTimerSingle->stop();
     emit warnBox(QStringLiteral("Server Setup Failure"),
                  QStringLiteral("Failure setting up the server sockets and "
                                 "multicast group.  Check the debug logger for "

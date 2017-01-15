@@ -53,3 +53,7 @@ void PXMConsoleWindow::rangeChanged(int, int i2)
     if(this->atMaximum)
 	sb->setValue(i2);
 }
+void PXMConsoleWindow::verbosityChanged()
+{
+    verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+}
