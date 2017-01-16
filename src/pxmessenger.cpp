@@ -20,6 +20,7 @@
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
+Q_DECLARE_METATYPE(QSharedPointer<QString>)
 
 int PXMConsole::AppendTextEvent::type = QEvent::registerEventType();
 PXMConsole::LoggerSingleton* PXMConsole::LoggerSingleton::loggerInstance = nullptr;
@@ -149,6 +150,7 @@ int main(int argc, char **argv)
     qRegisterMetaType<bufferevent*>();
     qRegisterMetaType<PXMConsts::MESSAGE_TYPE>();
     qRegisterMetaType<QSharedPointer<Peers::BevWrapper>>();
+    qRegisterMetaType<QSharedPointer<QString>>();
 
     QApplication app (argc, argv);
 
@@ -175,14 +177,15 @@ int main(int argc, char **argv)
     QApplication::setOrganizationDomain("PXMessenger");
     QApplication::setApplicationVersion("1.4.0");
 
-    MessIniReader iniReader;
+    PXMIniReader iniReader;
     initialSettings presets;
 
-    QString localHostname = iniReader.getHostname(QString(getUsername()));
+    QString username = getUsername();
+    QString localHostname = iniReader.getHostname(username);
 
     bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
     QString tmpDir = QDir::tempPath();
-    QLockFile lockFile(tmpDir + "/pxmessenger" + localHostname + ".lock");
+    QLockFile lockFile(tmpDir + "/pxmessenger_" + username + ".lock");
     if(!allowMoreThanOne)
     {
         if(!lockFile.tryLock(100))
@@ -233,19 +236,16 @@ int main(int argc, char **argv)
     qInfo() << "Running in debug mode";
 #else
     qInfo() << "Running in release mode";
-#endif
-
-    qInfo() << "Our UUID:" << presets.uuid.toString();
-
-#ifndef QT_DEBUG
     splash.finish(window);
     while(startupTimer.elapsed() < 1500)
     {
         qApp->processEvents();
         usleep(100.000);
     }
-    qDebug() << "Startup Timer:" << startupTimer.elapsed();
 #endif
+
+    qInfo() << "Our UUID:" << presets.uuid.toString();
+
     window->show();
 
     int result = app.exec();

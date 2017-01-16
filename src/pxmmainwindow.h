@@ -55,7 +55,7 @@ public:
 public slots:
     void bloomActionsSlot();
     void resizeLabel(QRect size);
-    int printToTextBrowser(QString str, QUuid uuid, bool alert);
+    int printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void updateListWidget(QUuid uuid, QString hostname);
     void warnBox(QString title, QString msg);

@@ -125,7 +125,7 @@ private slots:
     void midnightTimerPersistent();
     void setCloseBufferevent(bufferevent *bev);
 signals:
-    void printToTextBrowser(QString, QUuid, bool);
+    void printToTextBrowser(QSharedPointer<QString>, QUuid, bool);
     void updateListWidget(QUuid, QString);
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, PXMConsts::MESSAGE_TYPE,
                  QUuid = QUuid());

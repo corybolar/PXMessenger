@@ -56,7 +56,7 @@ void PXMSettingsDialog::accept()
     PXMConsole::LoggerSingleton *logger = PXMConsole::LoggerSingleton::getInstance();
     logger->setVerbosityLevel(ui->verbositySpinBox->value());
     emit verbosityChanged();
-    MessIniReader iniReader;
+    PXMIniReader iniReader;
     iniReader.setAllowMoreThanOne(ui->allowMultipleCheckBox->isChecked());
     iniReader.setHostname(ui->hostnameLineEdit->text().simplified());
     if(hostname != ui->hostnameLineEdit->text().simplified())
@@ -120,7 +120,7 @@ PXMSettingsDialog::~PXMSettingsDialog()
 
 void PXMSettingsDialog::readIni()
 {
-    MessIniReader iniReader;
+    PXMIniReader iniReader;
     AllowMoreThanOneInstance = iniReader.checkAllowMoreThanOne();
     hostname = iniReader.getHostname(hostname);
     tcpPort = iniReader.getPort("TCP");

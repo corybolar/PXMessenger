@@ -4,7 +4,7 @@ using namespace Peers;
 int Peers::textColorsNext = 0;
 
 PeerData::PeerData() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
-    hostname(QString()), messages(QLinkedList<QString*>()),
+    hostname(QString()), messages(QLinkedList<QSharedPointer<QString>>()),
     bw(QSharedPointer<BevWrapper>(new BevWrapper)), socket(-1), connectTo(false),
     isAuthenticated(false)
 {

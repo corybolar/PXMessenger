@@ -116,7 +116,7 @@ struct PeerData{
     sockaddr_in ipAddressRaw;
     QString hostname;
     QString textColor;
-    QLinkedList<QString*> messages;
+    QLinkedList<QSharedPointer<QString>> messages;
     QSharedPointer<BevWrapper> bw;
     evutil_socket_t socket;
     bool connectTo;

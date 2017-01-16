@@ -304,7 +304,7 @@ void PXMWindow::closeEvent(QCloseEvent *event)
     qDebug() << "trying to hide systray";
     messSystemTray->hide();
     qDebug() << "systray hidden";
-    MessIniReader iniReader;
+    PXMIniReader iniReader;
     qDebug() << "creating iniReader";
     iniReader.setWindowSize(this->size());
     iniReader.setMute(ui->muteCheckBox->isChecked());
@@ -410,9 +410,9 @@ int PXMWindow::focusWindow()
     }
     return 0;
 }
-int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
+int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert)
 {
-    if(str.isEmpty())
+    if(str->isEmpty())
     {
         if(loadingLabel)
             loadingLabel->hide();
@@ -439,7 +439,7 @@ int PXMWindow::printToTextBrowser(QString str, QUuid uuid, bool alert)
     }
 
     ui->messTextBrowser->setUpdatesEnabled(false);
-    ui->messTextBrowser->append(str);
+    ui->messTextBrowser->append(*str.data());
     ui->messTextBrowser->setUpdatesEnabled(true);
     if(loadingLabel)
         loadingLabel->hide();

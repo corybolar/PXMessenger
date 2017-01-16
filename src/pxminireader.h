@@ -8,12 +8,12 @@
 #include <QSize>
 #include "pxmdefinitions.h"
 
-class MessIniReader
+class PXMIniReader
 {
     QSettings *inisettings;
 public:
-    MessIniReader();
-    ~MessIniReader();
+    PXMIniReader();
+    ~PXMIniReader();
     bool checkAllowMoreThanOne();
     int getUUIDNumber();
     QUuid getUUID(int num, bool takeIt);

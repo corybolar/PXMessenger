@@ -1,14 +1,14 @@
 #include "pxminireader.h"
 
-MessIniReader::MessIniReader()
+PXMIniReader::PXMIniReader()
 {
     inisettings = new QSettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL);
 }
-MessIniReader::~MessIniReader()
+PXMIniReader::~PXMIniReader()
 {
     delete inisettings;
 }
-bool MessIniReader::checkAllowMoreThanOne()
+bool PXMIniReader::checkAllowMoreThanOne()
 {
     if(inisettings->contains("config/AllowMoreThanOneInstance"))
     {
@@ -17,11 +17,11 @@ bool MessIniReader::checkAllowMoreThanOne()
     inisettings->setValue("config/AllowMoreThanOneInstance", false);
     return false;
 }
-void MessIniReader::setAllowMoreThanOne(bool value)
+void PXMIniReader::setAllowMoreThanOne(bool value)
 {
     inisettings->setValue("config/AllowMoreThanOneInstance", value);
 }
-int MessIniReader::getUUIDNumber()
+int PXMIniReader::getUUIDNumber()
 {
     int i = 0;
     QString uuidStr = "uuid/";
@@ -35,7 +35,7 @@ int MessIniReader::getUUIDNumber()
     }
     return i;
 }
-QUuid MessIniReader::getUUID(int num, bool takeIt)
+QUuid PXMIniReader::getUUID(int num, bool takeIt)
 {
     if(inisettings->value("uuid/" + QString::number(num), "") == "")
     {
@@ -48,16 +48,16 @@ QUuid MessIniReader::getUUID(int num, bool takeIt)
     }
     return uuid;
 }
-int MessIniReader::resetUUID(int num, QUuid uuid)
+int PXMIniReader::resetUUID(int num, QUuid uuid)
 {
     inisettings->setValue("uuid/" + QString::number(num), uuid.toString());
     return 1;
 }
-void MessIniReader::setPort(QString protocol, int portNumber)
+void PXMIniReader::setPort(QString protocol, int portNumber)
 {
     inisettings->setValue("port/" + protocol, portNumber);
 }
-unsigned short MessIniReader::getPort(QString protocol)
+unsigned short PXMIniReader::getPort(QString protocol)
 {
     unsigned short portNumber = inisettings->value("port/" + protocol, 0).toUInt();
     if( portNumber == 13649 )
@@ -71,22 +71,22 @@ unsigned short MessIniReader::getPort(QString protocol)
     }
     return portNumber;
 }
-void MessIniReader::setHostname(QString hostname)
+void PXMIniReader::setHostname(QString hostname)
 {
     inisettings->setValue("hostname/hostname", hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH));
 }
-QString MessIniReader::getHostname(QString defaultHostname)
+QString PXMIniReader::getHostname(QString defaultHostname)
 {
     QString hostname = inisettings->value("hostname/hostname", defaultHostname).toString();
 
     return hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH).simplified();
 }
-void MessIniReader::setWindowSize(QSize windowSize)
+void PXMIniReader::setWindowSize(QSize windowSize)
 {
     if(windowSize.isValid())
         inisettings->setValue("WindowSize/QSize", windowSize);
 }
-QSize MessIniReader::getWindowSize(QSize defaultSize)
+QSize PXMIniReader::getWindowSize(QSize defaultSize)
 {
     QSize windowSize = inisettings->value("WindowSize/QSize", defaultSize).toSize();
     if(windowSize.isValid())
@@ -98,49 +98,49 @@ QSize MessIniReader::getWindowSize(QSize defaultSize)
         return windowSize;
     }
 }
-void MessIniReader::setMute(bool mute)
+void PXMIniReader::setMute(bool mute)
 {
     inisettings->setValue("config/Mute", mute);
 }
-bool MessIniReader::getMute()
+bool PXMIniReader::getMute()
 {
     return inisettings->value("config/Mute", false).toBool();
 }
-void MessIniReader::setFocus(bool focus)
+void PXMIniReader::setFocus(bool focus)
 {
     inisettings->setValue("config/PreventFocus", focus);
 }
-bool MessIniReader::getFocus()
+bool PXMIniReader::getFocus()
 {
     return inisettings->value("config/PreventFocus", false).toBool();
 }
-QString MessIniReader::getFont()
+QString PXMIniReader::getFont()
 {
     return inisettings->value("config/Font", "").toString();
 }
-void MessIniReader::setFont(QString font)
+void PXMIniReader::setFont(QString font)
 {
     inisettings->setValue("config/Font", font);
 }
-QString MessIniReader::getMulticastAddress()
+QString PXMIniReader::getMulticastAddress()
 {
     QString ipFull = inisettings->value("net/MulticastAddress", "").toString();
     if(ipFull.isEmpty() || strlen(ipFull.toLatin1().constData()) > INET_ADDRSTRLEN)
         return QString::fromLocal8Bit(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
     return ipFull;
 }
-int MessIniReader::setMulticastAddress(QString ip)
+int PXMIniReader::setMulticastAddress(QString ip)
 {
     inisettings->setValue("net/MulticastAddress", ip);
 
     return 0;
 }
-int MessIniReader::getVerbosity()
+int PXMIniReader::getVerbosity()
 {
     return inisettings->value("config/DebugVerbosity", 0).toInt();
 }
 
-void MessIniReader::setVerbosity(int level)
+void PXMIniReader::setVerbosity(int level)
 {
     inisettings->setValue("config/DebugVerbosity", level);
 }

@@ -38,7 +38,7 @@ PXMPeerWorker::~PXMPeerWorker()
 
     for(auto &itr : peerDetailsHash)
     {
-        qDeleteAll(itr.messages);
+        //qDeleteAll(itr.messages);
         evutil_closesocket(itr.socket);
     }
     //This must be done before PXMServer is shutdown;
@@ -213,10 +213,9 @@ void PXMPeerWorker::attemptConnection(sockaddr_in addr, QUuid uuid)
 
     evutil_socket_t socketfd = socket(AF_INET, SOCK_STREAM, 0);
     evutil_make_socket_nonblocking(socketfd);
-    struct bufferevent *bev;
     if(PXMServer::ServerThread::base)
     {
-        bev = bufferevent_socket_new(PXMServer::ServerThread::base, socketfd, BEV_OPT_THREADSAFE);
+        struct bufferevent *bev = bufferevent_socket_new(PXMServer::ServerThread::base, socketfd, BEV_OPT_THREADSAFE);
         peerDetailsHash[uuid].bw->lockBev();
         peerDetailsHash[uuid].bw->setBev(bev);
         peerDetailsHash[uuid].bw->unlockBev();
@@ -338,7 +337,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
     }
     else
     {
-        qInfo() << "Unsuccessful connection attempt to " << uuid.toString();
+        qWarning() << "Unsuccessful connection attempt to " << uuid.toString();
         peerDetailsHash[uuid].bw->lockBev();
         peerDetailsHash[uuid].bw->setBev(nullptr);
         bufferevent_free(bev);
@@ -490,12 +489,13 @@ int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool)
         return -1;
     }
 
-    peerDetailsHash[uuid].messages.append(new QString(str.toUtf8()));
+    QSharedPointer<QString> pStr(new QString(str.toUtf8()));
+    peerDetailsHash[uuid].messages.append(pStr);
     if(peerDetailsHash[uuid].messages.size() > MESSAGE_HISTORY_LENGTH)
     {
-        delete peerDetailsHash[uuid].messages.takeFirst();
+        peerDetailsHash[uuid].messages.takeFirst();
     }
-    emit printToTextBrowser(str, uuid, alert);
+    emit printToTextBrowser(pStr, uuid, alert);
     return 0;
 }
 void PXMPeerWorker::setSelfCommsBufferevent(bufferevent *bev)
@@ -538,13 +538,15 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, MESSAGE_TYPE type, QUuid uui
 }
 void PXMPeerWorker::printFullHistory(QUuid uuid)
 {
-    QString str = QString();
+    QString *str = new QString();
 
-    for(QString* const &itr : peerDetailsHash.value(uuid).messages)
+    for(QSharedPointer<QString> const &itr : peerDetailsHash.value(uuid).messages)
     {
-        str.append(*itr);
+        str->append(itr.data());
     }
-    emit printToTextBrowser(str, uuid, false);
+    QSharedPointer<QString> pStr(str);
+
+    emit printToTextBrowser(pStr, uuid, false);
 }
 
 void PXMPeerWorker::setlibeventBackend(QString str)
