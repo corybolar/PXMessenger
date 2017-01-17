@@ -1,14 +1,17 @@
 #ifndef PXMSYNC_H
 #define PXMSYNC_H
 
-#include <QWidget>
 #include <QHash>
 #include <QUuid>
 #include <QSharedPointer>
+#include <QObject>
 
 #include <event2/util.h>
 
-#include <pxmdefinitions.h>
+namespace Peers {
+class BevWrapper;
+class PeerData;
+}
 
 class PXMSync : public QObject
 {

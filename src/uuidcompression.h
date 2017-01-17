@@ -1,13 +1,9 @@
 #ifndef UUIDCOMPRESSION_H
 #define UUIDCOMPRESSION_H
 
-#include <QUuid>
-#ifdef __WIN32
-#include <winsock2.h>
-#else
-#include <arpa/inet.h>
-#endif
+#include <stddef.h>
 
+class QUuid;
 namespace UUIDCompression {
 const size_t PACKED_UUID_LENGTH = 16;
 QUuid unpackUUID(const unsigned char *src);

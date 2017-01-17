@@ -1,30 +1,16 @@
 #ifndef PXMWINDOW_H
 #define PXMWINDOW_H
 
-#include <QScrollArea>
-#include <QListWidget>
 #include <QSystemTrayIcon>
-#include <QMenu>
-#include <QIcon>
-#include <QDebug>
 #include <QCloseEvent>
-#include <QSound>
-#include <QAction>
-#include <QApplication>
-#include <QPalette>
 #include <QMainWindow>
-#include <QMessageBox>
-#include <QStringBuilder>
-#include <QDateTime>
+#include <QUuid>
 
-#include "pxmtextedit.h"
-#include "pxminireader.h"
-#include "pxmdefinitions.h"
-#include "pxmpeerworker.h"
-#include "pxmconsolewindow.h"
-#include "pxmmessageviewer.h"
+#include "pxmconsts.h"
 #include "ui_pxmaboutdialog.h"
 #include "ui_pxmsettingsdialog.h"
+
+#include <event2/util.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -33,11 +19,15 @@
 #include <lmcons.h>
 #endif
 
+namespace PXMConsole {
+class Window;
+}
 namespace Ui {
 class PXMWindow;
 class PXMAboutDialog;
 class PXMSettingsDialog;
 }
+class QListWidgetItem;
 
 class PXMWindow : public QMainWindow
 {
@@ -51,7 +41,7 @@ public:
     PXMWindow& operator=(PXMWindow const&) = delete;
     PXMWindow& operator=(PXMWindow&&) noexcept = delete;
     PXMWindow(PXMWindow&&) noexcept = delete;
-    PXMConsole::PXMConsoleWindow *debugWindow = nullptr;
+    PXMConsole::Window *debugWindow = nullptr;
 public slots:
     void bloomActionsSlot();
     void resizeLabel(QRect size);
@@ -151,21 +141,6 @@ private:
      * All widget slots are connected to the respective signals here
      */
     void connectGuiSignalsAndSlots();
-    /*!
-     * \brief createMessClient
-     *
-     * Initialize a PXMClient.  This object is added to a QThread which runs
-     * its own event loop.  All sending of messages and connecting to other
-     * hosts is done in this object.
-     */
-    void startWorkerThread();
-    /*!
-     * \brief connectPeerClassSignalsAndSlots
-     *
-     * Connect the many signals and slots moving to and from a PXMPeerWorker
-     * object.  PXMPeerWorker is initialized in constructor of PXMMainWindow.
-     */
-    void connectPeerClassSignalsAndSlots();
     /*!
      * \brief setupLayout
      *

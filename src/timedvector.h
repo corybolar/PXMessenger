@@ -6,7 +6,6 @@
 #include <QTimer>
 #include <QTime>
 #include <QObject>
-#include <QDebug>
 
 enum Time_Format : uint {MSECONDS = 1, SECONDS=1000};
 

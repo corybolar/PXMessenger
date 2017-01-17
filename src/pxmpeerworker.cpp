@@ -1,5 +1,35 @@
 #include <pxmpeerworker.h>
-#include <QTextCursor>
+#include <QDebug>
+#include <QStringBuilder>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
+#include <QApplication>
+#include <QTimer>
+#include <QTime>
+#include "timedvector.h"
+#include "pxmsync.h"
+#include "pxmserver.h"
+#include "pxmclient.h"
+
+#include <sys/unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include <event2/event.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
+#include <netinet/in.h>
+#include <resolv.h>
+#endif
+
 using namespace PXMConsts;
 
 PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,

@@ -2,8 +2,6 @@
 #define PXMTEXTEDIT_H
 
 #include <QTextEdit>
-#include <QKeyEvent>
-#include <QWidget>
 
 class PXMTextEdit : public QTextEdit
 {

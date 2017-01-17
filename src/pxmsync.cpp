@@ -1,4 +1,5 @@
 #include "pxmsync.h"
+#include "pxmpeers.h"
 
 PXMSync::PXMSync(QObject *parent) : QObject(parent)
 {

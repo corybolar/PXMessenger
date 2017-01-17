@@ -2,42 +2,22 @@
 #define PXMPEERWORKER_H
 
 #include <QString>
-#include <QDebug>
 #include <QMutex>
-#include <QUuid>
 #include <QThread>
-#include <QTimer>
-#include <QStringBuilder>
-#include <QBuffer>
-#include <QApplication>
-#include <QDateTime>
-#include <QRegularExpression>
-
-#include <sys/unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include <QSharedPointer>
 
 #include <event2/bufferevent.h>
 
-#include "pxmserver.h"
-#include "pxmsync.h"
-#include "pxmdefinitions.h"
-#include "pxmclient.h"
+#include "pxmpeers.h"
+#include "pxmconsts.h"
 #include "timedvector.h"
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <arpa/nameser.h>
-#include <netinet/in.h>
-#include <resolv.h>
-#include <QSharedPointer>
-#endif
+class QTimer;
+class PXMSync;
+class PXMClient;
+namespace PXMServer {
+class ServerThread;
+}
 
 class PXMPeerWorker : public QObject
 {

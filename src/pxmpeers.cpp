@@ -1,4 +1,15 @@
-#include "pxmdefinitions.h"
+#include "pxmpeers.h"
+
+#include <QStringBuilder>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+Q_DECLARE_METATYPE(intptr_t)
+#else
+#include <arpa/inet.h>
+#endif
+
 using namespace Peers;
 
 int Peers::textColorsNext = 0;

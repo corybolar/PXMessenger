@@ -37,12 +37,11 @@ SOURCES += \
     pxmessenger.cpp \
     pxmsettingsdialog.cpp \
     uuidcompression.cpp \
-    pxmdefinitions.cpp \
-    pxmconsolewindow.cpp \
-    pxmmessageviewer.cpp
+    pxmmessageviewer.cpp \
+    pxmconsole.cpp \
+    pxmpeers.cpp
 
 HEADERS += \
-    pxmdefinitions.h \
     pxmpeerworker.h \
     pxmmainwindow.h \
     pxmsync.h \
@@ -52,8 +51,10 @@ HEADERS += \
     pxmclient.h \
     uuidcompression.h \
     timedvector.h \
-    pxmconsolewindow.h \
-    pxmmessageviewer.h
+    pxmmessageviewer.h \
+    pxmconsole.h \
+    pxmconsts.h \
+    pxmpeers.h
 
 DISTFILES +=
 

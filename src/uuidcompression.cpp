@@ -1,4 +1,10 @@
 #include "uuidcompression.h"
+#include <QUuid>
+#ifdef __WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 QUuid UUIDCompression::unpackUUID(const unsigned char *src)
 {

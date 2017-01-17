@@ -1,5 +1,31 @@
 #include <pxmclient.h>
 
+#include <sys/types.h>
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+#include <event2/event.h>
+#include <event2/bufferevent.h>
+#include <event2/buffer.h>
+
+#include <QDebug>
+
+#include "uuidcompression.h"
+#include "pxmpeers.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
+
 PXMClient::PXMClient(QObject *parent, in_addr multicast, QUuid localUUID) : QObject(parent)
 {
     this->setObjectName("PXMClient");
@@ -7,6 +33,11 @@ PXMClient::PXMClient(QObject *parent, in_addr multicast, QUuid localUUID) : QObj
     multicastAddress = multicast;
 
     setLocalUUID(localUUID);
+}
+
+PXMClient::~PXMClient()
+{
+    qDebug() << "Shutdown of PXMClient Successful";
 }
 
 void PXMClient::setLocalUUID(QUuid uuid)

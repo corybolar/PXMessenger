@@ -4,17 +4,24 @@
 #include <QFontDatabase>
 #include <QSplashScreen>
 #include <QElapsedTimer>
+#include <QStringBuilder>
+#include <QDebug>
+#include <QMessageBox>
+#include <QPushButton>
 
 #include "pxmmainwindow.h"
-#include "pxmconsolewindow.h"
+#include "pxmconsole.h"
 #include "pxminireader.h"
-#include "pxmdefinitions.h"
+#include "pxmpeers.h"
 #include "pxmpeerworker.h"
+#include <event2/bufferevent.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #else
 #include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
@@ -79,7 +86,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         msgColor = QGuiApplication::palette().foreground().color();
         break;
     }
-    if(PXMConsoleWindow::textEdit)
+    if(Window::textEdit)
     {
         localMsg.append(QChar('\n'));
         qApp->postEvent(logger, new AppendTextEvent(localMsg, msgColor), Qt::LowEventPriority);

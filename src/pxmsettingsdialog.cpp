@@ -1,8 +1,16 @@
 #include "pxmmainwindow.h"
 #ifndef __WIN32
-#include "pwd.h"
+#include <pwd.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 #include "ui_pxmsettingsdialog.h"
+#include "pxminireader.h"
+#include "pxmconsole.h"
+
+#include <QStringBuilder>
+#include <QMessageBox>
+#include <QPushButton>
 
 void PXMSettingsDialog::clickedme(QAbstractButton *button)
 {

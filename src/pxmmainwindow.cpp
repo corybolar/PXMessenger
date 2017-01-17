@@ -1,11 +1,20 @@
-#include <pxmmainwindow.h>
+#include "pxmmainwindow.h"
 #include "ui_pxmmainwindow.h"
 #include "ui_pxmaboutdialog.h"
+#include "pxminireader.h"
+#include "pxmconsole.h"
+
+#include <QDateTime>
+#include <QStringBuilder>
+#include <QListWidget>
+#include <QDebug>
+#include <QSound>
+#include <QMessageBox>
 
 using namespace PXMMessageViewer;
 
 PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat) :
-    debugWindow(new PXMConsole::PXMConsoleWindow()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
+    debugWindow(new PXMConsole::Window()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
 {
     setupGui();
 
@@ -138,7 +147,7 @@ void PXMWindow::settingsActionsSlot()
 {
     PXMSettingsDialog *setD = new PXMSettingsDialog(this);
     QObject::connect(setD, &PXMSettingsDialog::nameChange, this, &PXMWindow::nameChange);
-    QObject::connect(setD, &PXMSettingsDialog::verbosityChanged, debugWindow, &PXMConsole::PXMConsoleWindow::verbosityChanged);
+    QObject::connect(setD, &PXMSettingsDialog::verbosityChanged, debugWindow, &PXMConsole::Window::verbosityChanged);
     setD->open();
 }
 

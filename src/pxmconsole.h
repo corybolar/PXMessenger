@@ -1,38 +1,23 @@
-#ifndef PXMCONSOLEWINDOW_H
-#define PXMCONSOLEWINDOW_H
+#ifndef PXMCONSOLE_H
+#define PXMCONSOLE_H
 
-#include <QWidget>
 #include <QMainWindow>
-#include <QTextBrowser>
-#include <QGridLayout>
-#include <QPlainTextEdit>
-#include <QPushButton>
-#include <QScrollBar>
-#include <QDebug>
-#include <QDialog>
-#include <QStringBuilder>
-#include <QLabel>
+#include <QEvent>
+#include <QTextEdit>
 
+class QPushButton;
 namespace PXMConsole {
 const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
-const QByteArray debugHtml = "<font color=\"Grey\">";
-const QByteArray infoHtml = "";
-const QByteArray criticalHtml = "<font color=\"Red\">";
-const QByteArray warningHtml = "<font color=\"Orange\">";
-const QByteArray endHtml = "</font><br>";
+class consoleImple;
 
-class PXMConsoleWindow : public QMainWindow
+class Window : public QMainWindow
 {
     Q_OBJECT
-    bool atMaximum = false;
+    consoleImple *pimpl__;
 public:
-    explicit PXMConsoleWindow(QWidget *parent = 0);
-    QWidget *centralwidget;
-    QGridLayout *gridLayout;
-    QGridLayout *gridLayout_2;
+    explicit Window(QWidget *parent = 0);
+    ~Window();
     QPushButton *pushButton;
-    QScrollBar *sb;
-    QLabel *verbosity;
     static QTextEdit *textEdit;
 public slots:
     void verbosityChanged();
@@ -97,4 +82,4 @@ protected:
 }
 
 
-#endif // PXMCONSOLEWINDOW_H
+#endif // PXMCONSOLE_H

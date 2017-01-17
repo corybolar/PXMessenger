@@ -1,4 +1,5 @@
-#include <pxmtextedit.h>
+#include "pxmtextedit.h"
+#include <QKeyEvent>
 
 PXMTextEdit::PXMTextEdit(QWidget *parent) : QTextEdit(parent)
 {

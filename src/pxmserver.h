@@ -2,34 +2,11 @@
 #define PXMSERVER_H
 
 #include <QThread>
-#include <QWidget>
 #include <QUuid>
-#include <QDebug>
 
-#include <sys/types.h>
 #include <sys/time.h>
-#include <unistd.h>
 
-#include <event2/event.h>
-#include <event2/buffer.h>
 #include <event2/bufferevent.h>
-#include <event2/util.h>
-#include <event2/thread.h>
-
-#include "pxmdefinitions.h"
-#include "uuidcompression.h"
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/select.h>
-#include <fcntl.h>
-#endif
 
 namespace PXMServer{
 const timeval READ_TIMEOUT = {1, 0};

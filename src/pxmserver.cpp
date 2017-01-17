@@ -1,4 +1,30 @@
 #include <pxmserver.h>
+#include <QDebug>
+#include <QUuid>
+
+#include <unistd.h>
+#include <sys/types.h>
+
+#include <event2/event.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/util.h>
+#include <event2/thread.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/select.h>
+#include <fcntl.h>
+#endif
+
+#include "pxmpeers.h"
+#include "pxmconsts.h"
 
 using namespace PXMConsts;
 using namespace PXMServer;

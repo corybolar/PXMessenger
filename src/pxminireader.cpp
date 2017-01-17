@@ -1,4 +1,9 @@
 #include "pxminireader.h"
+#include "pxmconsts.h"
+#include <QString>
+#include <QSize>
+#include <QUuid>
+#include <netinet/in.h>
 
 PXMIniReader::PXMIniReader()
 {

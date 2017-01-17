@@ -1,34 +1,15 @@
 #ifndef PXMCLIENT_H
 #define PXMCLIENT_H
 
-#include <QWidget>
+#include <QObject>
 #include <QUuid>
-#include <QDebug>
-
-#include <sys/types.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <event2/event.h>
+#include "pxmconsts.h"
 #include <event2/bufferevent.h>
-#include <event2/buffer.h>
 
-#include "pxmdefinitions.h"
-#include "uuidcompression.h"
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#endif
-
+namespace Peers
+{
+class BevWrapper;
+}
 class PXMClient : public QObject
 {
     Q_OBJECT
@@ -37,7 +18,7 @@ class PXMClient : public QObject
     char packedLocalUUID[16];
 public:
     PXMClient(QObject *parent, in_addr multicast, QUuid localUUID);
-    ~PXMClient() {qDebug() << "Shutdown of PXMClient Successful";}
+    ~PXMClient();
     void setLocalUUID(QUuid uuid);
 public slots:
     void sendMsg(QSharedPointer<Peers::BevWrapper> bw, const char *msg,
