@@ -3,8 +3,7 @@
 #include "pwd.h"
 #endif
 #include "ui_pxmsettingsdialog.h"
-#include "QDialogButtonBox"
-#include "QSpinBox"
+
 void PXMSettingsDialog::clickedme(QAbstractButton *button)
 {
     if((QPushButton*)button == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults))

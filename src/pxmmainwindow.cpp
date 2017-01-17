@@ -2,6 +2,8 @@
 #include "ui_pxmmainwindow.h"
 #include "ui_pxmaboutdialog.h"
 
+using namespace PXMMessageViewer;
+
 PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat) :
     debugWindow(new PXMConsole::PXMConsoleWindow()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
 {
@@ -53,9 +55,9 @@ void PXMWindow::setupLabels()
     loadingLabel = new QLabel(ui->centralwidget);
     loadingLabel->setText("Select a Friend on the right to begin messaging!");
     loadingLabel->setAlignment(Qt::AlignCenter);
-    loadingLabel->setGeometry(ui->messTextBrowser->geometry());
+    loadingLabel->setGeometry(ui->stackedWidget->geometry());
     loadingLabel->show();
-    resizeLabel(ui->messTextBrowser->geometry());
+    resizeLabel(ui->stackedWidget->geometry());
 }
 
 void PXMWindow::resizeLabel(QRect size)
@@ -79,6 +81,7 @@ void PXMWindow::initListWidget()
     fsep->setLineWidth(2);
     ui->messListWidget->setItemWidget(seperator, fsep);
     ui->messListWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
+    ui->stackedWidget->addWidget(new TextWidget(ui->stackedWidget, globalChatUuid));
 }
 void PXMWindow::createSystemTray()
 {
@@ -123,7 +126,7 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
     QObject::connect(ui->messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);;
-    QObject::connect(ui->messTextBrowser, &PXMTextBrowser::resizeLabel, this, &PXMWindow::resizeLabel);
+    QObject::connect(ui->stackedWidget, &StackedWidget::resizeLabel, this, &PXMWindow::resizeLabel);
 }
 void PXMWindow::aboutActionSlot()
 {
@@ -240,19 +243,33 @@ void PXMWindow::changeEvent(QEvent *event)
 }
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
-    loadingLabel->setText("Loading history...");
-    ui->messTextBrowser->clear();
-    ui->messTextBrowser->setStyleSheet(QString());
+    //loadingLabel->setText("Loading history...");
+    //ui->messTextBrowser->clear();
+    //ui->messTextBrowser->setStyleSheet(QString());
     QUuid uuid = item1->data(Qt::UserRole).toString();
-    loadingLabel->show();
+    loadingLabel->hide();
 
-    emit requestFullHistory(uuid);
+    //emit requestFullHistory(uuid);
     if(item1->background() != QGuiApplication::palette().base())
     {
         this->changeListItemColor(uuid, 0);
     }
-    QScrollBar *sb = this->ui->messTextBrowser->verticalScrollBar();
-    sb->setValue(sb->maximum());
+    bool foundIt = false;
+    for(int i = 0; i < ui->stackedWidget->count(); i++)
+    {
+        if(qobject_cast<TextWidget*>(ui->stackedWidget->widget(i))->getIdentifier() == uuid)
+        {
+            foundIt = true;
+            ui->stackedWidget->setCurrentIndex(i);
+            break;
+        }
+    }
+    if(!foundIt)
+    {
+        //Some Exception here
+    }
+    //QScrollBar *sb = this->ui->messTextBrowser->verticalScrollBar();
+    //sb->setValue(sb->maximum());
     return;
 }
 void PXMWindow::quitButtonClicked()
@@ -285,6 +302,7 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 
     item->setData(Qt::UserRole, uuid);
     ui->messListWidget->addItem(item);
+    ui->stackedWidget->addWidget(new TextWidget(ui->stackedWidget, uuid));
     ui->messListWidget->sortItems();
     ui->messListWidget->insertItem(0, global);
 
@@ -433,14 +451,9 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool 
         }
         this->focusWindow();
     }
-    if(!ui->messListWidget->currentItem() || ui->messListWidget->currentItem()->data(Qt::UserRole) != uuid)
-    {
-        return -1;
-    }
 
-    ui->messTextBrowser->setUpdatesEnabled(false);
-    ui->messTextBrowser->append(*str.data());
-    ui->messTextBrowser->setUpdatesEnabled(true);
+    ui->stackedWidget->append(*str.data(), uuid);
+
     if(loadingLabel)
         loadingLabel->hide();
 

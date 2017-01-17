@@ -22,7 +22,7 @@
 #include "pxmdefinitions.h"
 #include "pxmpeerworker.h"
 #include "pxmconsolewindow.h"
-#include "pxmtextbrowser.h"
+#include "pxmmessageviewer.h"
 #include "ui_pxmaboutdialog.h"
 #include "ui_pxmsettingsdialog.h"
 

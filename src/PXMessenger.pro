@@ -36,10 +36,10 @@ SOURCES += \
     pxmmainwindow.cpp \
     pxmessenger.cpp \
     pxmsettingsdialog.cpp \
-    pxmtextbrowser.cpp \
     uuidcompression.cpp \
     pxmdefinitions.cpp \
-    pxmconsolewindow.cpp
+    pxmconsolewindow.cpp \
+    pxmmessageviewer.cpp
 
 HEADERS += \
     pxmdefinitions.h \
@@ -50,10 +50,10 @@ HEADERS += \
     pxmtextedit.h \
     pxmserver.h \
     pxmclient.h \
-    pxmtextbrowser.h \
     uuidcompression.h \
     timedvector.h \
-    pxmconsolewindow.h
+    pxmconsolewindow.h \
+    pxmmessageviewer.h
 
 DISTFILES +=
 
