@@ -5,16 +5,10 @@
 #include <QRegularExpressionMatch>
 #include <QApplication>
 #include <QTimer>
-#include <QTime>
 #include "timedvector.h"
 #include "pxmsync.h"
 #include "pxmserver.h"
 #include "pxmclient.h"
-
-#include <sys/unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 
 #include <event2/event.h>
 

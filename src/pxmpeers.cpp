@@ -1,6 +1,9 @@
 #include "pxmpeers.h"
 
 #include <QStringBuilder>
+#include <QMutex>
+
+#include <event2/bufferevent.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -62,6 +65,10 @@ QString PeerData::toInfoString()
                    % QStringLiteral("Bufferevent: ") % (bw->getBev() ? QString::asprintf("%8p",bw->getBev()) : QStringLiteral("NULL")) % QStringLiteral("\n"));
 }
 
+BevWrapper::BevWrapper() : bev(nullptr), locker(new QMutex) {}
+
+BevWrapper::BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
+
 BevWrapper::~BevWrapper()
 {
     if(locker)
@@ -83,6 +90,12 @@ BevWrapper::~BevWrapper()
     }
 }
 
+BevWrapper::BevWrapper(BevWrapper &&b) noexcept : bev(b.bev), locker(b.locker)
+{
+    b.bev = nullptr;
+    b.locker = nullptr;
+}
+
 BevWrapper &BevWrapper::operator =(BevWrapper &&b) noexcept
 {
     if(this != &b)
@@ -94,6 +107,10 @@ BevWrapper &BevWrapper::operator =(BevWrapper &&b) noexcept
     }
     return *this;
 }
+
+void BevWrapper::lockBev() {locker->lock();}
+
+void BevWrapper::unlockBev() {locker->unlock();}
 
 int BevWrapper::freeBev()
 {

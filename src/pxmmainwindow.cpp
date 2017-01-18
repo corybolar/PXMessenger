@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QSound>
 #include <QMessageBox>
+#include <QCloseEvent>
 
 using namespace PXMMessageViewer;
 
@@ -252,33 +253,17 @@ void PXMWindow::changeEvent(QEvent *event)
 }
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
-    //loadingLabel->setText("Loading history...");
-    //ui->messTextBrowser->clear();
-    //ui->messTextBrowser->setStyleSheet(QString());
     QUuid uuid = item1->data(Qt::UserRole).toString();
     loadingLabel->hide();
 
-    //emit requestFullHistory(uuid);
     if(item1->background() != QGuiApplication::palette().base())
     {
         this->changeListItemColor(uuid, 0);
     }
-    bool foundIt = false;
-    for(int i = 0; i < ui->stackedWidget->count(); i++)
-    {
-        if(qobject_cast<TextWidget*>(ui->stackedWidget->widget(i))->getIdentifier() == uuid)
-        {
-            foundIt = true;
-            ui->stackedWidget->setCurrentIndex(i);
-            break;
-        }
-    }
-    if(!foundIt)
+    if(ui->stackedWidget->switchToUuid(uuid))
     {
         //Some Exception here
     }
-    //QScrollBar *sb = this->ui->messTextBrowser->verticalScrollBar();
-    //sb->setValue(sb->maximum());
     return;
 }
 void PXMWindow::quitButtonClicked()
@@ -467,4 +452,22 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool 
         loadingLabel->hide();
 
     return 0;
+}
+
+PXMAboutDialog::PXMAboutDialog(QWidget *parent, QIcon icon) : QDialog(parent), ui(new Ui::PXMAboutDialog), icon(icon)
+{
+    ui->setupUi(this);
+    ui->label_2->setPixmap(icon.pixmap(QSize(64,64)));
+    ui->label->setText("<br><center>PXMessenger v"
+                       + qApp->applicationVersion() +
+                       "</center>"
+                       "<br>"
+                       "<center>Author: Cory Bolar</center>"
+                       "<br>"
+                       "<center>"
+                       "<a href=\"https://github.com/cbpeckles/PXMessenger\">"
+                       "https://github.com/cbpeckles/PXMessenger</a>"
+                       "</center>"
+                       "<br><br><br><br>");
+    this->setAttribute(Qt::WA_DeleteOnClose, true);
 }

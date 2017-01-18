@@ -2,22 +2,13 @@
 #define PXMWINDOW_H
 
 #include <QSystemTrayIcon>
-#include <QCloseEvent>
 #include <QMainWindow>
 #include <QUuid>
 
 #include "pxmconsts.h"
+#include "ui_pxmmainwindow.h"
 #include "ui_pxmaboutdialog.h"
 #include "ui_pxmsettingsdialog.h"
-
-#include <event2/util.h>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
-#include <lmcons.h>
-#endif
 
 namespace PXMConsole {
 class Window;
@@ -32,7 +23,6 @@ class QListWidgetItem;
 class PXMWindow : public QMainWindow
 {
     Q_OBJECT
-
 
 public:
     PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat);
@@ -54,29 +44,13 @@ protected:
     void changeEvent(QEvent *event)  Q_DECL_OVERRIDE;
 private:
     Ui::PXMWindow *ui;
-    QGridLayout *layout;
-    QWidget *centralwidget;
-    QSpacerItem *horizontalSpacer;
-    QSpacerItem *horizontalSpacer_2;
-    QSpacerItem *horizontalSpacer_3;
-    QSpacerItem *horizontalSpacer_4;
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
     QSystemTrayIcon *messSystemTray;
-    QPushButton *m_sendDebugButton;
     QLabel *loadingLabel;
-    QLabel *browserLabel;
     QFrame *fsep;
     QString localHostname;
     QUuid globalChatUuid;
-
-    /*!
-     * \brief getFormattedTime
-     *
-     * Get the current time and format it to be (23:59:59)
-     * \return The formatted time as a QString
-     */
-    QString getFormattedTime();
 
     /*!
      * \brief focusWindow
@@ -95,33 +69,12 @@ private:
      */
     int changeListItemColor(QUuid uuid, int style);
     /*!
-     * \brief createTextEdit
-     *
-     * Initializes the text editor for the windows.  This is where messages are
-     * typed prior to sending.
-     */
-    void createTextEdit();
-    /*!
      * \brief createTextBrowser
      *
      * Initializes the text browser where messages are displayed upon sending
      * or receiving.
      */
     void setupLabels();
-    /*!
-     * \brief createLineEdit
-     *
-     * Initializes a single line editor that holds the full hostname of the
-     * program. Currently read-only.
-     */
-    void createLineEdit();
-    /*!
-     * \brief createButtons
-     *
-     * Creates two buttons, one to send, one to quit.  They are connected to the
-     * sendButtonClicked and quitButtonClicked slots.
-     */
-    void createButtons();
     /*!
      * \brief createListWidget
      *
@@ -147,7 +100,6 @@ private:
      * Put all gui widgets on the window and in the correct location.
      * This was created in Qt Designer.
      */
-    void setupLayout();
     void setupTooltips();
     void setupMenuBar();
     void setupGui();
@@ -163,13 +115,12 @@ private slots:
     void debugActionSlot();
     void nameChange(QString hname);
 signals:
-    void connectToPeer(evutil_socket_t, sockaddr_in);
     void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
     void sendUDP(const char*);
     void retryDiscover();
     void addMessageToPeer(QString, QUuid, bool, bool);
-    void requestFullHistory(QUuid);
 };
+
 class PXMAboutDialog : public QDialog
 {
     Q_OBJECT
@@ -177,28 +128,13 @@ class PXMAboutDialog : public QDialog
     Ui::PXMAboutDialog *ui;
     QIcon icon;
 public:
-    PXMAboutDialog(QWidget *parent = 0, QIcon icon = QIcon()) : QDialog(parent), ui(new Ui::PXMAboutDialog), icon(icon)
-    {
-        ui->setupUi(this);
-        ui->label_2->setPixmap(icon.pixmap(QSize(64,64)));
-        ui->label->setText("<br><center>PXMessenger v"
-                           + qApp->applicationVersion() +
-                           "</center>"
-                           "<br>"
-                           "<center>Author: Cory Bolar</center>"
-                           "<br>"
-                           "<center>"
-                           "<a href=\"https://github.com/cbpeckles/PXMessenger\">"
-                           "https://github.com/cbpeckles/PXMessenger</a>"
-                           "</center>"
-                           "<br><br><br><br>");
-        this->setAttribute(Qt::WA_DeleteOnClose, true);
-    }
+    PXMAboutDialog(QWidget *parent = 0, QIcon icon = QIcon());
     ~PXMAboutDialog()
     {
         delete ui;
     }
 };
+
 class PXMSettingsDialog : public QDialog
 {
     Q_OBJECT

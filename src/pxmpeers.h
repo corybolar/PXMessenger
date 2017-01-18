@@ -6,17 +6,17 @@
 #include <QSize>
 #include <QLinkedList>
 #include <QVector>
-#include <QMutex>
 #include <QSharedPointer>
 
-//#include "uuidcompression.h"
-#include <event2/bufferevent.h>
+#include <event2/util.h>
+struct bufferevent;
 
 Q_DECLARE_METATYPE(sockaddr_in)
 Q_DECLARE_METATYPE(size_t)
 Q_DECLARE_OPAQUE_POINTER(bufferevent*)
 Q_DECLARE_METATYPE(bufferevent*)
 
+class QMutex;
 namespace Peers{
 const QString selfColor = "#6495ED"; //Cornflower Blue
 const QString peerColor = "#FF0000"; //Red
@@ -27,24 +27,21 @@ const QVector<QString> textColors = {"#808000", //Olive
                                      "#FF69B4", //HotPink
                                      "#708090", //SlateGrey
                                      "#008000", //Green
-                                     "#00FF00"}; //Lime
+                                     "#00FF00" //Lime
+                                    };
 extern int textColorsNext;
 class BevWrapper {
 public:
     //Default Constructor
-    BevWrapper() : bev(nullptr), locker(new QMutex) {}
+    BevWrapper();
     //Constructor with a bufferevent
-    BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
+    BevWrapper(bufferevent *buf);
     //Destructor
     ~BevWrapper();
     //Copy Constructor
     BevWrapper(const BevWrapper& b) : bev(b.bev), locker(b.locker) {}
     //Move Constructor
-    BevWrapper(BevWrapper&& b) noexcept : bev(b.bev), locker(b.locker)
-    {
-        b.bev = nullptr;
-        b.locker = nullptr;
-    }
+    BevWrapper(BevWrapper&& b) noexcept;
     //Move Assignment
     BevWrapper &operator =(BevWrapper&& b) noexcept;
     //Eqaul
@@ -54,8 +51,8 @@ public:
 
     void setBev(bufferevent *buf) {bev = buf;}
     bufferevent* getBev() {return bev;}
-    void lockBev() {locker->lock();}
-    void unlockBev() {locker->unlock();}
+    void lockBev();
+    void unlockBev();
     int freeBev();
 
 private:
@@ -130,7 +127,7 @@ struct initialSettings{
         username = QString();
         windowSize = QSize(800,600);
         uuid = QUuid();
-        multicast = QString("239.192.13.13"); //FIXME:USE CONSTS
+        multicast = QString();
     }
 };
 

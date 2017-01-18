@@ -3,6 +3,9 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <unistd.h>
+#else
+#include <lmcons.h>
+#include <windows.h>
 #endif
 #include "ui_pxmsettingsdialog.h"
 #include "pxminireader.h"

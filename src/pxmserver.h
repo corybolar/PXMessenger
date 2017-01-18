@@ -6,7 +6,10 @@
 
 #include <sys/time.h>
 
-#include <event2/bufferevent.h>
+#include <event2/util.h>
+
+struct bufferevent;
+struct event_base;
 
 namespace PXMServer{
 const timeval READ_TIMEOUT = {1, 0};

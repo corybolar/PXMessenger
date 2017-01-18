@@ -18,6 +18,7 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#include <lmcons.h>
 #else
 #include <pwd.h>
 #include <sys/types.h>
@@ -142,7 +143,6 @@ void connectPeerAndWindow(PXMPeerWorker* peerWorker, PXMWindow* window)
     QObject::connect(window, &PXMWindow::addMessageToPeer, peerWorker, &PXMPeerWorker::addMessageToPeer, Qt::QueuedConnection);
     QObject::connect(window, &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor, Qt::QueuedConnection);
     QObject::connect(window, &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDPAccessor, Qt::QueuedConnection);
-    QObject::connect(window, &PXMWindow::requestFullHistory, peerWorker, &PXMPeerWorker::printFullHistory, Qt::QueuedConnection);
     QObject::connect(window->debugWindow->pushButton, &QAbstractButton::clicked, peerWorker, &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);
 }
 

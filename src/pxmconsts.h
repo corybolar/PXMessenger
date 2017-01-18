@@ -1,3 +1,4 @@
+#pragma once
 #ifndef PXMCONSTS_H
 #define PXMCONSTS_H
 

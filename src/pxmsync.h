@@ -6,8 +6,6 @@
 #include <QSharedPointer>
 #include <QObject>
 
-#include <event2/util.h>
-
 namespace Peers {
 class BevWrapper;
 class PeerData;

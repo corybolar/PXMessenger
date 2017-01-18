@@ -48,6 +48,11 @@ ServerThread::ServerThread(QObject *parent, unsigned short tcpPort, unsigned sho
 }
 ServerThread::~ServerThread()
 {
+    if(base)
+    {
+        event_base_free(base);
+        base = 0;
+    }
     qDebug() << "Shutdown of PXMServer Successful";
 }
 int ServerThread::setLocalUUID(QUuid uuid)
@@ -602,6 +607,7 @@ void ServerThread::run()
     //bufferevent_free(selfCommsPair[1]);
 
     event_base_free(base);
+    base = 0;
 
     qDebug() << "Events free, returning from PXMServer::run()";
 }

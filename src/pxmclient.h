@@ -4,12 +4,15 @@
 #include <QObject>
 #include <QUuid>
 #include "pxmconsts.h"
-#include <event2/bufferevent.h>
 
+#include <event2/util.h>
+
+struct bufferevent;
 namespace Peers
 {
 class BevWrapper;
 }
+
 class PXMClient : public QObject
 {
     Q_OBJECT

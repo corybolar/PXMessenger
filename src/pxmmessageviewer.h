@@ -26,6 +26,7 @@ class StackedWidget : public QStackedWidget
 public:
     StackedWidget(QWidget *parent) : QStackedWidget(parent) {}
     int append(QString str, QUuid& uuid);
+    int switchToUuid(QUuid& uuid);
 protected:
     void resizeEvent(QResizeEvent *event);
 signals:

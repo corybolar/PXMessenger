@@ -21,3 +21,16 @@ int StackedWidget::append(QString str, QUuid &uuid)
     }
     return -1;
 }
+int StackedWidget::switchToUuid(QUuid &uuid)
+{
+    for(int i = 0; i < this->count(); i++)
+    {
+        TextWidget *tw = qobject_cast<TextWidget*>(this->widget(i));
+        if(tw->getIdentifier() == uuid)
+        {
+            this->setCurrentIndex(i);
+            return 0;
+        }
+    }
+    return -1;
+}
