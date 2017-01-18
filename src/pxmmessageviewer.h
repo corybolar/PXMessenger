@@ -5,20 +5,44 @@
 #include <QTextBrowser>
 #include <QStackedWidget>
 #include <QUuid>
+#include <QWidget>
+#include <QLabel>
 
-class QLabel;
 namespace PXMMessageViewer {
-
-class TextWidget : public QTextBrowser
+//subclass this to allow the stackwidget to search for it by uuid
+class MVBase
 {
-    Q_OBJECT
     QUuid identifier;
 public:
-    TextWidget(QWidget *parent, const QUuid& uuid) :
-        QTextBrowser(parent),
+    MVBase(const QUuid& uuid) :
         identifier(uuid)
-    {}
+    {
+
+    }
     QUuid getIdentifier() {return identifier;}
+};
+class LabelWidget : public QLabel, public MVBase
+{
+    Q_OBJECT
+public:
+    LabelWidget(QWidget *parent, const QUuid& uuid) :
+        QLabel(parent), MVBase(uuid)
+    {
+        this->setBackgroundRole(QPalette::Base);
+        this->setAutoFillBackground(true);
+        this->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
+    }
+};
+
+class TextWidget : public QTextBrowser, public MVBase
+{
+    Q_OBJECT
+public:
+    TextWidget(QWidget *parent, const QUuid& uuid) :
+        QTextBrowser(parent), MVBase(uuid)
+    {
+
+    }
 };
 
 class StackedWidget : public QStackedWidget

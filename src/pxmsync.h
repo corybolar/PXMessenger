@@ -8,7 +8,7 @@
 
 namespace Peers {
 class BevWrapper;
-class PeerData;
+struct PeerData;
 }
 
 class PXMSync : public QObject

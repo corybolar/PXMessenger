@@ -19,7 +19,7 @@ class ServerThread : public QThread
 {
     Q_OBJECT
 
-    class servImpl;
+    struct servImpl;
     servImpl *pImpl;
 
     int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len,

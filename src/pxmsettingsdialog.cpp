@@ -114,7 +114,6 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent), ui(new 
     ui->multicastLineEdit->setValidator(ipValidator);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
     ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getVerbosityLevel());
-    QObject::connect(ui->buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
     QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
     QObject::connect(ui->fontComboBox, &QFontComboBox::currentFontChanged, this, &PXMSettingsDialog::currentFontChanged);

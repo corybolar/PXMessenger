@@ -5,7 +5,7 @@ QMAKE_TARGET_COMPANY = Bolar Code Solutions
 QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
-QT = core gui widgets multimedia webkitwidgets
+QT = core gui widgets multimedia
 CONFIG += c++11
 
 unix: LIBS += -levent -levent_pthreads
@@ -20,7 +20,6 @@ DEPENDPATH += $$PWD/../../libevent/include
 
 win32 {
 LIBS += -lws2_32
-#RC_FILE = $$PWD/resources/icon.rc
 RC_ICONS = $$PWD/resources/PXM_Icon.ico
 }
 

@@ -12,7 +12,7 @@ const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
 class Window : public QMainWindow
 {
     Q_OBJECT
-    class consoleImple;
+    struct consoleImple;
     consoleImple *pimpl__;
 
 public:
