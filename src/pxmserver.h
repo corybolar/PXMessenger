@@ -28,8 +28,8 @@ class ServerThread : public QThread
     evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
     evutil_socket_t setupTCPSocket();
 public:
-    ServerThread(QObject *parent, unsigned short tcpPort, unsigned short udpPort,
-                 in_addr multicast);
+    ServerThread(QObject *parent, unsigned short tcpPort,
+                 unsigned short udpPort, in_addr multicast);
     ServerThread(ServerThread const&) = delete;
     ServerThread& operator=(ServerThread const&) = delete;
     ServerThread& operator=(ServerThread&&) noexcept = delete;

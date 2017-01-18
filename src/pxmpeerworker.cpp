@@ -222,7 +222,7 @@ void PXMPeerWorker::newTcpConnection(bufferevent *bev)
 }
 void PXMPeerWorker::sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw)
 {
-    //Auth packet format "Hostname:::12345:::v001.001.001
+    //Auth packet format "Hostname:::12345:::001.001.001
     emit sendMsg(bw, (localHostname
                       % QString::fromLatin1(AUTH_SEPERATOR)
                       % QString::number(serverTCPPort)

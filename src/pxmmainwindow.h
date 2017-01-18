@@ -24,33 +24,13 @@ class PXMWindow : public QMainWindow
 {
     Q_OBJECT
 
-public:
-    PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat);
-    ~PXMWindow();
-    PXMWindow(PXMWindow const&) = delete;
-    PXMWindow& operator=(PXMWindow const&) = delete;
-    PXMWindow& operator=(PXMWindow&&) noexcept = delete;
-    PXMWindow(PXMWindow&&) noexcept = delete;
-    PXMConsole::Window *debugWindow = nullptr;
-public slots:
-    void bloomActionsSlot();
-    int printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert);
-    void setItalicsOnItem(QUuid uuid, bool italics);
-    void updateListWidget(QUuid uuid, QString hostname);
-    void warnBox(QString title, QString msg);
-protected:
-    void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;
-    void changeEvent(QEvent *event)  Q_DECL_OVERRIDE;
-private:
     Ui::PXMWindow *ui;
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
     QSystemTrayIcon *messSystemTray;
-    //QLabel *loadingLabel;
     QFrame *fsep;
     QString localHostname;
     QUuid globalChatUuid;
-
     /*!
      * \brief focusWindow
      *
@@ -93,16 +73,29 @@ private:
      * All widget slots are connected to the respective signals here
      */
     void connectGuiSignalsAndSlots();
-    /*!
-     * \brief setupLayout
-     *
-     * Put all gui widgets on the window and in the correct location.
-     * This was created in Qt Designer.
-     */
     void setupTooltips();
     void setupMenuBar();
     void setupGui();
     int removeBodyFormatting(QByteArray &str);
+
+public:
+    PXMWindow(QString hostname, QSize windowSize, bool mute,
+              bool focus, QUuid globalChat);
+    ~PXMWindow();
+    PXMWindow(PXMWindow const&) = delete;
+    PXMWindow& operator=(PXMWindow const&) = delete;
+    PXMWindow& operator=(PXMWindow&&) noexcept = delete;
+    PXMWindow(PXMWindow&&) noexcept = delete;
+    PXMConsole::Window *debugWindow = nullptr;
+public slots:
+    void bloomActionsSlot();
+    int printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert);
+    void setItalicsOnItem(QUuid uuid, bool italics);
+    void updateListWidget(QUuid uuid, QString hostname);
+    void warnBox(QString title, QString msg);
+protected:
+    void closeEvent(QCloseEvent *event)  Q_DECL_OVERRIDE;
+    void changeEvent(QEvent *event)  Q_DECL_OVERRIDE;
 private slots:
     int sendButtonClicked();
     void quitButtonClicked();

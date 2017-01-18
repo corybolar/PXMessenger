@@ -37,7 +37,7 @@ const int MAX_AUTH_PACKET_LENGTH = 	sizeof(MESSAGE_TYPE) +
                                     strlen(AUTH_SEPERATOR) +
                                     5/*port number*/ +
                                     strlen(AUTH_SEPERATOR) +
-                                    strlen("v001.001.001") +
+                                    strlen("001.001.001") +
                                     1/*null*/;
 
 }

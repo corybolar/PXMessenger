@@ -151,7 +151,7 @@ void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
     MESSAGE_TYPE *type = (MESSAGE_TYPE*)&buf[0];
     if(*type == MSG_AUTH)
     {
-        //Auth packet format "Hostname:::12345:::v001.001.001"
+        //Auth packet format "Hostname:::12345:::001.001.001"
         bufLen -= sizeof(MESSAGE_TYPE);
         QStringList hpsplit = (QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(AUTH_SEPERATOR);
         if(hpsplit.length() != 3)

@@ -22,22 +22,7 @@ class ServerThread;
 class PXMPeerWorker : public QObject
 {
     Q_OBJECT
-public:
-    explicit PXMPeerWorker(QObject *parent,
-                           QString username,
-                           QUuid selfUUID,
-                           QString multicast,
-                           unsigned short tcpPort,
-                           unsigned short udpPort,
-                           QUuid globaluuid);
-    ~PXMPeerWorker();
-    PXMPeerWorker(PXMPeerWorker const&) = delete;
-    PXMPeerWorker& operator=(PXMPeerWorker const&) = delete;
-    PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
-    PXMPeerWorker(PXMPeerWorker&&) noexcept = delete;
-    const int SYNC_TIMEOUT_MSECS = 2000;
-    const int SYNC_TIMER = 900000;
-private:
+
     QHash<QUuid,Peers::PeerData>peerDetailsHash;
     QString localHostname;
     QUuid localUUID;
@@ -61,17 +46,31 @@ private:
     QVector<QSharedPointer<Peers::BevWrapper>> extraBufferevents;
     TimedVector<QUuid> *syncablePeers;
 
-
     void sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw);
     void startServer();
     void connectClient();
     int formatMessage(QString &str, QUuid uuid, QString color);
+public:
+    explicit PXMPeerWorker(QObject *parent,
+                           QString username,
+                           QUuid selfUUID,
+                           QString multicast,
+                           unsigned short tcpPort,
+                           unsigned short udpPort,
+                           QUuid globaluuid);
+    ~PXMPeerWorker();
+    PXMPeerWorker(PXMPeerWorker const&) = delete;
+    PXMPeerWorker& operator=(PXMPeerWorker const&) = delete;
+    PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
+    PXMPeerWorker(PXMPeerWorker&&) noexcept = delete;
+    const int SYNC_TIMEOUT_MSECS = 2000;
+    const int SYNC_TIMER = 900000;
 public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
     void attemptConnection(sockaddr_in addr, QUuid uuid);
-    void authenticationReceived(QString hname, unsigned short port, QString version,
-                                evutil_socket_t s, QUuid uuid,
+    void authenticationReceived(QString hname, unsigned short port,
+                                QString version,evutil_socket_t s, QUuid uuid,
                                 bufferevent *bev);
     void newTcpConnection(bufferevent *bev);
     void peerQuit(evutil_socket_t s, bufferevent *bev);
@@ -90,7 +89,8 @@ public slots:
                              bool global);
     void addMessageToAllPeers(QString str, bool alert, bool formatAsMessage);
     void printFullHistory(QUuid uuid);
-    void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type, QUuid uuid = QUuid());
+    void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type,
+                         QUuid uuid = QUuid());
     void setSelfCommsBufferevent(bufferevent *bev);
     void discoveryTimerPersistent();
     void multicastIsFunctional();
@@ -107,12 +107,13 @@ private slots:
 signals:
     void printToTextBrowser(QSharedPointer<QString>, QUuid, bool);
     void updateListWidget(QUuid, QString);
-    void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, PXMConsts::MESSAGE_TYPE,
-                 QUuid = QUuid());
+    void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray,
+                 PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
     void sendUDP(const char*, unsigned short);
     void sendIpsPacket(QSharedPointer<Peers::BevWrapper>, char*, size_t len,
                        PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
-    void connectToPeer(evutil_socket_t, sockaddr_in, QSharedPointer<Peers::BevWrapper>);
+    void connectToPeer(evutil_socket_t, sockaddr_in,
+                       QSharedPointer<Peers::BevWrapper>);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);

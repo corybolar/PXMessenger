@@ -11,11 +11,13 @@
 #include <QSound>
 #include <QMessageBox>
 #include <QCloseEvent>
+#include <QMenu>
+#include <QApplication>
 
 using namespace PXMMessageViewer;
 
 PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat) :
-    debugWindow(new PXMConsole::Window()), ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat)
+    ui(new Ui::PXMWindow), localHostname(hostname), globalChatUuid(globalChat), debugWindow(new PXMConsole::Window())
 {
     setupGui();
 
@@ -83,7 +85,7 @@ void PXMWindow::createSystemTray()
     messSystemTrayMenu = new QMenu(this);
     messSystemTrayExitAction = new QAction(tr("&Exit"), this);
     messSystemTrayMenu->addAction(messSystemTrayExitAction);
-    QObject::connect(messSystemTrayExitAction, &QAction::triggered, qApp, &QCoreApplication::quit);
+    QObject::connect(messSystemTrayExitAction, &QAction::triggered, this, &PXMWindow::quitButtonClicked);
 
     messSystemTray = new QSystemTrayIcon(this);
     messSystemTray->setIcon(trayIcon);
@@ -116,7 +118,6 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
     QObject::connect(ui->messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);;
-    //QObject::connect(ui->stackedWidget, &StackedWidget::resizeLabel, this, &PXMWindow::resizeLabel);
 }
 void PXMWindow::aboutActionSlot()
 {
