@@ -19,11 +19,8 @@ class ServerThread : public QThread
 {
     Q_OBJECT
 
-    QUuid localUUID;
-    unsigned short tcpListenerPort;
-    unsigned short udpListenerPort;
-    in_addr multicastAddress;
-    bool gotDiscover;
+    class servImpl;
+    servImpl *pImpl;
 
     int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len,
                               QUuid quuid);
@@ -42,7 +39,7 @@ public:
     int setLocalUUID(QUuid uuid);
     ~ServerThread();
     static void tcpError(bufferevent *bev, short error, void *arg);
-    static void tcpReadUUID(bufferevent *bev, void *arg);
+    static void tcpAuth(bufferevent *bev, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
     static void accept_new(evutil_socket_t socketfd, short, void *arg);
     static void udpRecieve(evutil_socket_t socketfd, short, void *args);
@@ -51,8 +48,8 @@ public:
 signals:
     void messageRecieved(QString, QUuid, bufferevent*, bool);
     void newTCPConnection(bufferevent*);
-    void authenticationReceived(QString, unsigned short, evutil_socket_t,
-                                QUuid, bufferevent*);
+    void authenticationReceived(QString, unsigned short, QString,
+                                evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(sockaddr_in, QUuid);
     void sendSyncPacket(bufferevent*, QUuid);

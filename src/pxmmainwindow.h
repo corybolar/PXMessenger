@@ -34,7 +34,6 @@ public:
     PXMConsole::Window *debugWindow = nullptr;
 public slots:
     void bloomActionsSlot();
-    void resizeLabel(QRect size);
     int printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert);
     void setItalicsOnItem(QUuid uuid, bool italics);
     void updateListWidget(QUuid uuid, QString hostname);
@@ -47,7 +46,7 @@ private:
     QAction *messSystemTrayExitAction;
     QMenu *messSystemTrayMenu;
     QSystemTrayIcon *messSystemTray;
-    QLabel *loadingLabel;
+    //QLabel *loadingLabel;
     QFrame *fsep;
     QString localHostname;
     QUuid globalChatUuid;

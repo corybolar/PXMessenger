@@ -8,7 +8,7 @@
 #include <QPushButton>
 
 using namespace PXMConsole;
-struct PXMConsole::consoleImple {
+struct PXMConsole::Window::consoleImple {
     bool atMaximum = false;
     QWidget *centralwidget;
     QGridLayout *gridLayout;
@@ -18,7 +18,7 @@ struct PXMConsole::consoleImple {
 };
 
 QTextEdit * Window::textEdit = 0;
-Window::Window(QWidget *parent) : QMainWindow(parent), pimpl__(new PXMConsole::consoleImple())
+Window::Window(QWidget *parent) : QMainWindow(parent), pimpl__(new PXMConsole::Window::consoleImple())
 {
     this->setObjectName("Debug Console");
     this->setWindowTitle("Debug Console");

@@ -18,12 +18,30 @@ using namespace Peers;
 int Peers::textColorsNext = 0;
 
 PeerData::PeerData() : identifier(QUuid()), ipAddressRaw(sockaddr_in()),
-    hostname(QString()), messages(QLinkedList<QSharedPointer<QString>>()),
+    hostname(QString()), progVersion(QString()), messages(QLinkedList<QSharedPointer<QString>>()),
     bw(QSharedPointer<BevWrapper>(new BevWrapper)), socket(-1), connectTo(false),
     isAuthenticated(false)
 {
     textColor = textColors.at(textColorsNext % textColors.length());
     textColorsNext++;
+}
+
+PeerData::PeerData(const PeerData &pd) : identifier(pd.identifier),
+    ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
+    textColor(pd.textColor), progVersion(pd.progVersion),
+    messages(pd.messages), bw(pd.bw), socket(pd.socket),
+    connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated)
+{
+
+}
+
+PeerData::PeerData(PeerData &&pd) noexcept : identifier(pd.identifier),
+    ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
+    textColor(pd.textColor), progVersion(pd.progVersion),
+    messages(pd.messages), bw(pd.bw), socket(pd.socket),
+    connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated)
+{
+    pd.bw.clear();
 }
 
 PeerData& PeerData::operator= (PeerData &&p) noexcept
@@ -36,6 +54,7 @@ PeerData& PeerData::operator= (PeerData &&p) noexcept
         ipAddressRaw = p.ipAddressRaw;
         hostname = p.hostname;
         textColor = p.textColor;
+        progVersion = p.progVersion;
         messages = p.messages;
         socket = p.socket;
         connectTo = p.connectTo;
@@ -55,6 +74,7 @@ QString PeerData::toInfoString()
 {
     return QString(QStringLiteral("Hostname: ") % hostname % QStringLiteral("\n")
                    % QStringLiteral("UUID: ") % identifier.toString() % QStringLiteral("\n")
+                   % QStringLiteral("Program Version: ") % progVersion % QChar('\n')
                    % QStringLiteral("Text Color: ") % textColor % QStringLiteral("\n")
                    % QStringLiteral("IP Address: ") % QString::fromLocal8Bit(inet_ntoa(ipAddressRaw.sin_addr))
                    % QStringLiteral(":") % QString::number(ntohs(ipAddressRaw.sin_port)) % QStringLiteral("\n")
@@ -65,9 +85,15 @@ QString PeerData::toInfoString()
                    % QStringLiteral("Bufferevent: ") % (bw->getBev() ? QString::asprintf("%8p",bw->getBev()) : QStringLiteral("NULL")) % QStringLiteral("\n"));
 }
 
-BevWrapper::BevWrapper() : bev(nullptr), locker(new QMutex) {}
+BevWrapper::BevWrapper() : bev(nullptr), locker(new QMutex)
+{
 
-BevWrapper::BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex) {}
+}
+
+BevWrapper::BevWrapper(bufferevent *buf) : bev(buf), locker(new QMutex)
+{
+
+}
 
 BevWrapper::~BevWrapper()
 {
@@ -108,9 +134,15 @@ BevWrapper &BevWrapper::operator =(BevWrapper &&b) noexcept
     return *this;
 }
 
-void BevWrapper::lockBev() {locker->lock();}
+void BevWrapper::lockBev()
+{
+    locker->lock();
+}
 
-void BevWrapper::unlockBev() {locker->unlock();}
+void BevWrapper::unlockBev()
+{
+    locker->unlock();
+}
 
 int BevWrapper::freeBev()
 {
@@ -125,3 +157,5 @@ int BevWrapper::freeBev()
     else
         return -1;
 }
+
+

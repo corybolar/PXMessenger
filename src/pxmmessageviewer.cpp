@@ -1,11 +1,13 @@
 #include "pxmmessageviewer.h"
+#include <QLabel>
 
 using namespace PXMMessageViewer;
 
-void StackedWidget::resizeEvent(QResizeEvent *event)
+StackedWidget::StackedWidget(QWidget *parent) : QStackedWidget(parent),
+    intro(new TextWidget(this, QUuid::createUuid()))
 {
-    emit resizeLabel(this->geometry());
-    QStackedWidget::resizeEvent(event);
+    intro->setText("Select a friend on the right to begin messaging!");
+    this->addWidget(intro);
 }
 
 int StackedWidget::append(QString str, QUuid &uuid)

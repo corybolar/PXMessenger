@@ -16,7 +16,6 @@ class BevWrapper;
 class PXMClient : public QObject
 {
     Q_OBJECT
-    int recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count);
     in_addr multicastAddress;
     char packedLocalUUID[16];
 public:

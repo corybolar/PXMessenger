@@ -1,3 +1,4 @@
+#pragma once
 #ifndef PXMMESSAGEVIEWER_H
 #define PXMMESSAGEVIEWER_H
 
@@ -5,6 +6,7 @@
 #include <QStackedWidget>
 #include <QUuid>
 
+class QLabel;
 namespace PXMMessageViewer {
 
 class TextWidget : public QTextBrowser
@@ -12,7 +14,6 @@ class TextWidget : public QTextBrowser
     Q_OBJECT
     QUuid identifier;
 public:
-    TextWidget(QWidget *parent) : QTextBrowser(parent) {}
     TextWidget(QWidget *parent, const QUuid& uuid) :
         QTextBrowser(parent),
         identifier(uuid)
@@ -23,14 +24,11 @@ public:
 class StackedWidget : public QStackedWidget
 {
     Q_OBJECT
+    TextWidget *intro;
 public:
-    StackedWidget(QWidget *parent) : QStackedWidget(parent) {}
+    StackedWidget(QWidget *parent);
     int append(QString str, QUuid& uuid);
     int switchToUuid(QUuid& uuid);
-protected:
-    void resizeEvent(QResizeEvent *event);
-signals:
-    void resizeLabel(QRect);
 };
 
 }

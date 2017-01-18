@@ -2,14 +2,11 @@
 
 #include <sys/types.h>
 #include <string.h>
-#include <stdio.h>
 #include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <stdint.h>
 
 #include <event2/event.h>
 #include <event2/bufferevent.h>
-#include <event2/buffer.h>
 
 #include <QDebug>
 
@@ -170,34 +167,4 @@ void PXMClient::sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw, char *msg, siz
 {
     this->sendMsg(bw, msg, len, type, theiruuid);
     delete [] msg;
-}
-
-int PXMClient::recursiveSend(evutil_socket_t socketfd, void *msg, int len, int count)
-{
-    int status2 = 0;
-#ifdef _WIN32
-    int status = send(socketfd, (char*)msg, len, 0);
-#else
-    int status = send(socketfd, msg, len, MSG_NOSIGNAL);
-#endif
-
-    if( (status <= 0) )
-    {
-        qDebug() << "send on socket " + QString::number(socketfd) + ": " + QString::fromUtf8(strerror(errno));
-        return -1;
-    }
-
-    if( ( status != len ) && ( count < 10 ) )
-    {
-        qDebug() << "We are partially sending this msg";
-        int len2 = len - status;
-        //uint8_t cast to avoid compiler warning, we want to advance the pointer the number of bytes in status
-        msg = (void*)((char*)msg + status);
-        count++;
-
-        status2 = recursiveSend(socketfd, msg, len2, count);
-        if(status2 <= 0)
-            return -1;
-    }
-    return status + status2;
 }

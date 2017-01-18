@@ -3,6 +3,7 @@
 #include <QString>
 #include <QSize>
 #include <QUuid>
+#include <QSettings>
 #ifdef __WIN32
 #include <ws2tcpip.h>
 #else

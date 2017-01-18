@@ -60,24 +60,6 @@ void PXMWindow::setupMenuBar()
     QObject::connect(debugAction, &QAction::triggered, this, &PXMWindow::debugActionSlot);
 }
 
-void PXMWindow::setupLabels()
-{
-    loadingLabel = new QLabel(ui->centralwidget);
-    loadingLabel->setText("Select a Friend on the right to begin messaging!");
-    loadingLabel->setAlignment(Qt::AlignCenter);
-    loadingLabel->setGeometry(ui->stackedWidget->geometry());
-    loadingLabel->show();
-    resizeLabel(ui->stackedWidget->geometry());
-}
-
-void PXMWindow::resizeLabel(QRect size)
-{
-    if(loadingLabel)
-    {
-        loadingLabel->setGeometry(size);
-    }
-}
-
 void PXMWindow::initListWidget()
 {
     ui->messListWidget->setSortingEnabled(false);
@@ -116,8 +98,6 @@ void PXMWindow::setupGui()
     if (this->objectName().isEmpty())
         this->setObjectName(QStringLiteral("PXMessenger"));
 
-    setupLabels();
-
     setupMenuBar();
 
     initListWidget();
@@ -136,7 +116,7 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
     QObject::connect(ui->messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);;
-    QObject::connect(ui->stackedWidget, &StackedWidget::resizeLabel, this, &PXMWindow::resizeLabel);
+    //QObject::connect(ui->stackedWidget, &StackedWidget::resizeLabel, this, &PXMWindow::resizeLabel);
 }
 void PXMWindow::aboutActionSlot()
 {
@@ -254,7 +234,6 @@ void PXMWindow::changeEvent(QEvent *event)
 void PXMWindow::currentItemChanged(QListWidgetItem *item1)
 {
     QUuid uuid = item1->data(Qt::UserRole).toString();
-    loadingLabel->hide();
 
     if(item1->background() != QGuiApplication::palette().base())
     {
@@ -426,8 +405,6 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool 
 {
     if(str->isEmpty())
     {
-        if(loadingLabel)
-            loadingLabel->hide();
         return -1;
     }
     if(alert)
@@ -447,9 +424,6 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool 
     }
 
     ui->stackedWidget->append(*str.data(), uuid);
-
-    if(loadingLabel)
-        loadingLabel->hide();
 
     return 0;
 }

@@ -3,10 +3,10 @@
 #define PXMPEERS_H
 
 #include <QUuid>
-#include <QSize>
 #include <QLinkedList>
 #include <QVector>
 #include <QSharedPointer>
+#include <QString>
 
 #include <event2/util.h>
 struct bufferevent;
@@ -31,6 +31,9 @@ const QVector<QString> textColors = {"#808000", //Olive
                                     };
 extern int textColorsNext;
 class BevWrapper {
+    bufferevent *bev;
+    QMutex *locker;
+
 public:
     //Default Constructor
     BevWrapper();
@@ -54,10 +57,6 @@ public:
     void lockBev();
     void unlockBev();
     int freeBev();
-
-private:
-    bufferevent *bev;
-    QMutex *locker;
 };
 
 struct PeerData{
@@ -65,6 +64,7 @@ struct PeerData{
     sockaddr_in ipAddressRaw;
     QString hostname;
     QString textColor;
+    QString progVersion;
     QLinkedList<QSharedPointer<QString>> messages;
     QSharedPointer<BevWrapper> bw;
     evutil_socket_t socket;
@@ -75,21 +75,10 @@ struct PeerData{
     PeerData();
 
     //Copy
-    PeerData (const PeerData& pd) : identifier(pd.identifier),
-            ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
-            textColor(pd.textColor),
-            messages(pd.messages), bw(pd.bw), socket(pd.socket),
-            connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated) {}
+    PeerData (const PeerData& pd);
 
     //Move
-    PeerData (PeerData&& pd) noexcept : identifier(pd.identifier),
-            ipAddressRaw(pd.ipAddressRaw), hostname(pd.hostname),
-            textColor(pd.textColor),
-            messages(pd.messages), bw(pd.bw), socket(pd.socket),
-            connectTo(pd.connectTo), isAuthenticated(pd.isAuthenticated)
-    {
-        pd.bw.clear();
-    }
+    PeerData (PeerData&& pd) noexcept;
 
     //Destructor
     ~PeerData() noexcept {}
@@ -106,29 +95,5 @@ struct PeerData{
 
 }
 Q_DECLARE_METATYPE(QSharedPointer<Peers::BevWrapper>)
-
-struct initialSettings{
-    int uuidNum;
-    unsigned short tcpPort;
-    unsigned short udpPort;
-    bool mute;
-    bool preventFocus;
-    QString username;
-    QSize windowSize;
-    QUuid uuid;
-    QString multicast;
-    initialSettings()
-    {
-        uuidNum = 0;
-        tcpPort = 0;
-        udpPort = 0;
-        mute = false;
-        preventFocus = false;
-        username = QString();
-        windowSize = QSize(800,600);
-        uuid = QUuid();
-        multicast = QString();
-    }
-};
 
 #endif

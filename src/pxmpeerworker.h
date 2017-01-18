@@ -1,18 +1,18 @@
 #ifndef PXMPEERWORKER_H
 #define PXMPEERWORKER_H
 
-#include <QString>
-#include <QMutex>
-#include <QThread>
+#include <QObject>
 #include <QSharedPointer>
 
 #include <event2/bufferevent.h>
 
 #include "pxmpeers.h"
 #include "pxmconsts.h"
-#include "timedvector.h"
 
+template<class T>
+class TimedVector;
 class QTimer;
+class QString;
 class PXMSync;
 class PXMClient;
 namespace PXMServer {
@@ -70,7 +70,7 @@ public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
     void attemptConnection(sockaddr_in addr, QUuid uuid);
-    void authenticationReceived(QString hname, unsigned short port,
+    void authenticationReceived(QString hname, unsigned short port, QString version,
                                 evutil_socket_t s, QUuid uuid,
                                 bufferevent *bev);
     void newTcpConnection(bufferevent *bev);

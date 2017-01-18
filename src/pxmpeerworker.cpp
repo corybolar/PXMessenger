@@ -5,6 +5,7 @@
 #include <QRegularExpressionMatch>
 #include <QApplication>
 #include <QTimer>
+#include <QThread>
 #include "timedvector.h"
 #include "pxmsync.h"
 #include "pxmserver.h"
@@ -45,6 +46,7 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
     selfComms.hostname = localHostname;
     selfComms.connectTo = true;
     selfComms.isAuthenticated = false;
+    selfComms.progVersion = qApp->applicationVersion();
     peerDetailsHash.insert(localUUID, selfComms);
 
     Peers::PeerData globalPeer;
@@ -220,7 +222,13 @@ void PXMPeerWorker::newTcpConnection(bufferevent *bev)
 }
 void PXMPeerWorker::sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw)
 {
-    emit sendMsg(bw, (localHostname % QString::fromLatin1(PORT_SEPERATOR) % QString::number(serverTCPPort)).toUtf8(), MSG_AUTH);
+    //Auth packet format "Hostname:::12345:::v001.001.001
+    emit sendMsg(bw, (localHostname
+                      % QString::fromLatin1(AUTH_SEPERATOR)
+                      % QString::number(serverTCPPort)
+                      % QString::fromLatin1(AUTH_SEPERATOR)
+                      % qApp->applicationVersion()).toUtf8()
+                 , MSG_AUTH);
 }
 void PXMPeerWorker::requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid)
 {
@@ -346,7 +354,7 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool resul
     if(result)
     {
         qInfo() << "Successful connection attempt to" << uuid.toString();
-        bufferevent_setcb(bev, PXMServer::ServerThread::tcpReadUUID, NULL, PXMServer::ServerThread::tcpError, messServer);
+        bufferevent_setcb(bev, PXMServer::ServerThread::tcpAuth, NULL, PXMServer::ServerThread::tcpError, messServer);
         bufferevent_setwatermark(bev, EV_READ, PXMServer::PACKET_HEADER_LENGTH, PXMServer::PACKET_HEADER_LENGTH);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
         peerDetailsHash[uuid].bw->lockBev();
@@ -393,7 +401,7 @@ void PXMPeerWorker::resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
     }
     */
 }
-void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, evutil_socket_t s, QUuid uuid, bufferevent *bev)
+void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, QString version, evutil_socket_t s, QUuid uuid, bufferevent *bev)
 {
     if(uuid.isNull())
     {
@@ -426,15 +434,16 @@ void PXMPeerWorker::authenticationReceived(QString hname, unsigned short port, e
             }
         }
     }
+    peerDetailsHash[uuid].identifier = uuid;
+    peerDetailsHash[uuid].ipAddressRaw = addr;
+    peerDetailsHash[uuid].hostname = hname;
+    peerDetailsHash[uuid].progVersion = version;
     peerDetailsHash[uuid].bw->lockBev();
     peerDetailsHash[uuid].bw->setBev(bev);
     peerDetailsHash[uuid].bw->unlockBev();
     peerDetailsHash[uuid].socket = s;
     peerDetailsHash[uuid].connectTo = true;
     peerDetailsHash[uuid].isAuthenticated = true;
-    peerDetailsHash[uuid].identifier = uuid;
-    peerDetailsHash[uuid].hostname = hname;
-    peerDetailsHash[uuid].ipAddressRaw = addr;
 
     emit updateListWidget(uuid, peerDetailsHash.value(uuid).hostname);
     emit requestSyncPacket(peerDetailsHash.value(uuid).bw, uuid);

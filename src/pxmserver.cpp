@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -30,24 +31,37 @@ using namespace PXMConsts;
 using namespace PXMServer;
 
 struct event_base* ServerThread::base = nullptr;
-ServerThread::ServerThread(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast) : QThread(parent)
+struct PXMServer::ServerThread::servImpl{
+    QUuid localUUID;
+    unsigned short tcpListenerPort;
+    unsigned short udpListenerPort;
+    in_addr multicastAddress;
+    bool gotDiscover;
+};
+
+ServerThread::ServerThread(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast) : QThread(parent), pImpl(new servImpl)
 {
     //Init
-    gotDiscover = false;
+    pImpl->gotDiscover = false;
     //End of Init
 
-    tcpListenerPort = tcpPort;
+    pImpl->tcpListenerPort = tcpPort;
 
     if(udpPort == 0)
-        udpListenerPort = PXMConsts::DEFAULT_UDP_PORT;
+        pImpl->udpListenerPort = PXMConsts::DEFAULT_UDP_PORT;
     else
-        udpListenerPort = udpPort;
+        pImpl->udpListenerPort = udpPort;
 
-    multicastAddress = multicast;
+    pImpl->multicastAddress = multicast;
     this->setObjectName("PXMServer");
 }
 ServerThread::~ServerThread()
 {
+    if(pImpl)
+    {
+        delete pImpl;
+        pImpl = 0;
+    }
     if(base)
     {
         event_base_free(base);
@@ -57,7 +71,7 @@ ServerThread::~ServerThread()
 }
 int ServerThread::setLocalUUID(QUuid uuid)
 {
-    localUUID = uuid;
+    pImpl->localUUID = uuid;
     return 0;
 }
 void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
@@ -79,7 +93,7 @@ void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(result);
         bev = bufferevent_socket_new(ServerThread::base, result, BEV_OPT_THREADSAFE);
-        bufferevent_setcb(bev, ServerThread::tcpReadUUID, NULL, ServerThread::tcpError, realServer);
+        bufferevent_setcb(bev, ServerThread::tcpAuth, NULL, ServerThread::tcpError, realServer);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
 
@@ -87,7 +101,7 @@ void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
     }
 }
 
-void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
+void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
 {
     ServerThread *realServer = static_cast<ServerThread*>(arg);
     uint16_t nboBufLen;
@@ -98,7 +112,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     {
         evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, PACKET_HEADER_LENGTH);
         bufLen = ntohs(nboBufLen);
-        if(bufLen == 0 || bufLen > MAX_UUID_PACKET_LENGTH)
+        if(bufLen == 0 || bufLen > MAX_AUTH_PACKET_LENGTH)
         {
             qWarning().noquote() << "Bad buffer length, disconnecting";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
@@ -137,9 +151,10 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
     MESSAGE_TYPE *type = (MESSAGE_TYPE*)&buf[0];
     if(*type == MSG_AUTH)
     {
+        //Auth packet format "Hostname:::12345:::v001.001.001"
         bufLen -= sizeof(MESSAGE_TYPE);
-        QStringList hpsplit = (QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(PORT_SEPERATOR);
-        if(hpsplit.length() != 2)
+        QStringList hpsplit = (QString::fromUtf8(&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(AUTH_SEPERATOR);
+        if(hpsplit.length() != 3)
         {
             qWarning() << "Bad Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
@@ -154,7 +169,7 @@ void ServerThread::tcpReadUUID(struct bufferevent *bev, void *arg)
             realServer->peerQuit(socket, bev);
             return;
         }
-        realServer->authenticationReceived(hpsplit[0], port, socket, quuid, bev);
+        realServer->authenticationReceived(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
         bufferevent_setcb(bev, ServerThread::tcpRead, NULL, ServerThread::tcpError, realServer);
     }
@@ -325,9 +340,9 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     if (strncmp(&buf[0], "/discover", 9) == 0)
     {
         qDebug() << "Discovery Packet:" << buf;
-        if(!realServer->gotDiscover)
+        if(!realServer->pImpl->gotDiscover)
         {
-            realServer->gotDiscover = true;
+            realServer->pImpl->gotDiscover = true;
             realServer->multicastIsFunctional();
         }
         evutil_socket_t replySocket;
@@ -338,7 +353,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
             return;
         }
 
-        si_other.sin_port = htons(realServer->udpListenerPort);
+        si_other.sin_port = htons(realServer->pImpl->udpListenerPort);
 
         int len = sizeof(uint16_t) + UUIDCompression::PACKED_UUID_LENGTH + strlen("/name:");
 
@@ -346,9 +361,9 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 
         strcpy(name, "/name:");
 
-        uint16_t port = htons(realServer->tcpListenerPort);
+        uint16_t port = htons(realServer->pImpl->tcpListenerPort);
         memcpy(&name[strlen("/name:")], &(port), sizeof(port));
-        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], realServer->localUUID);
+        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], realServer->pImpl->localUUID);
 
         name[len+1] = 0;
 
@@ -394,7 +409,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     evutil_socket_t socketUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    multicastGroup.imr_multiaddr = multicastAddress;
+    multicastGroup.imr_multiaddr = pImpl->multicastAddress;
     multicastGroup.imr_interface.s_addr = INADDR_ANY;
     if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
     {
@@ -405,7 +420,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(udpListenerPort);
+    si_me.sin_port = htons(pImpl->udpListenerPort);
     //si_me.sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
     si_me.sin_addr.s_addr = INADDR_ANY;
 
@@ -425,11 +440,11 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
         return -1;
     }
 
-    tcpListenerPort = getPortNumber(s_listen);
+    pImpl->tcpListenerPort = getPortNumber(s_listen);
 
     udpSocketNumber = getPortNumber(socketUDP);
 
-    emit setListenerPorts(tcpListenerPort, udpSocketNumber);
+    emit setListenerPorts(pImpl->tcpListenerPort, udpSocketNumber);
 
     qInfo().noquote() << "Port number for Multicast: " + QString::number(udpSocketNumber);
 
@@ -449,7 +464,7 @@ evutil_socket_t ServerThread::setupTCPSocket()
     hints.ai_flags = AI_PASSIVE;
 
     char tcpPortChar[6] = {};
-    sprintf(tcpPortChar, "%d", tcpListenerPort);
+    sprintf(tcpPortChar, "%d", pImpl->tcpListenerPort);
 
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
     {
@@ -475,7 +490,7 @@ evutil_socket_t ServerThread::setupTCPSocket()
         {
             qCritical().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
         }
-        if(listen(socketTCP, BACKLOG) < 0)
+        if(listen(socketTCP, SOMAXCONN) < 0)
         {
             qCritical().noquote() << "listen: " + QString::fromUtf8(strerror(errno));
         }

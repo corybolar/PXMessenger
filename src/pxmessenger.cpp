@@ -8,6 +8,8 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QThread>
+#include <QSize>
 
 #include "pxmmainwindow.h"
 #include "pxmconsole.h"
@@ -34,6 +36,22 @@ int PXMConsole::AppendTextEvent::type = QEvent::registerEventType();
 PXMConsole::LoggerSingleton* PXMConsole::LoggerSingleton::loggerInstance = nullptr;
 int PXMConsole::LoggerSingleton::verbosityLevel = 0;
 
+struct initialSettings{
+    QUuid uuid;
+    QSize windowSize;
+    QString username;
+    QString multicast;
+    int uuidNum;
+    unsigned short tcpPort;
+    unsigned short udpPort;
+    bool mute;
+    bool preventFocus;
+    initialSettings() : uuid(QUuid()), windowSize(QSize(800,600)), username(QString()),
+        multicast(QString()), uuidNum(0), tcpPort(0), udpPort(0), mute(false),
+        preventFocus(false)
+    {
+    }
+};
 void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     using namespace PXMConsole;

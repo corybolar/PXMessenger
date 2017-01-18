@@ -5,7 +5,7 @@ QMAKE_TARGET_COMPANY = Bolar Code Solutions
 QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
-QT = core gui widgets multimedia
+QT = core gui widgets multimedia webkitwidgets
 CONFIG += c++11
 
 unix: LIBS += -levent -levent_pthreads

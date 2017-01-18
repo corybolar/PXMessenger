@@ -1,10 +1,11 @@
 #ifndef MESSINIREADER_H
 #define MESSINIREADER_H
 
-#include <QSettings>
-
 #include "pxmconsts.h"
 
+class QSettings;
+class QString;
+class QSize;
 class PXMIniReader
 {
     QSettings *inisettings;

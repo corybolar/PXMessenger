@@ -2,10 +2,8 @@
 #define TIMEDVECTOR_H
 #include <QUuid>
 #include <QVector>
-#include <ctime>
 #include <QTimer>
 #include <QTime>
-#include <QObject>
 
 enum Time_Format : uint {MSECONDS = 1, SECONDS=1000};
 
