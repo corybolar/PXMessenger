@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QTimer>
 #include <QThread>
+
 #include "timedvector.h"
 #include "pxmsync.h"
 #include "pxmserver.h"
@@ -34,6 +35,21 @@ class PXMPeerWorkerPrivate{
 
 public:
     PXMPeerWorkerPrivate(PXMPeerWorker *q) : q_ptr(q) {}
+    PXMPeerWorkerPrivate(PXMPeerWorker *q,
+                         QString username,
+                         QUuid selfUUID,
+                         QString multicast,
+                         unsigned short tcpPort,
+                         unsigned short udpPort,
+                         QUuid globaluuid) :
+        q_ptr(q),
+        localHostname(username),
+        localUUID(selfUUID),
+        multicastAddress(multicast),
+        serverTCPPort(tcpPort),
+        serverUDPPort(udpPort),
+        globalUUID(globaluuid)
+    {}
     PXMPeerWorker * const q_ptr;
     //Data Members
     QHash<QUuid,Peers::PeerData> peerDetailsHash;
@@ -68,18 +84,13 @@ public:
 PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
                              QString multicast, unsigned short tcpPort,
                              unsigned short udpPort, QUuid globaluuid) :
-        QObject(parent), d_ptr(new PXMPeerWorkerPrivate(this))
+        QObject(parent), d_ptr(new PXMPeerWorkerPrivate(this, username, selfUUID, multicast,
+                                                        tcpPort, udpPort, globaluuid))
 {
     //Init
     d_ptr->areWeSyncing = false;
     d_ptr->syncablePeers = new TimedVector<QUuid>(SYNC_TIMEOUT_MSECS, SECONDS);
     d_ptr->messClient = nullptr;
-    d_ptr->localHostname = QString(username);
-    d_ptr->localUUID = QUuid(selfUUID);
-    d_ptr->multicastAddress = QString(multicast);
-    d_ptr->serverTCPPort = tcpPort;
-    d_ptr->serverUDPPort = udpPort;
-    d_ptr->globalUUID = QUuid(globaluuid);
     //End of Init
 
     //Prevent race condition when starting threads, a bufferevent

@@ -1,5 +1,5 @@
 #include "pxmmainwindow.h"
-#ifndef __WIN32
+#ifndef _WIN32
 #include <pwd.h>
 #include <sys/types.h>
 #include <unistd.h>

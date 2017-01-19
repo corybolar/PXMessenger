@@ -265,7 +265,7 @@ int main(int argc, char **argv)
     while(startupTimer.elapsed() < 1500)
     {
         qApp->processEvents();
-#ifdef __WIN32
+#ifdef _WIN32
         Sleep(100);
 #else
         usleep(100.000);

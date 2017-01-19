@@ -1,6 +1,6 @@
 #include "uuidcompression.h"
 #include <QUuid>
-#ifdef __WIN32
+#ifdef _WIN32
 #include <winsock2.h>
 #else
 #include <arpa/inet.h>
