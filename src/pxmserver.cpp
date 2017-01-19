@@ -32,7 +32,7 @@ using namespace PXMServer;
 
 struct event_base* ServerThread::base = nullptr;
 struct ServerThreadPrivate{
-    ServerThreadPrivate(ServerThread *q) : q_ptr(q) {}
+    ServerThreadPrivate(ServerThread *q) : q_ptr(q), gotDiscover(false){}
     ServerThread *q_ptr;
     //Data Members
     QUuid localUUID;
@@ -52,10 +52,6 @@ ServerThread::ServerThread(QObject *parent, unsigned short tcpPort,
                            unsigned short udpPort, in_addr multicast) :
     QThread(parent), d_ptr(new ServerThreadPrivate(this))
 {
-    //Init
-    d_ptr->gotDiscover = false;
-    //End of Init
-
     d_ptr->tcpListenerPort = tcpPort;
 
     if(udpPort == 0)

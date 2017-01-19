@@ -130,6 +130,8 @@ PXMPeerWorker::~PXMPeerWorker()
         d_ptr->messServer->wait(5000);
     }
 
+    delete d_ptr;
+
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
 void PXMPeerWorker::setCloseBufferevent(bufferevent *bev)
