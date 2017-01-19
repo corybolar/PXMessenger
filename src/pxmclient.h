@@ -21,8 +21,22 @@ class PXMClient : public QObject
 public:
     PXMClient(QObject *parent, in_addr multicast, QUuid localUUID);
     ~PXMClient();
+    /** Sets the uuid for this program for use in comms
+     * @brief setLocalUUID
+     * @param uuid QUuid to set
+     */
     void setLocalUUID(QUuid uuid);
 public slots:
+    /** Send a byte array to another computer
+     *
+     *
+     * @brief sendMsg
+     * @param bw The BevWrapper to use for sending /see Peers::BevWrapper
+     * @param msg The data to send
+     * @param msgLen Number of bytes to send
+     * @param type Type of message to append to front of message
+     * @param uuidReceiver Specifies a uuid for returning a result
+     */
     void sendMsg(QSharedPointer<Peers::BevWrapper> bw, const char *msg,
                  size_t msgLen,PXMConsts::MESSAGE_TYPE type,
                  QUuid uuidReceiver);
