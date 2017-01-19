@@ -27,9 +27,14 @@
 
 using namespace PXMConsts;
 
-struct PXMPeerWorkerPrivate{
+class PXMPeerWorkerPrivate{
+
+    Q_DISABLE_COPY(PXMPeerWorkerPrivate)
+    Q_DECLARE_PUBLIC(PXMPeerWorker)
+
+public:
     PXMPeerWorkerPrivate(PXMPeerWorker *q) : q_ptr(q) {}
-    PXMPeerWorker *q_ptr;
+    PXMPeerWorker * const q_ptr;
     //Data Members
     QHash<QUuid,Peers::PeerData> peerDetailsHash;
     QString localHostname;

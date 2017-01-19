@@ -8,7 +8,7 @@
 #include "pxmpeers.h"
 #include "pxmconsts.h"
 
-struct PXMPeerWorkerPrivate;
+class PXMPeerWorkerPrivate;
 
 class PXMPeerWorker : public QObject
 {
