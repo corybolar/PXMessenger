@@ -10,6 +10,7 @@
 
 struct bufferevent;
 struct event_base;
+struct ServerThreadPrivate;
 
 namespace PXMServer{
 const timeval READ_TIMEOUT = {1, 0};
@@ -18,15 +19,7 @@ const uint8_t PACKET_HEADER_LENGTH = 2;
 class ServerThread : public QThread
 {
     Q_OBJECT
-
-    struct servImpl;
-    servImpl *pImpl;
-
-    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len,
-                              QUuid quuid);
-    unsigned short getPortNumber(evutil_socket_t socket);
-    evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
-    evutil_socket_t setupTCPSocket();
+    ServerThreadPrivate *d_ptr;
 public:
     ServerThread(QObject *parent, unsigned short tcpPort,
                  unsigned short udpPort, in_addr multicast);

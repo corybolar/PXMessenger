@@ -31,36 +31,47 @@ using namespace PXMConsts;
 using namespace PXMServer;
 
 struct event_base* ServerThread::base = nullptr;
-struct PXMServer::ServerThread::servImpl{
+struct ServerThreadPrivate{
+    ServerThreadPrivate(ServerThread *q) : q_ptr(q) {}
+    ServerThread *q_ptr;
+    //Data Members
     QUuid localUUID;
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
     in_addr multicastAddress;
     bool gotDiscover;
+    //Functions
+    evutil_socket_t setupUDPSocket(evutil_socket_t s_listen);
+    evutil_socket_t setupTCPSocket();
+    unsigned short getPortNumber(evutil_socket_t socket);
+    int singleMessageIterator(bufferevent *bev, char *buf, uint16_t len,
+                              QUuid quuid);
 };
 
-ServerThread::ServerThread(QObject *parent, unsigned short tcpPort, unsigned short udpPort, in_addr multicast) : QThread(parent), pImpl(new servImpl)
+ServerThread::ServerThread(QObject *parent, unsigned short tcpPort,
+                           unsigned short udpPort, in_addr multicast) :
+    QThread(parent), d_ptr(new ServerThreadPrivate(this))
 {
     //Init
-    pImpl->gotDiscover = false;
+    d_ptr->gotDiscover = false;
     //End of Init
 
-    pImpl->tcpListenerPort = tcpPort;
+    d_ptr->tcpListenerPort = tcpPort;
 
     if(udpPort == 0)
-        pImpl->udpListenerPort = PXMConsts::DEFAULT_UDP_PORT;
+        d_ptr->udpListenerPort = PXMConsts::DEFAULT_UDP_PORT;
     else
-        pImpl->udpListenerPort = udpPort;
+        d_ptr->udpListenerPort = udpPort;
 
-    pImpl->multicastAddress = multicast;
+    d_ptr->multicastAddress = multicast;
     this->setObjectName("PXMServer");
 }
 ServerThread::~ServerThread()
 {
-    if(pImpl)
+    if(d_ptr)
     {
-        delete pImpl;
-        pImpl = 0;
+        delete d_ptr;
+        d_ptr = 0;
     }
     if(base)
     {
@@ -71,7 +82,7 @@ ServerThread::~ServerThread()
 }
 int ServerThread::setLocalUUID(QUuid uuid)
 {
-    pImpl->localUUID = uuid;
+    d_ptr->localUUID = uuid;
     return 0;
 }
 void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
@@ -103,7 +114,7 @@ void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
 
 void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
 {
-    ServerThread *realServer = static_cast<ServerThread*>(arg);
+    ServerThread *server_ptr = static_cast<ServerThread*>(arg);
     uint16_t nboBufLen;
     uint16_t bufLen;
     evutil_socket_t socket = bufferevent_getfd(bev);
@@ -116,7 +127,7 @@ void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
         {
             qWarning().noquote() << "Bad buffer length, disconnecting";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
-            realServer->peerQuit(socket, bev);
+            server_ptr->peerQuit(socket, bev);
             return;
         }
         bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LENGTH, bufLen + PACKET_HEADER_LENGTH);
@@ -131,7 +142,7 @@ void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
     {
         qWarning() << "Bad Auth packet length, closing socket...";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
-        realServer->peerQuit(socket, bev);
+        server_ptr->peerQuit(socket, bev);
         return;
     }
     QUuid quuid = UUIDCompression::unpackUUID(bufUUID);
@@ -140,7 +151,7 @@ void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
     {
         qWarning() << "Bad Auth packet UUID, closing socket...";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
-        realServer->peerQuit(socket, bev);
+        server_ptr->peerQuit(socket, bev);
         return;
     }
 
@@ -158,7 +169,7 @@ void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
         {
             qWarning() << "Bad Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
-            realServer->peerQuit(socket, bev);
+            server_ptr->peerQuit(socket, bev);
             return;
         }
         unsigned short port = hpsplit[1].toUShort();
@@ -166,23 +177,23 @@ void ServerThread::tcpAuth(struct bufferevent *bev, void *arg)
         {
             qWarning() << "Bad port in Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ|EV_WRITE);
-            realServer->peerQuit(socket, bev);
+            server_ptr->peerQuit(socket, bev);
             return;
         }
-        realServer->authenticationReceived(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
+        server_ptr->authenticationReceived(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
-        bufferevent_setcb(bev, ServerThread::tcpRead, NULL, ServerThread::tcpError, realServer);
+        bufferevent_setcb(bev, ServerThread::tcpRead, NULL, ServerThread::tcpError, server_ptr);
     }
     else
     {
         qWarning() << "Non-Auth packet, closing socket...";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
-        realServer->peerQuit(socket, bev);
+        server_ptr->peerQuit(socket, bev);
     }
 }
 void ServerThread::tcpRead(struct bufferevent *bev, void *arg)
 {
-    ServerThread *realServer = static_cast<ServerThread*>(arg);
+    ServerThread *server_ptr = static_cast<ServerThread*>(arg);
     uint16_t nboBufLen;
     uint16_t bufLen;
     evbuffer *input = bufferevent_get_input(bev);
@@ -238,7 +249,7 @@ void ServerThread::tcpRead(struct bufferevent *bev, void *arg)
     bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
 
-    realServer->singleMessageIterator(bev, buf, bufLen, uuid);
+    server_ptr->d_ptr->singleMessageIterator(bev, buf, bufLen, uuid);
 
     bufferevent_set_timeouts(bev, &READ_TIMEOUT_RESET, NULL);
 
@@ -247,19 +258,19 @@ void ServerThread::tcpRead(struct bufferevent *bev, void *arg)
 
 void ServerThread::tcpError(struct bufferevent *bev, short error, void *arg)
 {
-    ServerThread *realServer = static_cast<ServerThread*>(arg);
+    ServerThread *server_ptr = static_cast<ServerThread*>(arg);
     evutil_socket_t i = bufferevent_getfd(bev);
     if (error & BEV_EVENT_EOF)
     {
         qDebug() << "BEV EOF";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
-        realServer->peerQuit(i, bev);
+        server_ptr->peerQuit(i, bev);
     }
     else if (error & BEV_EVENT_ERROR)
     {
         qDebug() << "BEV ERROR";
         bufferevent_disable(bev, EV_READ|EV_WRITE);
-        realServer->peerQuit(i, bev);
+        server_ptr->peerQuit(i, bev);
     }
     else if (error & BEV_EVENT_TIMEOUT)
     {
@@ -279,7 +290,7 @@ void ServerThread::tcpError(struct bufferevent *bev, short error, void *arg)
         }
     }
 }
-int ServerThread::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bufLen, QUuid quuid)
+int ServerThreadPrivate::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bufLen, QUuid quuid)
 {
     using namespace PXMConsts;
     if(bufLen == 0)
@@ -294,7 +305,7 @@ int ServerThread::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bu
     {
     case MSG_TEXT:
         qInfo().noquote() << "MSG :" << QString::fromUtf8(&buf[0], bufLen);
-        emit messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, false);
+        emit q_ptr->messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, false);
         break;
     case MSG_SYNC:
     {
@@ -302,20 +313,20 @@ int ServerThread::singleMessageIterator(bufferevent *bev, char *buf, uint16_t bu
         memcpy(ipHeapArray, &buf[0], bufLen);
         QByteArray qba = QByteArray::fromRawData(&buf[0], bufLen);
         qInfo().noquote() << "SYNC received";
-        emit syncPacketIterator(ipHeapArray, bufLen, quuid);
+        emit q_ptr->syncPacketIterator(ipHeapArray, bufLen, quuid);
         break;
     }
     case MSG_SYNC_REQUEST:
         qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8(&buf[0], bufLen);
-        emit sendSyncPacket(bev, quuid);
+        emit q_ptr->sendSyncPacket(bev, quuid);
         break;
     case MSG_GLOBAL:
         qInfo().noquote() << "GLOBAL :" << QString::fromUtf8(&buf[0], bufLen);
-        emit messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, true);
+        emit q_ptr->messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, true);
         break;
     case MSG_NAME:
         qInfo().noquote() << "NAME :" << QString::fromUtf8(&buf[0], bufLen);
-        emit nameChange(QString::fromUtf8(&buf[0], bufLen), quuid);
+        emit q_ptr->nameChange(QString::fromUtf8(&buf[0], bufLen), quuid);
         break;
     case MSG_AUTH:
         qInfo().noquote() << "AUTH packet recieved after alread authenticated, disregarding...";
@@ -340,9 +351,9 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
     if (strncmp(&buf[0], "/discover", 9) == 0)
     {
         qDebug() << "Discovery Packet:" << buf;
-        if(!realServer->pImpl->gotDiscover)
+        if(!realServer->d_ptr->gotDiscover)
         {
-            realServer->pImpl->gotDiscover = true;
+            realServer->d_ptr->gotDiscover = true;
             realServer->multicastIsFunctional();
         }
         evutil_socket_t replySocket;
@@ -353,7 +364,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
             return;
         }
 
-        si_other.sin_port = htons(realServer->pImpl->udpListenerPort);
+        si_other.sin_port = htons(realServer->d_ptr->udpListenerPort);
 
         int len = sizeof(uint16_t) + UUIDCompression::PACKED_UUID_LENGTH + strlen("/name:");
 
@@ -361,9 +372,9 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 
         strcpy(name, "/name:");
 
-        uint16_t port = htons(realServer->pImpl->tcpListenerPort);
+        uint16_t port = htons(realServer->d_ptr->tcpListenerPort);
         memcpy(&name[strlen("/name:")], &(port), sizeof(port));
-        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], realServer->pImpl->localUUID);
+        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], realServer->d_ptr->localUUID);
 
         name[len+1] = 0;
 
@@ -389,7 +400,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void *args)
 
     return;
 }
-unsigned short ServerThread::getPortNumber(evutil_socket_t socket)
+unsigned short ServerThreadPrivate::getPortNumber(evutil_socket_t socket)
 {
     sockaddr_in needPortNumber;
     memset(&needPortNumber, 0, sizeof(needPortNumber));
@@ -401,7 +412,7 @@ unsigned short ServerThread::getPortNumber(evutil_socket_t socket)
     }
     return ntohs(needPortNumber.sin_port);
 }
-evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
+evutil_socket_t ServerThreadPrivate::setupUDPSocket(evutil_socket_t s_listen)
 {
     sockaddr_in si_me;
     ip_mreq multicastGroup;
@@ -409,7 +420,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     evutil_socket_t socketUDP = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    multicastGroup.imr_multiaddr = pImpl->multicastAddress;
+    multicastGroup.imr_multiaddr = multicastAddress;
     multicastGroup.imr_interface.s_addr = INADDR_ANY;
     if(setsockopt(socketUDP, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multicastGroup, sizeof(multicastGroup)) < 0)
     {
@@ -420,7 +431,7 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
 
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
-    si_me.sin_port = htons(pImpl->udpListenerPort);
+    si_me.sin_port = htons(udpListenerPort);
     //si_me.sin_addr.s_addr = inet_addr(MULTICAST_ADDRESS);
     si_me.sin_addr.s_addr = INADDR_ANY;
 
@@ -440,20 +451,20 @@ evutil_socket_t ServerThread::setupUDPSocket(evutil_socket_t s_listen)
         return -1;
     }
 
-    pImpl->tcpListenerPort = getPortNumber(s_listen);
+    tcpListenerPort = getPortNumber(s_listen);
 
     udpSocketNumber = getPortNumber(socketUDP);
 
-    emit setListenerPorts(pImpl->tcpListenerPort, udpSocketNumber);
+    emit q_ptr->setListenerPorts(tcpListenerPort, udpSocketNumber);
 
     qInfo().noquote() << "Port number for Multicast: " + QString::number(udpSocketNumber);
 
     //send our discover packet to find other computers
-    emit sendUDP("/discover", udpSocketNumber);
+    emit q_ptr->sendUDP("/discover", udpSocketNumber);
 
     return socketUDP;
 }
-evutil_socket_t ServerThread::setupTCPSocket()
+evutil_socket_t ServerThreadPrivate::setupTCPSocket()
 {
     struct addrinfo hints, *res;
     QVector<evutil_socket_t> tcpSockets;
@@ -464,7 +475,7 @@ evutil_socket_t ServerThread::setupTCPSocket()
     hints.ai_flags = AI_PASSIVE;
 
     char tcpPortChar[6] = {};
-    sprintf(tcpPortChar, "%d", pImpl->tcpListenerPort);
+    sprintf(tcpPortChar, "%d", tcpListenerPort);
 
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
     {
@@ -547,7 +558,7 @@ void ServerThread::run()
     emit setSelfCommsBufferevent(selfCommsPair[1]);
 
     //TCP STUFF
-    s_listen = setupTCPSocket();
+    s_listen = d_ptr->setupTCPSocket();
     if(s_listen < 0)
     {
         qCritical() << "FATAL:TCP socket setup has failed";
@@ -556,7 +567,7 @@ void ServerThread::run()
     }
 
     //UDP STUFF
-    s_discover = setupUDPSocket(s_listen);
+    s_discover = d_ptr->setupUDPSocket(s_listen);
     if(s_discover < 0)
     {
         qCritical() << "FATAL:UDP socket setup has failed";

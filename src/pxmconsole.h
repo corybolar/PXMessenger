@@ -8,13 +8,11 @@
 class QPushButton;
 namespace PXMConsole {
 const int DEBUG_WINDOW_HISTORY_LIMIT = 5000;
-
+struct WindowPrivate;
 class Window : public QMainWindow
 {
     Q_OBJECT
-    struct consoleImple;
-    consoleImple *pimpl__;
-
+    WindowPrivate *d_ptr;
 public:
     explicit Window(QWidget *parent = 0);
     ~Window();

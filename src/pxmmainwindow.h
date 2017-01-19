@@ -127,17 +127,12 @@ public:
     }
 };
 
+struct PXMSettingsDialogPrivate;
 class PXMSettingsDialog : public QDialog
 {
     Q_OBJECT
 
-    bool AllowMoreThanOneInstance;
-    QString hostname;
-    int tcpPort;
-    int udpPort;
-    QFont iniFont;
-    int fontSize;
-    QString multicastAddress;
+    PXMSettingsDialogPrivate *d_ptr;
     Ui::PXMSettingsDialog *ui;
 public:
     PXMSettingsDialog(QWidget *parent = 0);

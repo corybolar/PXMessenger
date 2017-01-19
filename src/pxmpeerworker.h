@@ -15,6 +15,7 @@ class QTimer;
 class QString;
 class PXMSync;
 class PXMClient;
+struct PXMPeerWorkerPrivate;
 namespace PXMServer {
 class ServerThread;
 }
@@ -22,34 +23,7 @@ class ServerThread;
 class PXMPeerWorker : public QObject
 {
     Q_OBJECT
-
-    QHash<QUuid,Peers::PeerData>peerDetailsHash;
-    QString localHostname;
-    QUuid localUUID;
-    QString multicastAddress;
-    unsigned short serverTCPPort;
-    unsigned short serverUDPPort;
-    QString libeventBackend;
-    QUuid globalUUID;
-    QTimer *syncTimer;
-    QTimer *nextSyncTimer;
-    QTimer *discoveryTimer;
-    QTimer *discoveryTimerSingle;
-    QTimer *midnightTimer;
-    bool areWeSyncing;
-    bool multicastIsFunctioning;
-    PXMSync *syncer;
-    QVector<Peers::BevWrapper*> bwShortLife;
-    PXMServer::ServerThread *messServer;
-    PXMClient *messClient;
-    bufferevent *closeBev;
-    QVector<QSharedPointer<Peers::BevWrapper>> extraBufferevents;
-    TimedVector<QUuid> *syncablePeers;
-
-    void sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw);
-    void startServer();
-    void connectClient();
-    int formatMessage(QString &str, QUuid uuid, QString color);
+    PXMPeerWorkerPrivate *d_ptr;
 public:
     explicit PXMPeerWorker(QObject *parent,
                            QString username,
@@ -97,13 +71,13 @@ public slots:
     void serverSetupFailure();
     void setLocalHostname(QString);
     void sendUDPAccessor(const char* msg);
+    void setCloseBufferevent(bufferevent *bev);
 private slots:
     void beginSync();
     void doneSync();
     void requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
     void discoveryTimerSingleShot();
     void midnightTimerPersistent();
-    void setCloseBufferevent(bufferevent *bev);
 signals:
     void printToTextBrowser(QSharedPointer<QString>, QUuid, bool);
     void updateListWidget(QUuid, QString);

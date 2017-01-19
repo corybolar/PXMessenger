@@ -15,6 +15,49 @@
 #include <QMessageBox>
 #include <QPushButton>
 
+struct PXMSettingsDialogPrivate{
+    bool AllowMoreThanOneInstance;
+    QString hostname;
+    int tcpPort;
+    int udpPort;
+    QFont iniFont;
+    int fontSize;
+    QString multicastAddress;
+};
+
+PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent),
+    d_ptr(new PXMSettingsDialogPrivate), ui(new Ui::PXMSettingsDialog)
+{
+    this->setAttribute(Qt::WA_DeleteOnClose, true);
+    ui->setupUi(this);
+    QString ipRange = "(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])";
+    QRegExp ipRegex ("^" + ipRange
+                     + "\\." + ipRange
+                     + "\\." + ipRange
+                     + "\\." + ipRange + "$");
+    QRegExpValidator *ipValidator = new QRegExpValidator(ipRegex, this);
+    ui->multicastLineEdit->setValidator(ipValidator);
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
+    ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getVerbosityLevel());
+    QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
+    QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
+    QObject::connect(ui->fontComboBox, &QFontComboBox::currentFontChanged, this, &PXMSettingsDialog::currentFontChanged);
+    void (QSpinBox:: *signal)(int) = &QSpinBox::valueChanged;
+    QObject::connect(ui->fontSizeSpinBox, signal, this, &PXMSettingsDialog::valueChanged);
+
+    readIni();
+}
+
+PXMSettingsDialog::~PXMSettingsDialog()
+{
+    if(d_ptr)
+    {
+        delete d_ptr;
+        d_ptr = 0;
+    }
+    delete ui;
+}
+
 void PXMSettingsDialog::clickedme(QAbstractButton *button)
 {
     if((QPushButton*)button == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults))
@@ -69,7 +112,7 @@ void PXMSettingsDialog::accept()
     PXMIniReader iniReader;
     iniReader.setAllowMoreThanOne(ui->allowMultipleCheckBox->isChecked());
     iniReader.setHostname(ui->hostnameLineEdit->text().simplified());
-    if(hostname != ui->hostnameLineEdit->text().simplified())
+    if(d_ptr->hostname != ui->hostnameLineEdit->text().simplified())
     {
         char computerHostname[255] = {};
         gethostname(computerHostname, sizeof(computerHostname));
@@ -79,10 +122,10 @@ void PXMSettingsDialog::accept()
     iniReader.setPort("UDP", ui->udpPortSpinBox->value());
     iniReader.setFont(qApp->font().toString());
     iniReader.setMulticastAddress(ui->multicastLineEdit->text());
-    if(tcpPort != ui->tcpPortSpinBox->value()
-                    || udpPort != ui->udpPortSpinBox->value()
-                    || AllowMoreThanOneInstance != ui->allowMultipleCheckBox->isChecked()
-                    || multicastAddress != ui->multicastLineEdit->text())
+    if(d_ptr->tcpPort != ui->tcpPortSpinBox->value()
+                    || d_ptr->udpPort != ui->udpPortSpinBox->value()
+                    || d_ptr->AllowMoreThanOneInstance != ui->allowMultipleCheckBox->isChecked()
+                    || d_ptr->multicastAddress != ui->multicastLineEdit->text())
     {
         QMessageBox::information(this, "Settings Warning", "Changes to these settings will not take effect until PXMessenger has been restarted");
     }
@@ -96,50 +139,26 @@ void PXMSettingsDialog::currentFontChanged(QFont font)
 
 void PXMSettingsDialog::valueChanged(int size)
 {
-    iniFont = qApp->font();
-    iniFont.setPointSize(size);
-    qApp->setFont(iniFont);
+    d_ptr->iniFont = qApp->font();
+    d_ptr->iniFont.setPointSize(size);
+    qApp->setFont(d_ptr->iniFont);
 }
 
-PXMSettingsDialog::PXMSettingsDialog(QWidget *parent) : QDialog(parent), ui(new Ui::PXMSettingsDialog)
-{
-    this->setAttribute(Qt::WA_DeleteOnClose, true);
-    ui->setupUi(this);
-    QString ipRange = "(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])";
-    QRegExp ipRegex ("^" + ipRange
-                     + "\\." + ipRange
-                     + "\\." + ipRange
-                     + "\\." + ipRange + "$");
-    QRegExpValidator *ipValidator = new QRegExpValidator(ipRegex, this);
-    ui->multicastLineEdit->setValidator(ipValidator);
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-    ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getVerbosityLevel());
-    QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
-    QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
-    QObject::connect(ui->fontComboBox, &QFontComboBox::currentFontChanged, this, &PXMSettingsDialog::currentFontChanged);
-    void (QSpinBox:: *signal)(int) = &QSpinBox::valueChanged;
-    QObject::connect(ui->fontSizeSpinBox, signal, this, &PXMSettingsDialog::valueChanged);
 
-    readIni();
-}
-PXMSettingsDialog::~PXMSettingsDialog()
-{
-    delete ui;
-}
 
 void PXMSettingsDialog::readIni()
 {
     PXMIniReader iniReader;
-    AllowMoreThanOneInstance = iniReader.checkAllowMoreThanOne();
-    hostname = iniReader.getHostname(hostname);
-    tcpPort = iniReader.getPort("TCP");
-    udpPort = iniReader.getPort("UDP");
-    multicastAddress = iniReader.getMulticastAddress();
-    fontSize = qApp->font().pointSize();
-    ui->fontSizeSpinBox->setValue(fontSize);
-    ui->tcpPortSpinBox->setValue(tcpPort);
-    ui->udpPortSpinBox->setValue(udpPort);
-    ui->hostnameLineEdit->setText(hostname.simplified());
-    ui->allowMultipleCheckBox->setChecked(AllowMoreThanOneInstance);
-    ui->multicastLineEdit->setText(multicastAddress);
+    d_ptr->AllowMoreThanOneInstance = iniReader.checkAllowMoreThanOne();
+    d_ptr->hostname = iniReader.getHostname(d_ptr->hostname);
+    d_ptr->tcpPort = iniReader.getPort("TCP");
+    d_ptr->udpPort = iniReader.getPort("UDP");
+    d_ptr->multicastAddress = iniReader.getMulticastAddress();
+    d_ptr->fontSize = qApp->font().pointSize();
+    ui->fontSizeSpinBox->setValue(d_ptr->fontSize);
+    ui->tcpPortSpinBox->setValue(d_ptr->tcpPort);
+    ui->udpPortSpinBox->setValue(d_ptr->udpPort);
+    ui->hostnameLineEdit->setText(d_ptr->hostname.simplified());
+    ui->allowMultipleCheckBox->setChecked(d_ptr->AllowMoreThanOneInstance);
+    ui->multicastLineEdit->setText(d_ptr->multicastAddress);
 }

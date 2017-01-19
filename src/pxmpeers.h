@@ -59,7 +59,8 @@ public:
     int freeBev();
 };
 
-struct PeerData{
+class PeerData{
+public:
     QUuid identifier;
     sockaddr_in ipAddressRaw;
     QString hostname;

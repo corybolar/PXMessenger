@@ -8,7 +8,7 @@
 #include <QPushButton>
 
 using namespace PXMConsole;
-struct PXMConsole::Window::consoleImple {
+struct PXMConsole::WindowPrivate{
     bool atMaximum = false;
     QWidget *centralwidget;
     QGridLayout *gridLayout;
@@ -18,63 +18,63 @@ struct PXMConsole::Window::consoleImple {
 };
 
 QTextEdit * Window::textEdit = 0;
-Window::Window(QWidget *parent) : QMainWindow(parent), pimpl__(new PXMConsole::Window::consoleImple())
+Window::Window(QWidget *parent) : QMainWindow(parent), d_ptr(new PXMConsole::WindowPrivate())
 {
     this->setObjectName("Debug Console");
     this->setWindowTitle("Debug Console");
-    pimpl__->centralwidget = new QWidget(this);
-    pimpl__->centralwidget->setObjectName(QStringLiteral("centralwidget"));
-    pimpl__->gridLayout_2 = new QGridLayout(pimpl__->centralwidget);
-    pimpl__->gridLayout_2->setObjectName(QStringLiteral("gridLayout_2"));
-    pimpl__->gridLayout = new QGridLayout();
-    pimpl__->gridLayout->setObjectName(QStringLiteral("gridLayout"));
-    textEdit = new QTextEdit(pimpl__->centralwidget);
+    d_ptr->centralwidget = new QWidget(this);
+    d_ptr->centralwidget->setObjectName(QStringLiteral("centralwidget"));
+    d_ptr->gridLayout_2 = new QGridLayout(d_ptr->centralwidget);
+    d_ptr->gridLayout_2->setObjectName(QStringLiteral("gridLayout_2"));
+    d_ptr->gridLayout = new QGridLayout();
+    d_ptr->gridLayout->setObjectName(QStringLiteral("gridLayout"));
+    textEdit = new QTextEdit(d_ptr->centralwidget);
     textEdit->setObjectName(QStringLiteral("plainTextEdit"));
     textEdit->setReadOnly(true);
     textEdit->document()->setMaximumBlockCount(DEBUG_WINDOW_HISTORY_LIMIT);
     LoggerSingleton::getInstance()->setTextEdit(textEdit);
-    pushButton = new QPushButton(pimpl__->centralwidget);
+    pushButton = new QPushButton(d_ptr->centralwidget);
     pushButton->setText("Print Info");
     pushButton->setMaximumSize(QSize(250, 16777215));
 
-    pimpl__->verbosity = new QLabel(pimpl__->centralwidget);
-    pimpl__->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
-    pimpl__->gridLayout->addWidget(pimpl__->verbosity, 1, 2, 1, 2);
+    d_ptr->verbosity = new QLabel(d_ptr->centralwidget);
+    d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+    d_ptr->gridLayout->addWidget(d_ptr->verbosity, 1, 2, 1, 2);
 
-    pimpl__->gridLayout->addWidget(textEdit, 0, 0, 1, 4);
-    pimpl__->gridLayout->addWidget(pushButton, 1, 0, 1, 2);
+    d_ptr->gridLayout->addWidget(textEdit, 0, 0, 1, 4);
+    d_ptr->gridLayout->addWidget(pushButton, 1, 0, 1, 2);
 
-    pimpl__->gridLayout_2->addLayout(pimpl__->gridLayout, 0, 0, 1, 1);
+    d_ptr->gridLayout_2->addLayout(d_ptr->gridLayout, 0, 0, 1, 1);
 
-    pimpl__->sb = Window::textEdit->verticalScrollBar();
-    pimpl__->sb->setTracking(true);
+    d_ptr->sb = Window::textEdit->verticalScrollBar();
+    d_ptr->sb->setTracking(true);
 
-    this->setCentralWidget(pimpl__->centralwidget);
+    this->setCentralWidget(d_ptr->centralwidget);
     this->resize(1000, 300);
-    pimpl__->sb->setValue(pimpl__->sb->maximum());
-    pimpl__->atMaximum = true;
-    QObject::connect(pimpl__->sb, &QAbstractSlider::valueChanged, this, &Window::adjustScrollBar);
-    QObject::connect(pimpl__->sb, &QAbstractSlider::rangeChanged, this, &Window::rangeChanged);
+    d_ptr->sb->setValue(d_ptr->sb->maximum());
+    d_ptr->atMaximum = true;
+    QObject::connect(d_ptr->sb, &QAbstractSlider::valueChanged, this, &Window::adjustScrollBar);
+    QObject::connect(d_ptr->sb, &QAbstractSlider::rangeChanged, this, &Window::rangeChanged);
 }
 
 Window::~Window()
 {
-    delete pimpl__;
-    pimpl__ = 0;
+    delete d_ptr;
+    d_ptr = 0;
 }
 void Window::adjustScrollBar(int i)
 {
-    if(i == pimpl__->sb->maximum())
-        pimpl__->atMaximum = true;
+    if(i == d_ptr->sb->maximum())
+        d_ptr->atMaximum = true;
     else
-        pimpl__->atMaximum = false;
+        d_ptr->atMaximum = false;
 }
 void Window::rangeChanged(int, int i2)
 {
-    if(pimpl__->atMaximum)
-    pimpl__->sb->setValue(i2);
+    if(d_ptr->atMaximum)
+    d_ptr->sb->setValue(i2);
 }
 void Window::verbosityChanged()
 {
-    pimpl__->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+    d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
 }
