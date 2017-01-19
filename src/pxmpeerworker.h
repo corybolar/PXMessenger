@@ -8,16 +8,7 @@
 #include "pxmpeers.h"
 #include "pxmconsts.h"
 
-template<class T>
-class TimedVector;
-class QTimer;
-class QString;
-class PXMSync;
-class PXMClient;
 struct PXMPeerWorkerPrivate;
-namespace PXMServer {
-class ServerThread;
-}
 
 class PXMPeerWorker : public QObject
 {
