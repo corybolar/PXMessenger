@@ -576,6 +576,7 @@ void PXMPeerWorker::setSelfCommsBufferevent(bufferevent *bev)
     d_ptr->peerDetailsHash.value(d_ptr->localUUID).bw->unlockBev();
 
     updateListWidget(d_ptr->localUUID, d_ptr->localHostname);
+    //addMessageToPeer("<!DOCTYPE html><html><body><style>h2, p {margin: 0;}</style><h2>" % d_ptr->localHostname % "</h2></body></html>", d_ptr->localUUID, false, false);
 }
 void PXMPeerWorker::sendMsgAccessor(QByteArray msg, MESSAGE_TYPE type, QUuid uuid)
 {

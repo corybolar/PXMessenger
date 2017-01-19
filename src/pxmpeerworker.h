@@ -2,7 +2,6 @@
 #define PXMPEERWORKER_H
 
 #include <QObject>
-#include <QSharedPointer>
 
 #include <event2/bufferevent.h>
 

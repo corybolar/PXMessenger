@@ -328,10 +328,10 @@ int PXMWindow::sendButtonClicked()
     {
         return -1;
     }
-    QByteArray msg = ui->messTextEdit->toHtml().toUtf8();
 
-    if(!(msg.isEmpty()))
+    if(!(ui->messTextEdit->toPlainText().isEmpty()))
     {
+        QByteArray msg = ui->messTextEdit->toHtml().toUtf8();
         if(removeBodyFormatting(msg))
         {
             qWarning() << "Bad Html";
@@ -352,8 +352,10 @@ int PXMWindow::sendButtonClicked()
         {
             emit sendMsg(msg, PXMConsts::MSG_TEXT, uuidOfSelectedItem);
         }
-        ui->messTextEdit->setText(QString());
+        ui->messTextEdit->setHtml(QString());
         ui->messTextEdit->setStyleSheet(QString());
+        ui->messTextEdit->clear();
+        ui->messTextEdit->setCurrentCharFormat(QTextCharFormat());
     }
     else
     {
@@ -371,8 +373,7 @@ int PXMWindow::changeListItemColor(QUuid uuid, int style)
                 ui->messListWidget->item(i)->setBackground(QGuiApplication::palette().base());
             else
             {
-                //ui->messListWidget->item(i)->setBackground(QBrush(QColor(0xFF6495ED)));
-                ui->messListWidget->item(i)->setBackground(QBrush(Qt::red));
+                ui->messListWidget->item(i)->setBackground(QBrush(QColor(0xFFCD5C5C)));
             }
             break;
         }
