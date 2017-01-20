@@ -1,4 +1,6 @@
-![alt tag] (https://github.com/cbpeckles/PXMessenger/raw/master/src/resources/PXMessenger_TightCrop_100px.png)
+<p align="center">
+  <img src="https://github.com/cbpeckles/PXMessenger/raw/master/src/resources/PXMessenger_TightCrop_100px.png"/>
+</p>
 
 ###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
 -------------
@@ -52,9 +54,8 @@ is essentially a global chat room.
 
 #####Settings
 
-The multicast group that PXMessenger uses is 239.192.13.13.  There is no option
-to change this at the current time, however it could be done in the future if
-there is a need.
+The multicast group that PXMessenger uses is 239.192.13.13.  This can be changed
+in the settings window.
 
 Adjustments can be made to the ports that are used for PXMessenger if firewall
 rules only allow specific ones.  By default, PXMessenger allows the operating
