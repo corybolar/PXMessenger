@@ -3,6 +3,8 @@
 
 #include <QThread>
 #include <QUuid>
+#include <QScopedPointer>
+#include <QSharedPointer>
 
 #include <sys/time.h>
 
@@ -19,25 +21,32 @@ const uint8_t PACKET_HEADER_LENGTH = 2;
 class ServerThread : public QThread
 {
     Q_OBJECT
-    ServerThreadPrivate *d_ptr;
+    QScopedPointer<ServerThreadPrivate> d_ptr;
 public:
-    ServerThread(QObject *parent, unsigned short tcpPort,
-                 unsigned short udpPort, in_addr multicast);
+    //Default
+    ServerThread(QObject *parent = nullptr, unsigned short tcpPort = 0,
+                 unsigned short udpPort = 0, in_addr multicast = {});
+    //Copy
     ServerThread(ServerThread const&) = delete;
-    ServerThread& operator=(ServerThread const&) = delete;
-    ServerThread& operator=(ServerThread&&) noexcept = delete;
-    ServerThread(ServerThread&&) noexcept = delete;
+    //Copy assignment
+    ServerThread &operator=(ServerThread const&) = delete;
+    //Move
+    ServerThread(ServerThread&& st) noexcept = delete;
+    //Move assignment
+    ServerThread &operator=(ServerThread&& st) noexcept = delete;
+    //Destructor
+    ~ServerThread();
+
     void run() Q_DECL_OVERRIDE;
     int setLocalHostname(QString hostname);
     int setLocalUUID(QUuid uuid);
-    ~ServerThread();
     static void tcpError(bufferevent *bev, short error, void *arg);
     static void tcpAuth(bufferevent *bev, void *arg);
     static void tcpRead(bufferevent *bev, void *arg);
     static void accept_new(evutil_socket_t socketfd, short, void *arg);
     static void udpRecieve(evutil_socket_t socketfd, short, void *args);
     static void stopLoopBufferevent(bufferevent *bev, void *);
-    static struct event_base *base;
+    struct event_base* base;
 signals:
     void messageRecieved(QString, QUuid, bufferevent*, bool);
     void newTCPConnection(bufferevent*);

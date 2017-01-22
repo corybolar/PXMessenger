@@ -18,6 +18,9 @@ struct PXMConsole::WindowPrivate{
 };
 
 QTextEdit * Window::textEdit = 0;
+int PXMConsole::AppendTextEvent::type = QEvent::registerEventType();
+PXMConsole::LoggerSingleton* PXMConsole::LoggerSingleton::loggerInstance = nullptr;
+int PXMConsole::LoggerSingleton::verbosityLevel = 0;
 Window::Window(QWidget *parent) : QMainWindow(parent), d_ptr(new PXMConsole::WindowPrivate())
 {
     this->setObjectName("Debug Console");
@@ -59,8 +62,6 @@ Window::Window(QWidget *parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
 
 Window::~Window()
 {
-    delete d_ptr;
-    d_ptr = 0;
 }
 void Window::adjustScrollBar(int i)
 {

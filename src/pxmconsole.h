@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QEvent>
 #include <QTextEdit>
+#include <QScopedPointer>
 
 class QPushButton;
 namespace PXMConsole {
@@ -12,7 +13,7 @@ struct WindowPrivate;
 class Window : public QMainWindow
 {
     Q_OBJECT
-    WindowPrivate *d_ptr;
+    QScopedPointer<WindowPrivate> d_ptr;
 public:
     explicit Window(QWidget *parent = 0);
     ~Window();

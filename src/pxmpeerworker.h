@@ -2,6 +2,7 @@
 #define PXMPEERWORKER_H
 
 #include <QObject>
+#include <QScopedPointer>
 
 #include <event2/bufferevent.h>
 
@@ -13,7 +14,8 @@ class PXMPeerWorkerPrivate;
 class PXMPeerWorker : public QObject
 {
     Q_OBJECT
-    PXMPeerWorkerPrivate *d_ptr;
+    QScopedPointer<PXMPeerWorkerPrivate> d_ptr;
+
 public:
     explicit PXMPeerWorker(QObject *parent,
                            QString username,
@@ -27,8 +29,8 @@ public:
     PXMPeerWorker& operator=(PXMPeerWorker const&) = delete;
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept = delete;
-    const int SYNC_TIMEOUT_MSECS = 2000;
-    const int SYNC_TIMER = 900000;
+    const static int SYNC_TIMEOUT_MSECS = 2000;
+    const static int SYNC_TIMER = 900000;
 public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
@@ -56,18 +58,20 @@ public slots:
     void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type,
                          QUuid uuid = QUuid());
     void setSelfCommsBufferevent(bufferevent *bev);
-    void discoveryTimerPersistent();
     void multicastIsFunctional();
     void serverSetupFailure();
     void setLocalHostname(QString);
     void sendUDPAccessor(const char* msg);
     void setCloseBufferevent(bufferevent *bev);
+
+    //void restartServer();
 private slots:
     void beginSync();
     void doneSync();
     void requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
     void discoveryTimerSingleShot();
     void midnightTimerPersistent();
+    void discoveryTimerPersistent();
 signals:
     void printToTextBrowser(QSharedPointer<QString>, QUuid, bool);
     void updateListWidget(QUuid, QString);

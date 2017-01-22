@@ -53,7 +53,7 @@ public:
     bool operator !=(const BevWrapper& b) {return !(bev == b.bev);}
 
     void setBev(bufferevent *buf) {bev = buf;}
-    bufferevent* getBev() {return bev;}
+    bufferevent* getBev() const {return bev;}
     void lockBev();
     void unlockBev();
     int freeBev();

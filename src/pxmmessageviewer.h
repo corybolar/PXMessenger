@@ -19,7 +19,7 @@ public:
     {
 
     }
-    QUuid getIdentifier() {return identifier;}
+    QUuid getIdentifier() const {return identifier;}
 };
 class LabelWidget : public QLabel, public MVBase
 {

@@ -10,13 +10,11 @@
 #include <netinet/in.h>
 #endif
 
-PXMIniReader::PXMIniReader()
+PXMIniReader::PXMIniReader() : inisettings(new QSettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL))
 {
-    inisettings = new QSettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL);
 }
 PXMIniReader::~PXMIniReader()
 {
-    delete inisettings;
 }
 bool PXMIniReader::checkAllowMoreThanOne()
 {
@@ -31,7 +29,7 @@ void PXMIniReader::setAllowMoreThanOne(bool value)
 {
     inisettings->setValue("config/AllowMoreThanOneInstance", value);
 }
-int PXMIniReader::getUUIDNumber()
+int PXMIniReader::getUUIDNumber() const
 {
     int i = 0;
     QString uuidStr = "uuid/";
@@ -45,9 +43,9 @@ int PXMIniReader::getUUIDNumber()
     }
     return i;
 }
-QUuid PXMIniReader::getUUID(int num, bool takeIt)
+QUuid PXMIniReader::getUUID(int num, bool takeIt) const
 {
-    if(inisettings->value("uuid/" + QString::number(num), "") == "")
+    if(inisettings->value("uuid/" + QString::number(num), "").toString().isEmpty())
     {
         inisettings->setValue("uuid/" + QString::number(num), QUuid::createUuid().toString());
     }
@@ -88,6 +86,10 @@ void PXMIniReader::setHostname(QString hostname)
 QString PXMIniReader::getHostname(QString defaultHostname)
 {
     QString hostname = inisettings->value("hostname/hostname", defaultHostname).toString();
+    if(hostname.isEmpty())
+    {
+        inisettings->setValue("hostname/hostname", defaultHostname);
+    }
 
     return hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH).simplified();
 }
@@ -96,7 +98,7 @@ void PXMIniReader::setWindowSize(QSize windowSize)
     if(windowSize.isValid())
         inisettings->setValue("WindowSize/QSize", windowSize);
 }
-QSize PXMIniReader::getWindowSize(QSize defaultSize)
+QSize PXMIniReader::getWindowSize(QSize defaultSize) const
 {
     QSize windowSize = inisettings->value("WindowSize/QSize", defaultSize).toSize();
     if(windowSize.isValid())
@@ -112,7 +114,7 @@ void PXMIniReader::setMute(bool mute)
 {
     inisettings->setValue("config/Mute", mute);
 }
-bool PXMIniReader::getMute()
+bool PXMIniReader::getMute() const
 {
     return inisettings->value("config/Mute", false).toBool();
 }
@@ -120,7 +122,7 @@ void PXMIniReader::setFocus(bool focus)
 {
     inisettings->setValue("config/PreventFocus", focus);
 }
-bool PXMIniReader::getFocus()
+bool PXMIniReader::getFocus() const
 {
     return inisettings->value("config/PreventFocus", false).toBool();
 }
@@ -132,7 +134,7 @@ void PXMIniReader::setFont(QString font)
 {
     inisettings->setValue("config/Font", font);
 }
-QString PXMIniReader::getMulticastAddress()
+QString PXMIniReader::getMulticastAddress() const
 {
     QString ipFull = inisettings->value("net/MulticastAddress", "").toString();
     if(ipFull.isEmpty() || strlen(ipFull.toLatin1().constData()) > INET_ADDRSTRLEN)
@@ -145,12 +147,12 @@ int PXMIniReader::setMulticastAddress(QString ip)
 
     return 0;
 }
-int PXMIniReader::getVerbosity()
+int PXMIniReader::getVerbosity() const
 {
     return inisettings->value("config/DebugVerbosity", 0).toInt();
 }
 
-void PXMIniReader::setVerbosity(int level)
+void PXMIniReader::setVerbosity(int level) const
 {
     inisettings->setValue("config/DebugVerbosity", level);
 }

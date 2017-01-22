@@ -48,7 +48,8 @@ public:
         multicastAddress(multicast),
         serverTCPPort(tcpPort),
         serverUDPPort(udpPort),
-        globalUUID(globaluuid)
+        globalUUID(globaluuid),
+        syncablePeers(new TimedVector<QUuid>(PXMPeerWorker::SYNC_TIMEOUT_MSECS, SECONDS))
     {}
     PXMPeerWorker * const q_ptr;
     //Data Members
@@ -73,13 +74,16 @@ public:
     PXMClient *messClient;
     bufferevent *closeBev;
     QVector<QSharedPointer<Peers::BevWrapper>> extraBufferevents;
-    TimedVector<QUuid> *syncablePeers;
+    QScopedPointer<TimedVector<QUuid>> syncablePeers;
 
     //Functions
     void sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw);
     void startServer();
     void connectClient();
     int formatMessage(QString &str, QUuid uuid, QString color);
+
+    //Slots
+
 };
 PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
                              QString multicast, unsigned short tcpPort,
@@ -88,8 +92,17 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
                                                         tcpPort, udpPort, globaluuid))
 {
     //Init
+    //Windows socket init
+#ifdef _WIN32
+    WSADATA wsa;
+    if(WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+    {
+        printf("Failed WSAStartup error: %d", WSAGetLastError());
+        return 1;
+    }
+#endif
     d_ptr->areWeSyncing = false;
-    d_ptr->syncablePeers = new TimedVector<QUuid>(SYNC_TIMEOUT_MSECS, SECONDS);
+    //d_ptr->syncablePeers = new TimedVector<QUuid>(SYNC_TIMEOUT_MSECS, SECONDS);
     d_ptr->messClient = nullptr;
     //End of Init
 
@@ -114,7 +127,7 @@ PXMPeerWorker::~PXMPeerWorker()
 {
     d_ptr->syncTimer->stop();
     d_ptr->nextSyncTimer->stop();
-    delete d_ptr->syncablePeers;
+    //delete d_ptr->syncablePeers;
 
     for(auto &itr : d_ptr->peerDetailsHash)
     {
@@ -129,8 +142,6 @@ PXMPeerWorker::~PXMPeerWorker()
         bufferevent_write(d_ptr->closeBev, "/exit", 5);
         d_ptr->messServer->wait(5000);
     }
-
-    delete d_ptr;
 
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
@@ -157,8 +168,9 @@ void PXMPeerWorker::currentThreadInit()
 
     d_ptr->discoveryTimerSingle = new QTimer(this);
     d_ptr->discoveryTimerSingle->setSingleShot(true);
-    d_ptr->discoveryTimerSingle->setInterval(10000);
+    d_ptr->discoveryTimerSingle->setInterval(5000);
     QObject::connect(d_ptr->discoveryTimerSingle, &QTimer::timeout, this, &PXMPeerWorker::discoveryTimerSingleShot);
+    d_ptr->discoveryTimerSingle->start();
 
     d_ptr->midnightTimer = new QTimer(this);
     d_ptr->midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
@@ -301,9 +313,9 @@ void PXMPeerWorker::attemptConnection(sockaddr_in addr, QUuid uuid)
 
     evutil_socket_t socketfd = socket(AF_INET, SOCK_STREAM, 0);
     evutil_make_socket_nonblocking(socketfd);
-    if(PXMServer::ServerThread::base)
+    if(d_ptr->messServer->base)
     {
-        struct bufferevent *bev = bufferevent_socket_new(PXMServer::ServerThread::base, socketfd, BEV_OPT_THREADSAFE);
+        struct bufferevent *bev = bufferevent_socket_new(d_ptr->messServer->base, socketfd, BEV_OPT_THREADSAFE);
         d_ptr->peerDetailsHash[uuid].bw->lockBev();
         d_ptr->peerDetailsHash[uuid].bw->setBev(bev);
         d_ptr->peerDetailsHash[uuid].bw->unlockBev();
@@ -650,7 +662,7 @@ void PXMPeerWorker::printInfoToDebug()
     //hopefully reduce reallocs here
     str.reserve((330 + ( DEBUG_PADDING * 16) + (d_ptr->peerDetailsHash.size() * (260+(9*DEBUG_PADDING)))));
 
-    str.append(QChar('\n') % QChar('\n') % QStringLiteral("---Program Info---\n")
+    str.append(QChar('\n') % QStringLiteral("---Program Info---\n")
                % QStringLiteral("Program Name: ") % qApp->applicationName() % QChar('\n')
                % QStringLiteral("Version: ") % qApp->applicationVersion() % QChar('\n')
                % QStringLiteral("---Network Info---\n")
@@ -680,7 +692,7 @@ void PXMPeerWorker::discoveryTimerPersistent()
 {
     if(d_ptr->peerDetailsHash.count() < 3)
     {
-        this->sendUDP("/discover", d_ptr->serverUDPPort);
+        emit sendUDP("/discover", d_ptr->serverUDPPort);
     }
     else
     {
@@ -692,7 +704,7 @@ void PXMPeerWorker::discoveryTimerSingleShot()
 {
     if(!d_ptr->multicastIsFunctioning)
     {
-        emit warnBox(QStringLiteral("Network Problem"),
+        warnBox(QStringLiteral("Network Problem"),
                      QStringLiteral("Could not find anyone, even ourselves, on "
                                     "the network.\nThis could indicate a "
                                     "problem with your configuration."
@@ -729,7 +741,7 @@ void PXMPeerWorker::midnightTimerPersistent()
                    "</center>"
                    "<br>");
 
-        this->addMessageToAllPeers(str, false, false);
+        emit addMessageToAllPeers(str, false, false);
     }
 }
 
@@ -760,3 +772,23 @@ void PXMPeerWorker::sendUDPAccessor(const char *msg)
 {
     emit sendUDP(msg, d_ptr->serverUDPPort);
 }
+/*void PXMPeerWorker::restartServer(unsigned short tcpPort, unsigned udpPort, QString multicast)
+{
+    if(d_ptr->messServer)
+    {
+        for(auto &itr : d_ptr->peerDetailsHash)
+        {
+            //qDeleteAll(itr.messages);
+            evutil_closesocket(itr.socket);
+        }
+        //This must be done before PXMServer is shutdown;
+        d_ptr->peerDetailsHash.clear();
+
+        if(d_ptr->messServer != 0 && d_ptr->messServer->isRunning())
+        {
+            bufferevent_write(d_ptr->closeBev, "/exit", 5);
+            d_ptr->messServer->wait(5000);
+        }
+    }
+}
+*/

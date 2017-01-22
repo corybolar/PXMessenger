@@ -30,7 +30,7 @@
 using namespace PXMConsts;
 using namespace PXMServer;
 
-struct event_base* ServerThread::base = nullptr;
+//struct event_base* ServerThread::base = nullptr;
 struct ServerThreadPrivate{
     ServerThreadPrivate(ServerThread *q) : q_ptr(q), gotDiscover(false){}
     ServerThread *q_ptr;
@@ -62,18 +62,15 @@ ServerThread::ServerThread(QObject *parent, unsigned short tcpPort,
     d_ptr->multicastAddress = multicast;
     this->setObjectName("PXMServer");
 }
+
 ServerThread::~ServerThread()
 {
-    if(d_ptr)
-    {
-        delete d_ptr;
-        d_ptr = 0;
-    }
-    if(base)
+    /*if(base)
     {
         event_base_free(base);
         base = 0;
     }
+    */
     qDebug() << "Shutdown of PXMServer Successful";
 }
 int ServerThread::setLocalUUID(QUuid uuid)
@@ -99,7 +96,7 @@ void ServerThread::accept_new(evutil_socket_t s, short, void *arg)
     {
         struct bufferevent *bev;
         evutil_make_socket_nonblocking(result);
-        bev = bufferevent_socket_new(ServerThread::base, result, BEV_OPT_THREADSAFE);
+        bev = bufferevent_socket_new(realServer->base, result, BEV_OPT_THREADSAFE);
         bufferevent_setcb(bev, ServerThread::tcpAuth, NULL, ServerThread::tcpError, realServer);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
         bufferevent_enable(bev, EV_READ|EV_WRITE);
@@ -294,7 +291,7 @@ int ServerThreadPrivate::singleMessageIterator(bufferevent *bev, char *buf, uint
         qCritical() << "Blank message! -- Not Good!";
         return -1;
     }
-    MESSAGE_TYPE* type = (MESSAGE_TYPE*)(&buf[0]);
+    MESSAGE_TYPE *type = reinterpret_cast<MESSAGE_TYPE*>(&buf[0]);
     buf = &buf[sizeof(MESSAGE_TYPE)];
     bufLen -= sizeof(MESSAGE_TYPE);
     switch (*type)
@@ -504,18 +501,18 @@ evutil_socket_t ServerThreadPrivate::setupTCPSocket()
         tcpSockets.append(socketTCP);
         qInfo().noquote() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
     }
-    qInfo().noquote() << "Number of tcp sockets:" << tcpSockets.length();
+    qDebug().noquote() << "Number of tcp sockets:" << tcpSockets.length();
 
     freeaddrinfo(res);
 
     return tcpSockets.first();
 }
-void ServerThread::stopLoopBufferevent(bufferevent* bev, void*)
+void ServerThread::stopLoopBufferevent(bufferevent* bev, void* args)
 {
     char readBev[6] = {};
     bufferevent_read(bev, readBev, 5);
     if(!strncmp(readBev, "/exit", 5))
-        event_base_loopexit(ServerThread::base, NULL);
+        event_base_loopexit(static_cast<ServerThread*>(args)->base, NULL);
     else
         bufferevent_flush(bev, EV_READ, BEV_FLUSH);
 }
@@ -606,13 +603,13 @@ void ServerThread::run()
     //Pair to shutdown server
     struct bufferevent *closePair[2];
     bufferevent_pair_new(base, BEV_OPT_THREADSAFE, closePair);
-    bufferevent_setcb(closePair[0], ServerThread::stopLoopBufferevent, NULL, NULL, NULL);
+    bufferevent_setcb(closePair[0], ServerThread::stopLoopBufferevent, NULL, NULL, this);
     bufferevent_enable(closePair[0], EV_READ);
     bufferevent_enable(closePair[1], EV_WRITE);
 
     emit setCloseBufferevent(closePair[1]);
 
-    failureCodes = event_base_dispatch(ServerThread::base);
+    failureCodes = event_base_dispatch(base);
     if(failureCodes < 0)
     {
         qWarning() << "event_base_dispatch shutdown with error";

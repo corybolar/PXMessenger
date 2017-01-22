@@ -31,6 +31,7 @@ class PXMWindow : public QMainWindow
     QFrame *fsep;
     QString localHostname;
     QUuid globalChatUuid;
+    PXMConsole::Window *debugWindow = nullptr;
     /*!
      * \brief focusWindow
      *
@@ -80,13 +81,12 @@ class PXMWindow : public QMainWindow
 
 public:
     PXMWindow(QString hostname, QSize windowSize, bool mute,
-              bool focus, QUuid globalChat);
+              bool focus, QUuid globalChat, QWidget *parent = nullptr);
     ~PXMWindow();
     PXMWindow(PXMWindow const&) = delete;
     PXMWindow& operator=(PXMWindow const&) = delete;
     PXMWindow& operator=(PXMWindow&&) noexcept = delete;
     PXMWindow(PXMWindow&&) noexcept = delete;
-    PXMConsole::Window *debugWindow = nullptr;
 public slots:
     void bloomActionsSlot();
     int printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert);
@@ -111,6 +111,7 @@ signals:
     void sendUDP(const char*);
     void retryDiscover();
     void addMessageToPeer(QString, QUuid, bool, bool);
+    void printInfoToDebug();
 };
 
 class PXMAboutDialog : public QDialog
