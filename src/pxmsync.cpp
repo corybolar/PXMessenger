@@ -1,32 +1,27 @@
 #include "pxmsync.h"
 #include "pxmpeers.h"
 
-PXMSync::PXMSync(QObject *parent) : QObject(parent)
+PXMSync::PXMSync(QObject* parent) : QObject(parent)
 {
-
 }
 void PXMSync::syncNext()
 {
-    while(hashIterator != syncHash->end() && !(hashIterator.value().isAuthenticated))
-    {
+    while (hashIterator != syncHash->end() && !(hashIterator.value().isAuthenticated)) {
         hashIterator++;
     }
-    if(hashIterator == syncHash->end())
-    {
+    if (hashIterator == syncHash->end()) {
         emit syncComplete();
         return;
-    }
-    else
-    {
+    } else {
         emit requestIps(hashIterator.value().bw, hashIterator.value().identifier);
     }
     hashIterator++;
 }
 
-void PXMSync::setsyncHash(QHash<QUuid, Peers::PeerData> *hash)
+void PXMSync::setsyncHash(QHash<QUuid, Peers::PeerData>* hash)
 {
-   syncHash = hash;
-   hashIterator = QHash<QUuid, Peers::PeerData>::iterator();
+    syncHash     = hash;
+    hashIterator = QHash<QUuid, Peers::PeerData>::iterator();
 }
 void PXMSync::setIteratorToStart()
 {

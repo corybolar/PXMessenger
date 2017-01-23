@@ -6,7 +6,8 @@
 #include <QSharedPointer>
 #include <QObject>
 
-namespace Peers {
+namespace Peers
+{
 class BevWrapper;
 class PeerData;
 }
@@ -14,17 +15,18 @@ class PeerData;
 class PXMSync : public QObject
 {
     Q_OBJECT
-    QHash<QUuid, Peers::PeerData> *syncHash;
-public:
-    PXMSync(QObject *parent);
-    void setsyncHash(QHash<QUuid, Peers::PeerData> *hash);
+    QHash<QUuid, Peers::PeerData>* syncHash;
+
+   public:
+    PXMSync(QObject* parent);
+    void setsyncHash(QHash<QUuid, Peers::PeerData>* hash);
     QHash<QUuid, Peers::PeerData>::iterator hashIterator;
     void setIteratorToStart();
-public slots:
+   public slots:
     void syncNext();
-signals:
+   signals:
     void requestIps(QSharedPointer<Peers::BevWrapper>, QUuid);
     void syncComplete();
 };
 
-#endif // MESSSYNC_H
+#endif  // MESSSYNC_H

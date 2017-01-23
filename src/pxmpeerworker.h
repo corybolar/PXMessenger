@@ -16,8 +16,8 @@ class PXMPeerWorker : public QObject
     Q_OBJECT
     QScopedPointer<PXMPeerWorkerPrivate> d_ptr;
 
-public:
-    explicit PXMPeerWorker(QObject *parent,
+   public:
+    explicit PXMPeerWorker(QObject* parent,
                            QString username,
                            QUuid selfUUID,
                            QString multicast,
@@ -28,51 +28,54 @@ public:
     PXMPeerWorker(PXMPeerWorker const&) = delete;
     PXMPeerWorker& operator=(PXMPeerWorker const&) = delete;
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
-    PXMPeerWorker(PXMPeerWorker&&) noexcept = delete;
-    const static int SYNC_TIMEOUT_MSECS = 2000;
-    const static int SYNC_TIMER = 900000;
-public slots:
+    PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
+    const static int SYNC_TIMEOUT_MSECS                = 2000;
+    const static int SYNC_TIMER                        = 900000;
+   public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
-    void syncPacketIterator(char *ipHeapArray, size_t len, QUuid senderUuid);
-    void attemptConnection(sockaddr_in addr, QUuid uuid);
-    void authenticationReceived(QString hname, unsigned short port,
-                                QString version,evutil_socket_t s, QUuid uuid,
-                                bufferevent *bev);
-    void newTcpConnection(bufferevent *bev);
-    void peerQuit(evutil_socket_t s, bufferevent *bev);
+    void syncPacketIterator(char* ipHeapArray, size_t len, QUuid senderUuid);
+    void attemptConnection(struct sockaddr_in addr, QUuid uuid);
+    void authenticationReceived(QString hname,
+                                unsigned short port,
+                                QString version,
+                                evutil_socket_t s,
+                                QUuid uuid,
+                                bufferevent* bev);
+    void newTcpConnection(bufferevent* bev);
+    void peerQuit(evutil_socket_t s, bufferevent* bev);
     void peerNameChange(QString hname, QUuid uuid);
     void sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
-    void sendSyncPacketBev(bufferevent *bev, QUuid uuid);
+    void sendSyncPacketBev(bufferevent* bev, QUuid uuid);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result,
-                                   bufferevent *bev);
+                                   bufferevent* bev);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
                          bool print, QSharedPointer<Peers::BevWrapper>);
     void currentThreadInit();
     int addMessageToPeer(QString str, QUuid uuid, bool alert, bool);
     void printInfoToDebug();
     void setlibeventBackend(QString str);
-    int recieveServerMessage(QString str, QUuid uuid, bufferevent *bev,
+    int recieveServerMessage(QString str, QUuid uuid, bufferevent* bev,
                              bool global);
     void addMessageToAllPeers(QString str, bool alert, bool formatAsMessage);
     void printFullHistory(QUuid uuid);
     void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type,
                          QUuid uuid = QUuid());
-    void setSelfCommsBufferevent(bufferevent *bev);
+    void setSelfCommsBufferevent(bufferevent* bev);
     void multicastIsFunctional();
     void serverSetupFailure(QString error);
     void setLocalHostname(QString);
     void sendUDPAccessor(const char* msg);
-    void setCloseBufferevent(bufferevent *bev);
+    void setCloseBufferevent(bufferevent* bev);
 
-    //void restartServer();
-private slots:
+    // void restartServer();
+   private slots:
     void beginSync();
     void doneSync();
     void requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
     void discoveryTimerSingleShot();
     void midnightTimerPersistent();
     void discoveryTimerPersistent();
-signals:
+   signals:
     void printToTextBrowser(QSharedPointer<QString>, QUuid, bool);
     void updateListWidget(QUuid, QString);
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray,
@@ -80,7 +83,7 @@ signals:
     void sendUDP(const char*, unsigned short);
     void sendIpsPacket(QSharedPointer<Peers::BevWrapper>, char*, size_t len,
                        PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
-    void connectToPeer(evutil_socket_t, sockaddr_in,
+    void connectToPeer(evutil_socket_t, struct sockaddr_in,
                        QSharedPointer<Peers::BevWrapper>);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);

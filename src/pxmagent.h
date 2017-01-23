@@ -4,8 +4,8 @@
 #include <QObject>
 #include <QScopedPointer>
 
-#include <pxmpeerworker.h>
 #include <pxmmainwindow.h>
+#include <pxmpeerworker.h>
 
 struct PXMAgentPrivate;
 class PXMAgent : public QObject
@@ -13,21 +13,22 @@ class PXMAgent : public QObject
     Q_OBJECT
 
     QScopedPointer<PXMAgentPrivate> d_ptr;
-public:
-    //Default
-    PXMAgent(QObject *parent = 0);
-    //Copy
+
+   public:
+    // Default
+    PXMAgent(QObject* parent = 0);
+    // Copy
     PXMAgent(const PXMAgent& agent) = delete;
-    //Copy Assignment
+    // Copy Assignment
     PXMAgent& operator=(const PXMAgent& agent) = delete;
-    //Move
+    // Move
     PXMAgent(PXMAgent&& agent) noexcept = delete;
-    //Move Assignment
+    // Move Assignment
     PXMAgent& operator=(PXMAgent&& agent) noexcept = delete;
-    //Destructor
+    // Destructor
     ~PXMAgent();
 
     int init();
 };
 
-#endif // PXMAGENT_H
+#endif  // PXMAGENT_H

@@ -6,8 +6,7 @@ QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
-CONFIG += c++11 \
-        DEBUG \
+CONFIG += DEBUG \
         RELEASE
 
 unix: LIBS += -levent -levent_pthreads
@@ -25,7 +24,8 @@ LIBS += -lws2_32
 RC_ICONS = $$PWD/resources/PXM_Icon.ico
 }
 
-QMAKE_CXXFLAGS += -Wall
+QMAKE_CXXFLAGS += -Wall \
+                -std=c++14
 
 SOURCES += \
     pxmclient.cpp \

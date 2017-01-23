@@ -12,48 +12,57 @@
 
 struct bufferevent;
 struct event_base;
-struct ServerThreadPrivate;
+class ServerThreadPrivate;
 
-namespace PXMServer{
-const timeval READ_TIMEOUT = {1, 0};
-const timeval READ_TIMEOUT_RESET = {3600, 0};
+namespace PXMServer
+{
+const timeval READ_TIMEOUT         = {1, 0};
+const timeval READ_TIMEOUT_RESET   = {3600, 0};
 const uint8_t PACKET_HEADER_LENGTH = 2;
+enum INTERNAL_MSG : uint16_t {
+  EXIT = 0x1111,
+  TCP_PORT_CHANGE = 0x2222,
+  UDP_PORT_CHANGE = 0x3333
+};
 class ServerThread : public QThread
 {
     Q_OBJECT
     QScopedPointer<ServerThreadPrivate> d_ptr;
-public:
-    //Default
-    ServerThread(QObject *parent = nullptr, unsigned short tcpPort = 0,
-                 unsigned short udpPort = 0, in_addr multicast = {});
-    //Copy
+
+   public:
+    // Default
+    ServerThread(QObject* parent        = nullptr,
+                 unsigned short tcpPort = 0,
+                 unsigned short udpPort = 0,
+                 in_addr multicast      = {});
+    // Copy
     ServerThread(ServerThread const&) = delete;
-    //Copy assignment
-    ServerThread &operator=(ServerThread const&) = delete;
-    //Move
+    // Copy assignment
+    ServerThread& operator=(ServerThread const&) = delete;
+    // Move
     ServerThread(ServerThread&& st) noexcept = delete;
-    //Move assignment
-    ServerThread &operator=(ServerThread&& st) noexcept = delete;
-    //Destructor
+    // Move assignment
+    ServerThread& operator=(ServerThread&& st) noexcept = delete;
+    // Destructor
     ~ServerThread();
 
     void run() Q_DECL_OVERRIDE;
     int setLocalHostname(QString hostname);
     int setLocalUUID(QUuid uuid);
-    static void tcpError(bufferevent *bev, short error, void *arg);
-    static void tcpAuth(bufferevent *bev, void *arg);
-    static void tcpRead(bufferevent *bev, void *arg);
-    static void accept_new(evutil_socket_t socketfd, short, void *arg);
-    static void udpRecieve(evutil_socket_t socketfd, short, void *args);
-    static void stopLoopBufferevent(bufferevent *bev, void *);
+    static void tcpError(bufferevent* bev, short error, void* arg);
+    static void tcpAuth(bufferevent* bev, void* arg);
+    static void tcpRead(bufferevent* bev, void* arg);
+    static void accept_new(evutil_socket_t socketfd, short, void* arg);
+    static void udpRecieve(evutil_socket_t socketfd, short, void* args);
+    static void internalCommsRead(bufferevent* bev, void*);
     struct event_base* base;
-signals:
+   signals:
     void messageRecieved(QString, QUuid, bufferevent*, bool);
     void newTCPConnection(bufferevent*);
     void authenticationReceived(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
-    void attemptConnection(sockaddr_in, QUuid);
+    void attemptConnection(struct sockaddr_in, QUuid);
     void sendSyncPacket(bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
     void syncPacketIterator(char*, size_t, QUuid);
@@ -67,7 +76,6 @@ signals:
     void serverSetupFailure(QString);
     void nameChange(QString, QUuid);
 };
-
 }
 
-#endif // MESS_SERV_H
+#endif  // MESS_SERV_H

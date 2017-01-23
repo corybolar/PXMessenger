@@ -1,27 +1,28 @@
 #include "pxmconsole.h"
+#include <QGridLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QPushButton>
+#include <QScrollBar>
 #include <QStringBuilder>
 #include <QTextEdit>
-#include <QPushButton>
-#include <QLabel>
-#include <QGridLayout>
-#include <QScrollBar>
-#include <QPushButton>
 
 using namespace PXMConsole;
-struct PXMConsole::WindowPrivate{
+struct PXMConsole::WindowPrivate {
+    QWidget* centralwidget;
+    QGridLayout* gridLayout;
+    QGridLayout* gridLayout_2;
+    QScrollBar* sb;
+    QLabel* verbosity;
     bool atMaximum = false;
-    QWidget *centralwidget;
-    QGridLayout *gridLayout;
-    QGridLayout *gridLayout_2;
-    QScrollBar *sb;
-    QLabel *verbosity;
 };
 
-QTextEdit * Window::textEdit = 0;
-int PXMConsole::AppendTextEvent::type = QEvent::registerEventType();
-PXMConsole::LoggerSingleton* PXMConsole::LoggerSingleton::loggerInstance = nullptr;
-int PXMConsole::LoggerSingleton::verbosityLevel = 0;
-Window::Window(QWidget *parent) : QMainWindow(parent), d_ptr(new PXMConsole::WindowPrivate())
+QTextEdit* Window::textEdit                      = 0;
+int AppendTextEvent::type                        = QEvent::registerEventType();
+LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
+int LoggerSingleton::verbosityLevel              = 0;
+
+Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::WindowPrivate())
 {
     this->setObjectName("Debug Console");
     this->setWindowTitle("Debug Console");
@@ -34,7 +35,7 @@ Window::Window(QWidget *parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     textEdit = new QTextEdit(d_ptr->centralwidget);
     textEdit->setObjectName(QStringLiteral("plainTextEdit"));
     textEdit->setReadOnly(true);
-    textEdit->document()->setMaximumBlockCount(DEBUG_WINDOW_HISTORY_LIMIT);
+    textEdit->document()->setMaximumBlockCount(HISTORY_LIMIT);
     LoggerSingleton::getInstance()->setTextEdit(textEdit);
     pushButton = new QPushButton(d_ptr->centralwidget);
     pushButton->setText("Print Info");
@@ -56,8 +57,8 @@ Window::Window(QWidget *parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     this->resize(1000, 300);
     d_ptr->sb->setValue(d_ptr->sb->maximum());
     d_ptr->atMaximum = true;
-    QObject::connect(d_ptr->sb, &QAbstractSlider::valueChanged, this, &Window::adjustScrollBar);
-    QObject::connect(d_ptr->sb, &QAbstractSlider::rangeChanged, this, &Window::rangeChanged);
+    QObject::connect(d_ptr->sb, &QScrollBar::valueChanged, this, &Window::adjustScrollBar);
+    QObject::connect(d_ptr->sb, &QScrollBar::rangeChanged, this, &Window::rangeChanged);
 }
 
 Window::~Window()
@@ -65,17 +66,31 @@ Window::~Window()
 }
 void Window::adjustScrollBar(int i)
 {
-    if(i == d_ptr->sb->maximum())
+    if (i == d_ptr->sb->maximum()) {
         d_ptr->atMaximum = true;
-    else
+    } else {
         d_ptr->atMaximum = false;
+    }
 }
 void Window::rangeChanged(int, int i2)
 {
-    if(d_ptr->atMaximum)
-    d_ptr->sb->setValue(i2);
+    if (d_ptr->atMaximum) {
+        d_ptr->sb->setValue(i2);
+    }
 }
 void Window::verbosityChanged()
 {
     d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+}
+
+void LoggerSingleton::customEvent(QEvent* event)
+{
+    AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
+    if (text) {
+        logTextEdit->setTextColor(text->getColor());
+        logTextEdit->insertPlainText(text->getText());
+        event->accept();
+    } else {
+        QObject::customEvent(event);
+    }
 }
