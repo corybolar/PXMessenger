@@ -27,15 +27,19 @@
 #include "pxmpeers.h"
 #include "pxmconsts.h"
 
+static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
+static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
+static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
+
 using namespace PXMConsts;
 using namespace PXMServer;
 
 //struct event_base* ServerThread::base = nullptr;
 struct ServerThreadPrivate{
     ServerThreadPrivate(ServerThread *q) : q_ptr(q), gotDiscover(false){}
-    ServerThread *q_ptr;
-    //Data Members
     QUuid localUUID;
+    //Data Members
+    ServerThread *q_ptr;
     unsigned short tcpListenerPort;
     unsigned short udpListenerPort;
     in_addr multicastAddress;
@@ -473,6 +477,7 @@ evutil_socket_t ServerThreadPrivate::setupTCPSocket()
     if(getaddrinfo(NULL, tcpPortChar, &hints, &res) < 0)
     {
         qCritical().noquote() << "getaddrinfo: " + QString::fromUtf8(strerror(errno));
+        //throw(QString::fromUtf8("getaddrinfo: ") + QString::fromUtf8(strerror(errno)));
         return -1;
     }
 
@@ -482,10 +487,12 @@ evutil_socket_t ServerThreadPrivate::setupTCPSocket()
         if((socketTCP = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
         {
             qCritical().noquote() << "socket: " + QString::fromUtf8(strerror(errno));
+            continue;
         }
         if(setsockopt(socketTCP, SOL_SOCKET,SO_REUSEADDR, "true", sizeof(int)) < 0)
         {
             qCritical().noquote() << "setsockopt: " + QString::fromUtf8(strerror(errno));
+            continue;
         }
 
         evutil_make_socket_nonblocking(socketTCP);
@@ -493,10 +500,12 @@ evutil_socket_t ServerThreadPrivate::setupTCPSocket()
         if(bind(socketTCP, res->ai_addr, res->ai_addrlen) < 0)
         {
             qCritical().noquote() << "bind: " + QString::fromUtf8(strerror(errno));
+            continue;
         }
         if(listen(socketTCP, SOMAXCONN) < 0)
         {
             qCritical().noquote() << "listen: " + QString::fromUtf8(strerror(errno));
+            continue;
         }
         tcpSockets.append(socketTCP);
         qInfo().noquote() << "Port number for TCP/IP Listener: " + QString::number(getPortNumber(socketTCP));
@@ -532,8 +541,9 @@ void ServerThread::run()
 
     if(!base)
     {
-        qCritical() << "FATAL:event_base_new returned NULL";
-        serverSetupFailure();
+        QString errorMsg = "FATAL:event_base_new returned NULL";
+        qCritical() << errorMsg;
+        serverSetupFailure(errorMsg);
         return;
     }
 
@@ -554,8 +564,9 @@ void ServerThread::run()
     s_listen = d_ptr->setupTCPSocket();
     if(s_listen < 0)
     {
-        qCritical() << "FATAL:TCP socket setup has failed";
-        serverSetupFailure();
+        QString errorMsg = "FATAL:TCP socket setup has failed";
+        qCritical() << errorMsg;
+        serverSetupFailure(errorMsg);
         return;
     }
 
@@ -563,40 +574,47 @@ void ServerThread::run()
     s_discover = d_ptr->setupUDPSocket(s_listen);
     if(s_discover < 0)
     {
-        qCritical() << "FATAL:UDP socket setup has failed";
-        serverSetupFailure();
+        QString errorMsg =  "FATAL:UDP socket setup has failed";
+        qCritical() << errorMsg;
+        serverSetupFailure(errorMsg);
         return;
     }
 
+    try{
     eventDiscover = event_new(base, s_discover, EV_READ|EV_PERSIST, udpRecieve, this);
     if(!eventDiscover)
     {
-        qCritical() << "FATAL:event_new returned NULL";
-        serverSetupFailure();
-        return;
+        throw("FATAL:event_new returned NULL");
     }
 
     failureCodes = event_add(eventDiscover, NULL);
     if(failureCodes < 0)
     {
-        qCritical() << "FATAL:event_add returned -1";
-        serverSetupFailure();
-        return;
+        throw("FATAL:event_add returned -1");
     }
 
     eventAccept = event_new(base, s_listen, EV_READ|EV_PERSIST, accept_new, this);
     if(!eventAccept)
     {
-        qCritical() << "FATAL:event_new returned NULL";
-        serverSetupFailure();
-        return;
+        throw("FATAL:event_new returned NULL");
     }
 
     failureCodes = event_add(eventAccept, NULL);
     if(failureCodes < 0)
     {
-        qCritical() << "FATAL:event_add returned -1";
-        serverSetupFailure();
+        throw("FATAL:event_add returned -1");
+    }
+    }
+    catch(const char* errorMsg)
+    {
+        qCritical() << errorMsg;
+        serverSetupFailure(errorMsg);
+        return;
+    }
+    catch(QString errorMsg)
+    {
+        qCritical() << errorMsg;
+        serverSetupFailure(errorMsg);
         return;
     }
 

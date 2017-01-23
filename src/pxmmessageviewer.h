@@ -1,4 +1,3 @@
-#pragma once
 #ifndef PXMMESSAGEVIEWER_H
 #define PXMMESSAGEVIEWER_H
 

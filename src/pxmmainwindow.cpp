@@ -309,7 +309,7 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 
 void PXMWindow::closeEvent(QCloseEvent *event)
 {
-#ifndef __unix
+#ifndef __linux__
     if(QMessageBox::No == QMessageBox::warning(this, "PXMessenger", "Are you sure you want to quit PXMessenger?", QMessageBox::Yes, QMessageBox::No))
     {
         event->ignore();
@@ -590,8 +590,6 @@ void PXMSettingsDialog::valueChanged(int size)
     d_ptr->iniFont.setPointSize(size);
     qApp->setFont(d_ptr->iniFont);
 }
-
-
 
 void PXMSettingsDialog::readIni()
 {

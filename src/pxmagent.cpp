@@ -81,9 +81,9 @@ PXMAgent::~PXMAgent()
 int PXMAgent::init()
 {
 #ifndef QT_DEBUG
-    QPixmap splashImage(":/resources/resources/PXMessenger_wBackground.png");
-    splashImage = splashImage.scaledToHeight(300);
-    QSplashScreen splash(splashImage);
+    QImage splashImage(":/resources/resources/PXMessenger_wBackground.png");
+    splashImage = splashImage.scaledToHeight(400);
+    QSplashScreen splash(QPixmap::fromImage(splashImage));
     splash.show();
     QElapsedTimer startupTimer;
     startupTimer.start();
@@ -91,6 +91,21 @@ int PXMAgent::init()
 #endif
 
 #ifdef _WIN32
+    try {
+        WSADATA wsa;
+        if(WSAStartup(MAKEWORD(2,2), &wsa) != 0)
+        {
+            qCritical() << "Failed WSAStartup error:" << WSAGetLastError();
+            throw("Failed WSAStartup error: " + WSAGetLastError());
+        }
+    } catch(const char* msg){
+        QMessageBox msgBox(QMessageBox::Critical,
+                           "WSAStartup Error",
+                           QString::fromUtf8(msg));
+        msgBox.exec();
+        return -1;
+    }
+
     qRegisterMetaType<intptr_t>("intptr_t");
 #endif
     qRegisterMetaType<sockaddr_in>();
@@ -106,17 +121,22 @@ int PXMAgent::init()
     bool allowMoreThanOne = d_ptr->iniReader.checkAllowMoreThanOne();
     QString tmpDir = QDir::tempPath();
     QLockFile lockFile(tmpDir + "/pxmessenger_" + username + ".lock");
-    if(!allowMoreThanOne)
-    {
-        if(!lockFile.tryLock(100))
+    try {
+        if(!allowMoreThanOne)
         {
-            QMessageBox msgBox;
-            msgBox.setIcon(QMessageBox::Warning);
-            msgBox.setText("You already have this app running."
-                           "\r\nOnly one instance is allowed.");
-            msgBox.exec();
-            return -1;
+            if(!lockFile.tryLock(100))
+            {
+                throw("PXMessenger is already"
+                "running.\r\nOnly one instance"
+                "is allowed");
+            }
         }
+    } catch(const char* msg) {
+        QMessageBox msgBox(QMessageBox::Warning,
+                           qApp->applicationName(),
+                           QString::fromUtf8(msg));
+        msgBox.exec();
+        return -1;
     }
 
     d_ptr->logger = PXMConsole::LoggerSingleton::getInstance();
@@ -141,14 +161,14 @@ int PXMAgent::init()
     d_ptr->workerThread = new QThread(this);
     d_ptr->workerThread->setObjectName("WorkerThread");
     d_ptr->peerWorker = new PXMPeerWorker(nullptr, d_ptr->presets.username,
-                                               d_ptr->presets.uuid, d_ptr->presets.multicast,
-                                               d_ptr->presets.tcpPort, d_ptr->presets.udpPort,
-                                               globalChat);
+                                          d_ptr->presets.uuid, d_ptr->presets.multicast,
+                                          d_ptr->presets.tcpPort, d_ptr->presets.udpPort,
+                                          globalChat);
     d_ptr->peerWorker->moveToThread(d_ptr->workerThread);
     QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::currentThreadInit);
     QObject::connect(d_ptr->workerThread, &QThread::finished, d_ptr->peerWorker, &PXMPeerWorker::deleteLater);
     QScopedPointer<PXMWindow> win(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize,
-                                      d_ptr->presets.mute, d_ptr->presets.preventFocus, globalChat));
+                                                d_ptr->presets.mute, d_ptr->presets.preventFocus, globalChat));
     d_ptr->window.swap(win);
     //d_ptr->window = new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize,
     //                                  d_ptr->presets.mute, d_ptr->presets.preventFocus, globalChat);
@@ -166,7 +186,8 @@ int PXMAgent::init()
     qInfo() << "Running in debug mode";
 #else
     qInfo() << "Running in release mode";
-    splash.finish(d_ptr->window);
+    splash.finish(d_ptr->window.data());
+    qApp->processEvents();
     while(startupTimer.elapsed() < 1500)
     {
         qApp->processEvents();

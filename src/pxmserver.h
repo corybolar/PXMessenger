@@ -64,7 +64,7 @@ signals:
     void setCloseBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
-    void serverSetupFailure();
+    void serverSetupFailure(QString);
     void nameChange(QString, QUuid);
 };
 

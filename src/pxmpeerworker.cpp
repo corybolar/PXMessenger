@@ -26,6 +26,9 @@
 #include <resolv.h>
 #endif
 
+static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
+static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
+
 using namespace PXMConsts;
 
 class PXMPeerWorkerPrivate{
@@ -93,14 +96,7 @@ PXMPeerWorker::PXMPeerWorker(QObject *parent, QString username, QUuid selfUUID,
 {
     //Init
     //Windows socket init
-#ifdef _WIN32
-    WSADATA wsa;
-    if(WSAStartup(MAKEWORD(2,2), &wsa) != 0)
-    {
-        printf("Failed WSAStartup error: %d", WSAGetLastError());
-        return 1;
-    }
-#endif
+
     d_ptr->areWeSyncing = false;
     //d_ptr->syncablePeers = new TimedVector<QUuid>(SYNC_TIMEOUT_MSECS, SECONDS);
     d_ptr->messClient = nullptr;
@@ -750,15 +746,14 @@ void PXMPeerWorker::multicastIsFunctional()
     d_ptr->multicastIsFunctioning = true;
 }
 
-void PXMPeerWorker::serverSetupFailure()
+void PXMPeerWorker::serverSetupFailure(QString error)
 {
     d_ptr->discoveryTimer->stop();
     d_ptr->discoveryTimerSingle->stop();
     emit warnBox(QStringLiteral("Server Setup Failure"),
-                 QStringLiteral("Failure setting up the server sockets and "
-                                "multicast group.  Check the debug logger for "
-                                "more information.\n\n"
-                                "Settings for your network conditions will "
+                 QStringLiteral("Server Setup failure:")
+                 % "\n" % error % "\n" %
+                 QStringLiteral("Settings for your network conditions will "
                                 "have to be adjusted and the program "
                                 "restarted."));
 }
@@ -776,19 +771,19 @@ void PXMPeerWorker::sendUDPAccessor(const char *msg)
 {
     if(d_ptr->messServer)
     {
-        for(auto &itr : d_ptr->peerDetailsHash)
-        {
-            //qDeleteAll(itr.messages);
-            evutil_closesocket(itr.socket);
-        }
-        //This must be done before PXMServer is shutdown;
-        d_ptr->peerDetailsHash.clear();
+    for(auto &itr : d_ptr->peerDetailsHash)
+    {
+        //qDeleteAll(itr.messages);
+        evutil_closesocket(itr.socket);
+    }
+    //This must be done before PXMServer is shutdown;
+    d_ptr->peerDetailsHash.clear();
 
-        if(d_ptr->messServer != 0 && d_ptr->messServer->isRunning())
-        {
-            bufferevent_write(d_ptr->closeBev, "/exit", 5);
-            d_ptr->messServer->wait(5000);
-        }
+    if(d_ptr->messServer != 0 && d_ptr->messServer->isRunning())
+    {
+        bufferevent_write(d_ptr->closeBev, "/exit", 5);
+        d_ptr->messServer->wait(5000);
+    }
     }
 }
 */

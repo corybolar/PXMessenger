@@ -10,8 +10,10 @@ QUuid UUIDCompression::unpackUUID(const unsigned char *src)
 {
     QUuid uuid;
     size_t index = 0;
+    static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
     uuid.data1 = ntohl(*(uint32_t*)(&src[index]));
     index += 4;
+    static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
     uuid.data2 = ntohs(*(uint16_t*)(&src[index]));
     index += 2;
     uuid.data3 = ntohs(*(uint16_t*)(&src[index]));

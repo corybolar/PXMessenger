@@ -1,4 +1,3 @@
-#pragma once
 #ifndef PXMCONSTS_H
 #define PXMCONSTS_H
 
@@ -7,12 +6,14 @@
 #include <string.h>
 #include "uuidcompression.h"
 
+static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
+
 namespace PXMConsts {
 const char* const DEFAULT_MULTICAST_ADDRESS = "239.192.13.13";
 const int MESSAGE_HISTORY_LENGTH = 500;
 const int MIDNIGHT_TIMER_INTERVAL_MINUTES = 1;
 #ifdef QT_DEBUG
-const int DEBUG_PADDING = 25;
+const int DEBUG_PADDING = 28;
 #else
 const int DEBUG_PADDING = 0;
 #endif

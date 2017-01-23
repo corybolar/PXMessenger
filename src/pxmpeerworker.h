@@ -59,7 +59,7 @@ public slots:
                          QUuid uuid = QUuid());
     void setSelfCommsBufferevent(bufferevent *bev);
     void multicastIsFunctional();
-    void serverSetupFailure();
+    void serverSetupFailure(QString error);
     void setLocalHostname(QString);
     void sendUDPAccessor(const char* msg);
     void setCloseBufferevent(bufferevent *bev);

@@ -5,10 +5,6 @@
 #include "pxmagent.h"
 #include "pxmconsole.h"
 
-static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
-static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
-static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
-
 void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     using namespace PXMConsole;
@@ -31,7 +27,11 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
 #ifdef QT_DEBUG
     localMsg.reserve(128);
     QString filename = QString::fromUtf8(context.file);
+#ifdef __WIN32
+    filename = filename.right(filename.length() - filename.lastIndexOf(QChar('\\')) - 1);
+#else
     filename = filename.right(filename.length() - filename.lastIndexOf(QChar('/')) - 1);
+#endif
     filename.append(":" + QByteArray::number(context.line));
     filename.append(QString(PXMConsts::DEBUG_PADDING - filename.length(), QChar(' ')));
     localMsg = filename.toUtf8() % msg.toUtf8();
@@ -54,7 +54,8 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext &context, const
         msgColor = Qt::red;
         break;
     case QtFatalMsg:
-        fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "FATAL:    %s\n", localMsg.constData());
+        //fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         abort();
         break;
     case QtInfoMsg:
