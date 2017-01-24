@@ -225,7 +225,6 @@ void ServerThread::tcpRead(struct bufferevent* bev, void* arg)
         evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
         return;
     }
-    qInfo() << "Sender Uuid for message" << uuid.toString();
 
     bufLen -= UUIDCompression::PACKED_UUID_LENGTH;
     char* buf = new char[bufLen + 1];
@@ -281,35 +280,38 @@ int ServerThreadPrivate::singleMessageIterator(bufferevent* bev, char* buf, uint
     int result = 0;
     switch (*type) {
         case MSG_TEXT:
-            qInfo().noquote() << "MSG :" << QString::fromUtf8(&buf[0], bufLen);
+            qInfo().noquote() << "Message from" << quuid.toString();
+            qDebug().noquote() << "MSG :" << QString::fromUtf8(&buf[0], bufLen);
             emit q_ptr->messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, false);
             break;
         case MSG_SYNC: {
             char* ipHeapArray = new char[bufLen];
             memcpy(ipHeapArray, &buf[0], bufLen);
             QByteArray qba = QByteArray::fromRawData(&buf[0], bufLen);
-            qInfo().noquote() << "SYNC received";
+            qInfo().noquote() << "SYNC received from" << quuid.toString();
             emit q_ptr->syncPacketIterator(ipHeapArray, bufLen, quuid);
             break;
         }
         case MSG_SYNC_REQUEST:
-            qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8(&buf[0], bufLen);
+            qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8(&buf[0], bufLen) << "from"
+                              << quuid.toString();
             emit q_ptr->sendSyncPacket(bev, quuid);
             break;
         case MSG_GLOBAL:
-            qInfo().noquote() << "GLOBAL :" << QString::fromUtf8(&buf[0], bufLen);
+            qInfo().noquote() << "Global message from" << quuid.toString();
+            qDebug().noquote() << "GLOBAL :" << QString::fromUtf8(&buf[0], bufLen);
             emit q_ptr->messageRecieved(QString::fromUtf8(&buf[0], bufLen), quuid, bev, true);
             break;
         case MSG_NAME:
-            qInfo().noquote() << "NAME :" << QString::fromUtf8(&buf[0], bufLen);
+            qInfo().noquote() << "NAME :" << QString::fromUtf8(&buf[0], bufLen) << "from" << quuid.toString();
             emit q_ptr->nameChange(QString::fromUtf8(&buf[0], bufLen), quuid);
             break;
         case MSG_AUTH:
-            qInfo().noquote() << "AUTH packet recieved after alread authenticated, disregarding...";
+            qWarning().noquote() << "AUTH packet recieved after alread authenticated, disregarding...";
             result = -1;
             break;
         default:
-            qInfo().noquote() << "Bad message type in the packet, discarding the rest";
+            qWarning().noquote() << "Bad message type in the packet, discarding the rest";
             result = -1;
             break;
     }

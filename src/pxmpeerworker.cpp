@@ -700,7 +700,7 @@ void PXMPeerWorker::discoveryTimerSingleShot()
         d_ptr->discoveryTimer->setInterval(30000);
         QObject::connect(d_ptr->discoveryTimer, &QTimer::timeout, this, &PXMPeerWorker::discoveryTimerPersistent);
         emit sendUDP("/discover", d_ptr->serverUDPPort);
-        qInfo() << QStringLiteral(
+        qInfo().noquote() << QStringLiteral(
             "Retrying discovery packet, looking "
             "for other computers...");
         d_ptr->discoveryTimer->start();

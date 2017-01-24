@@ -27,11 +27,15 @@ static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 
-PXMClient::PXMClient(QObject* parent, in_addr multicast, QUuid localUUID) : QObject(parent)
+struct PXMClientPrivate {
+    in_addr multicastAddress;
+    char packedLocalUUID[UUIDCompression::PACKED_UUID_LENGTH];
+};
+PXMClient::PXMClient(QObject* parent, in_addr multicast, QUuid localUUID) : QObject(parent), d_ptr(new PXMClientPrivate)
 {
     this->setObjectName("PXMClient");
 
-    multicastAddress = multicast;
+    d_ptr->multicastAddress = multicast;
 
     setLocalUUID(localUUID);
 }
@@ -43,7 +47,7 @@ PXMClient::~PXMClient()
 
 void PXMClient::setLocalUUID(QUuid uuid)
 {
-    UUIDCompression::packUUID(&packedLocalUUID[0], uuid);
+    UUIDCompression::packUUID(&d_ptr->packedLocalUUID[0], uuid);
 }
 int PXMClient::sendUDP(const char* msg, unsigned short port)
 {
@@ -53,7 +57,7 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
 
     memset(&broadaddr, 0, sizeof(broadaddr));
     broadaddr.sin_family = AF_INET;
-    broadaddr.sin_addr   = multicastAddress;
+    broadaddr.sin_addr   = d_ptr->multicastAddress;
     broadaddr.sin_port   = htons(port);
 
     if ((socketfd2 = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0) {
@@ -127,7 +131,7 @@ void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw,
 
     packetLenNBO = htons(static_cast<uint16_t>(packetLen));
 
-    memcpy(&full_mess[0], packedLocalUUID, UUIDCompression::PACKED_UUID_LENGTH);
+    memcpy(&full_mess[0], d_ptr->packedLocalUUID, UUIDCompression::PACKED_UUID_LENGTH);
     memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH], &type, sizeof(PXMConsts::MESSAGE_TYPE));
     memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH + sizeof(PXMConsts::MESSAGE_TYPE)], msg, msgLen);
     full_mess[packetLen] = 0;

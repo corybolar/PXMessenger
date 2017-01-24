@@ -13,11 +13,11 @@ namespace Peers
 class BevWrapper;
 }
 
+struct PXMClientPrivate;
 class PXMClient : public QObject
 {
     Q_OBJECT
-    in_addr multicastAddress;
-    char packedLocalUUID[16];
+    QScopedPointer<PXMClientPrivate> d_ptr;
 
    public:
     PXMClient(QObject* parent, in_addr multicast, QUuid localUUID);

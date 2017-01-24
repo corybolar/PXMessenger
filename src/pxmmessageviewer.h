@@ -19,12 +19,7 @@ class MVBase {
 class LabelWidget : public QLabel, public MVBase {
   Q_OBJECT
  public:
-  LabelWidget(QWidget* parent, const QUuid& uuid)
-      : QLabel(parent), MVBase(uuid) {
-    this->setBackgroundRole(QPalette::Base);
-    this->setAutoFillBackground(true);
-    this->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
-  }
+  LabelWidget(QWidget* parent, const QUuid& uuid);
 };
 
 class TextWidget : public QTextBrowser, public MVBase {
@@ -36,8 +31,6 @@ class TextWidget : public QTextBrowser, public MVBase {
 
 class StackedWidget : public QStackedWidget {
   Q_OBJECT
-  TextWidget* intro;
-
  public:
   StackedWidget(QWidget* parent);
   int append(QString str, QUuid& uuid);

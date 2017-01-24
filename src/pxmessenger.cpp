@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QStringBuilder>
+#include <QDateTime>
 
 #include "pxmagent.h"
 #include "pxmconsole.h"
@@ -40,32 +41,32 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
     localMsg = msg.toLocal8Bit();
 #endif
 
+    QByteArray time = QDateTime::currentDateTime().time().toString("[hh:mm:ss] ").toLatin1();
     QColor msgColor;
     switch (type) {
         case QtDebugMsg:
-            fprintf(stderr, "DEBUG:    %s\n", localMsg.constData());
+            fprintf(stderr, "%sDEBUG: %s\n", time.constData(), localMsg.constData());
             msgColor = Qt::gray;
             break;
         case QtWarningMsg:
-            fprintf(stderr, "WARNING:  %s\n", localMsg.constData());
+            fprintf(stderr, "%sWARN:  %s\n", time.constData(), localMsg.constData());
             msgColor = Qt::darkYellow;
             break;
         case QtCriticalMsg:
-            fprintf(stderr, "CRITICAL: %s\n", localMsg.constData());
+            fprintf(stderr, "%sCRIT:  %s\n", time.constData(), localMsg.constData());
             msgColor = Qt::red;
             break;
         case QtFatalMsg:
-            fprintf(stderr, "FATAL:    %s\n", localMsg.constData());
-            // fprintf(stderr, "%s (%s:%u, %s)\n", localMsg.constData(), context.file,
-            // context.line, context.function);
+            fprintf(stderr, "%sFATAL: %s\n", time.constData(), localMsg.constData());
             abort();
-        // break;
+            break;
         case QtInfoMsg:
-            fprintf(stderr, "INFO:     %s\n", localMsg.constData());
+            fprintf(stderr, "%sINFO:  %s\n", time.constData(), localMsg.constData());
             msgColor = QGuiApplication::palette().foreground().color();
             break;
     }
     if (Window::textEdit) {
+        localMsg.prepend(time);
         localMsg.append(QChar('\n'));
         qApp->postEvent(logger, new AppendTextEvent(localMsg, msgColor), Qt::LowEventPriority);
     }

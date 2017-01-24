@@ -192,8 +192,10 @@ int PXMAgent::init()
 
 #ifdef QT_DEBUG
     qInfo() << "Running in debug mode";
+    qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
 #else
     qInfo() << "Running in release mode";
+    qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
     splash.finish(d_ptr->window.data());
     qApp->processEvents();
     while (startupTimer.elapsed() < 1500) {
@@ -205,8 +207,6 @@ int PXMAgent::init()
 #endif
     }
 #endif
-
-    qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
 
     d_ptr->window->show();
     return 0;

@@ -310,18 +310,13 @@ void PXMWindow::closeEvent(QCloseEvent* event)
     }
 #endif
 
-    qDebug() << "trying to hide systray";
     messSystemTray->hide();
-    qDebug() << "systray hidden";
     PXMIniReader iniReader;
-    qDebug() << "creating iniReader";
     iniReader.setWindowSize(this->size());
     iniReader.setMute(ui->muteCheckBox->isChecked());
     iniReader.setFocus(ui->focusCheckBox->isChecked());
-    qDebug() << "ini done";
 
     debugWindow->hide();
-    qDebug() << "closeEvent calling event->accept()";
     event->accept();
 }
 int PXMWindow::removeBodyFormatting(QByteArray& str)

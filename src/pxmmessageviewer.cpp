@@ -5,7 +5,7 @@
 
 using namespace PXMMessageViewer;
 
-StackedWidget::StackedWidget(QWidget* parent) : QStackedWidget(parent), intro(new TextWidget(this, QUuid::createUuid()))
+StackedWidget::StackedWidget(QWidget* parent) : QStackedWidget(parent)
 {
     LabelWidget* lw = new LabelWidget(this, QUuid::createUuid());
     lw->setText("Select a friend on the right to begin chatting!");
@@ -41,4 +41,11 @@ int StackedWidget::switchToUuid(QUuid& uuid)
         }
     }
     return -1;
+}
+
+LabelWidget::LabelWidget(QWidget* parent, const QUuid& uuid) : QLabel(parent), MVBase(uuid)
+{
+    this->setBackgroundRole(QPalette::Base);
+    this->setAutoFillBackground(true);
+    this->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
 }
