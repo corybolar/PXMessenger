@@ -1,5 +1,5 @@
-/src/PXMessenger.pro.user
-/src/Makefile*
+/PXMessenger.pro.user
+/Makefile*
 /build-win32/obj/*
 /build-win32/moc/*
 /build-win32/ui/*

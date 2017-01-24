@@ -1,9 +1,0 @@
-<RCC>
-    <qresource prefix="/resources">
-        <file>resources/message.wav</file>
-        <file>resources/icon.rc</file>
-        <file>resources/PXM_Icon.ico</file>
-        <file>resources/PXMessenger_wBackground.png</file>
-        <file>resources/PXMessenger_TightCrop_100px.png</file>
-    </qresource>
-</RCC>

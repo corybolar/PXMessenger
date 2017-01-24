@@ -1,8 +1,8 @@
-#include "pxmagent.h"
-#include "pxmconsole.h"
-#include "pxminireader.h"
-#include "pxmmainwindow.h"
-#include "pxmpeerworker.h"
+#include <pxmagent.h>
+#include <pxmconsole.h>
+#include <pxminireader.h>
+#include <pxmmainwindow.h>
+#include <pxmpeerworker.h>
 
 #include <QAbstractButton>
 #include <QApplication>
