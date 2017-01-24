@@ -21,8 +21,8 @@ const timeval READ_TIMEOUT_RESET   = {3600, 0};
 const uint8_t PACKET_HEADER_LENGTH = 2;
 enum INTERNAL_MSG : uint16_t {
   EXIT = 0x1111,
-  TCP_PORT_CHANGE = 0x2222,
-  UDP_PORT_CHANGE = 0x3333
+  TCP_PORT_CHANGE = 0x2222, //Under Construction
+  UDP_PORT_CHANGE = 0x3333  //Under Construction
 };
 class ServerThread : public QThread
 {

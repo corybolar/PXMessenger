@@ -36,6 +36,9 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     textEdit->setObjectName(QStringLiteral("plainTextEdit"));
     textEdit->setReadOnly(true);
     textEdit->document()->setMaximumBlockCount(HISTORY_LIMIT);
+    QFont font("Monospaced");
+    font.setStyleHint(QFont::TypeWriter);
+    textEdit->setFont(font);
     LoggerSingleton::getInstance()->setTextEdit(textEdit);
     pushButton = new QPushButton(d_ptr->centralwidget);
     pushButton->setText("Print Info");

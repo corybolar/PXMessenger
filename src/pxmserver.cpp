@@ -87,7 +87,7 @@ void ServerThread::accept_new(evutil_socket_t s, short, void* arg)
 {
     evutil_socket_t result;
 
-    ServerThread* realServer = static_cast<ServerThread*>(arg);
+    ServerThread* st = static_cast<ServerThread*>(arg);
 
     struct sockaddr_in ss;
     socklen_t addr_size = sizeof(ss);
@@ -98,18 +98,18 @@ void ServerThread::accept_new(evutil_socket_t s, short, void* arg)
     } else {
         struct bufferevent* bev;
         evutil_make_socket_nonblocking(result);
-        bev = bufferevent_socket_new(realServer->base, result, BEV_OPT_THREADSAFE);
-        bufferevent_setcb(bev, ServerThread::tcpAuth, NULL, ServerThread::tcpError, realServer);
+        bev = bufferevent_socket_new(st->base, result, BEV_OPT_THREADSAFE);
+        bufferevent_setcb(bev, ServerThread::tcpAuth, NULL, ServerThread::tcpError, st);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
         bufferevent_enable(bev, EV_READ | EV_WRITE);
 
-        realServer->newTCPConnection(bev);
+        st->newTCPConnection(bev);
     }
 }
 
 void ServerThread::tcpAuth(struct bufferevent* bev, void* arg)
 {
-    ServerThread* server_ptr = static_cast<ServerThread*>(arg);
+    ServerThread* st = static_cast<ServerThread*>(arg);
     uint16_t nboBufLen;
     uint16_t bufLen;
     evutil_socket_t socket = bufferevent_getfd(bev);
@@ -120,7 +120,7 @@ void ServerThread::tcpAuth(struct bufferevent* bev, void* arg)
         if (bufLen == 0 || bufLen > MAX_AUTH_PACKET_LENGTH) {
             qWarning().noquote() << "Bad buffer length, disconnecting";
             bufferevent_disable(bev, EV_READ | EV_WRITE);
-            server_ptr->peerQuit(socket, bev);
+            st->peerQuit(socket, bev);
             return;
         }
         bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LENGTH, bufLen + PACKET_HEADER_LENGTH);
@@ -134,7 +134,7 @@ void ServerThread::tcpAuth(struct bufferevent* bev, void* arg)
     if (bufferevent_read(bev, bufUUID, UUIDCompression::PACKED_UUID_LENGTH) < UUIDCompression::PACKED_UUID_LENGTH) {
         qWarning() << "Bad Auth packet length, closing socket...";
         bufferevent_disable(bev, EV_READ | EV_WRITE);
-        server_ptr->peerQuit(socket, bev);
+        st->peerQuit(socket, bev);
         return;
     }
     QUuid quuid = UUIDCompression::unpackUUID(bufUUID);
@@ -142,7 +142,7 @@ void ServerThread::tcpAuth(struct bufferevent* bev, void* arg)
     if (quuid.isNull()) {
         qWarning() << "Bad Auth packet UUID, closing socket...";
         bufferevent_disable(bev, EV_READ | EV_WRITE);
-        server_ptr->peerQuit(socket, bev);
+        st->peerQuit(socket, bev);
         return;
     }
 
@@ -159,23 +159,23 @@ void ServerThread::tcpAuth(struct bufferevent* bev, void* arg)
         if (hpsplit.length() != 3) {
             qWarning() << "Bad Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ | EV_WRITE);
-            server_ptr->peerQuit(socket, bev);
+            st->peerQuit(socket, bev);
             return;
         }
         unsigned short port = hpsplit[1].toUShort();
         if (port == 0) {
             qWarning() << "Bad port in Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ | EV_WRITE);
-            server_ptr->peerQuit(socket, bev);
+            st->peerQuit(socket, bev);
             return;
         }
-        server_ptr->authenticationReceived(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
+        st->authenticationReceived(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
-        bufferevent_setcb(bev, ServerThread::tcpRead, NULL, ServerThread::tcpError, server_ptr);
+        bufferevent_setcb(bev, ServerThread::tcpRead, NULL, ServerThread::tcpError, st);
     } else {
         qWarning() << "Non-Auth packet, closing socket...";
         bufferevent_disable(bev, EV_READ | EV_WRITE);
-        server_ptr->peerQuit(socket, bev);
+        st->peerQuit(socket, bev);
     }
 }
 void ServerThread::tcpRead(struct bufferevent* bev, void* arg)
@@ -241,16 +241,16 @@ void ServerThread::tcpRead(struct bufferevent* bev, void* arg)
 
 void ServerThread::tcpError(struct bufferevent* bev, short error, void* arg)
 {
-    ServerThread* server_ptr = static_cast<ServerThread*>(arg);
+    ServerThread* st = static_cast<ServerThread*>(arg);
     evutil_socket_t i        = bufferevent_getfd(bev);
     if (error & BEV_EVENT_EOF) {
         qDebug() << "BEV EOF";
         bufferevent_disable(bev, EV_READ | EV_WRITE);
-        server_ptr->peerQuit(i, bev);
+        st->peerQuit(i, bev);
     } else if (error & BEV_EVENT_ERROR) {
         qDebug() << "BEV ERROR";
         bufferevent_disable(bev, EV_READ | EV_WRITE);
-        server_ptr->peerQuit(i, bev);
+        st->peerQuit(i, bev);
     } else if (error & BEV_EVENT_TIMEOUT) {
         qDebug() << "BEV TIMEOUT";
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LENGTH, PACKET_HEADER_LENGTH);
@@ -319,7 +319,7 @@ int ServerThreadPrivate::singleMessageIterator(bufferevent* bev, char* buf, uint
 }
 void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void* args)
 {
-    ServerThread* realServer = static_cast<ServerThread*>(args);
+    ServerThread* st = static_cast<ServerThread*>(args);
     struct sockaddr_in si_other;
     socklen_t si_other_len = sizeof(struct sockaddr);
     char buf[500]          = {};
@@ -328,9 +328,9 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void* args)
 
     if (strncmp(&buf[0], "/discover", 9) == 0) {
         qDebug() << "Discovery Packet:" << buf;
-        if (!realServer->d_ptr->gotDiscover) {
-            realServer->d_ptr->gotDiscover = true;
-            realServer->multicastIsFunctional();
+        if (!st->d_ptr->gotDiscover) {
+            st->d_ptr->gotDiscover = true;
+            st->multicastIsFunctional();
         }
         evutil_socket_t replySocket;
         if ((replySocket = (socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))) < 0) {
@@ -339,7 +339,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void* args)
             return;
         }
 
-        si_other.sin_port = htons(realServer->d_ptr->udpPortNumber);
+        si_other.sin_port = htons(st->d_ptr->udpPortNumber);
 
         // constexpr size_t constLength = [](const char *str){return (*str == 0) ? 0
         // : constLength(str + 1) + 1;};
@@ -349,9 +349,9 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void* args)
 
         strcpy(name, "/name:");
 
-        uint16_t port = htons(realServer->d_ptr->tcpPortNumber);
+        uint16_t port = htons(st->d_ptr->tcpPortNumber);
         memcpy(&name[strlen("/name:")], &(port), sizeof(port));
-        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], realServer->d_ptr->localUUID);
+        UUIDCompression::packUUID(&name[strlen("/name:") + sizeof(port)], st->d_ptr->localUUID);
 
         name[len] = 0;
 
@@ -365,7 +365,7 @@ void ServerThread::udpRecieve(evutil_socket_t socketfd, short int, void* args)
         QUuid uuid = UUIDCompression::unpackUUID(reinterpret_cast<unsigned char*>(&buf[8]));
         qDebug() << "Name Packet:" << inet_ntoa(si_other.sin_addr) << ":" << ntohs(si_other.sin_port)
                  << "with id:" << uuid.toString();
-        realServer->attemptConnection(si_other, uuid);
+        st->attemptConnection(si_other, uuid);
     } else {
         qWarning() << "Bad udp packet!";
         return;

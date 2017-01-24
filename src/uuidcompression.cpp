@@ -10,6 +10,8 @@ QUuid UUIDCompression::unpackUUID(const unsigned char* src)
 {
     QUuid uuid;
     size_t index = 0;
+    uuid.data1 =
+    /*
     static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
     uuid.data1 = ntohl(*(reinterpret_cast<const uint32_t*>(&src[index])));
     index += 4;
@@ -19,7 +21,9 @@ QUuid UUIDCompression::unpackUUID(const unsigned char* src)
     uuid.data3 = ntohs(*(reinterpret_cast<const uint16_t*>(&src[index])));
     index += 2;
     memcpy(&(uuid.data4), &src[index], 8);
+    //std::copy(&(uuid.data4[0]), &(uuid.data4[7]), (&src[index]));
     // index += 8;
+    */
 
     return uuid;
 }

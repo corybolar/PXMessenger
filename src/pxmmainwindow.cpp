@@ -448,7 +448,7 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
     ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getVerbosityLevel());
     QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
-    QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::clickedme);
+    QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::resetDefaults);
     QObject::connect(ui->fontComboBox, &QFontComboBox::currentFontChanged, this,
                      &PXMSettingsDialog::currentFontChanged);
     void (QSpinBox::*signal)(int) = &QSpinBox::valueChanged;
@@ -457,7 +457,7 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
     readIni();
 }
 
-void PXMSettingsDialog::clickedme(QAbstractButton* button)
+void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
 {
     if (dynamic_cast<QPushButton*>(button) == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults)) {
 #ifdef _WIN32

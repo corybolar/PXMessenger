@@ -152,7 +152,7 @@ void PXMPeerWorker::setCloseBufferevent(bufferevent* bev)
 }
 void PXMPeerWorker::currentThreadInit()
 {
-    d_ptr->syncer = new PXMSync(this);
+    d_ptr->syncer = new PXMSync(this, d_ptr->peerDetailsHash);
     QObject::connect(d_ptr->syncer, &PXMSync::requestIps, this, &PXMPeerWorker::requestSyncPacket);
     QObject::connect(d_ptr->syncer, &PXMSync::syncComplete, this, &PXMPeerWorker::doneSync);
 
@@ -197,7 +197,7 @@ void PXMPeerWorkerPrivate::startServer()
     QObject::connect(messServer, &PXMServer::ServerThread::messageRecieved, q_ptr, &PXMPeerWorker::recieveServerMessage,
                      Qt::QueuedConnection);
     QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
-    QObject::connect(messServer, &PXMServer::ServerThread::newTCPConnection, q_ptr, &PXMPeerWorker::newTcpConnection,
+    QObject::connect(messServer, &PXMServer::ServerThread::newTCPConnection, q_ptr, &PXMPeerWorker::newIncomingConnection,
                      Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::ServerThread::peerQuit, q_ptr, &PXMPeerWorker::peerQuit,
                      Qt::QueuedConnection);
@@ -258,7 +258,7 @@ void PXMPeerWorker::beginSync()
 
     qInfo() << "Beginning Sync of connected peers";
     d_ptr->areWeSyncing = true;
-    d_ptr->syncer->setsyncHash(&d_ptr->peerDetailsHash);
+    d_ptr->syncer->setsyncHash(d_ptr->peerDetailsHash);
     d_ptr->syncer->setIteratorToStart();
     d_ptr->syncer->syncNext();
     d_ptr->nextSyncTimer->start();
@@ -297,7 +297,7 @@ void PXMPeerWorker::syncPacketIterator(char* ipHeapArray, size_t len, QUuid send
 
     delete[] ipHeapArray;
 }
-void PXMPeerWorker::newTcpConnection(bufferevent* bev)
+void PXMPeerWorker::newIncomingConnection(bufferevent* bev)
 {
     QSharedPointer<Peers::BevWrapper> bw(new Peers::BevWrapper);
     bw->setBev(bev);
@@ -650,10 +650,8 @@ void PXMPeerWorker::setlibeventBackend(QString str)
 }
 void PXMPeerWorker::printInfoToDebug()
 {
-    QString str;
-
     // hopefully reduce reallocs here
-    str.reserve((330 + (DEBUG_PADDING * 16) + (d_ptr->peerDetailsHash.size() * (260 + (9 * DEBUG_PADDING)))));
+    QString str((330 + (DEBUG_PADDING * 16) + (d_ptr->peerDetailsHash.size() * (260 + (9 * DEBUG_PADDING)))), Qt::Initialization::Uninitialized);
 
     str.append(QChar('\n') % QStringLiteral("---Program Info---\n") % QStringLiteral("Program Name: ") %
                qApp->applicationName() % QChar('\n') % QStringLiteral("Version: ") % qApp->applicationVersion() %

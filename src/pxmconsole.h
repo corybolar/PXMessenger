@@ -5,11 +5,13 @@
 #include <QMainWindow>
 #include <QScopedPointer>
 #include <QTextEdit>
+#include <QFile>
 
 class QPushButton;
 namespace PXMConsole
 {
 const int HISTORY_LIMIT = 5000;
+static QFile file;
 struct WindowPrivate;
 class Window : public QMainWindow
 {

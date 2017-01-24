@@ -143,7 +143,7 @@ class PXMSettingsDialog : public QDialog {
   void readIni();
   ~PXMSettingsDialog();
  private slots:
-  void clickedme(QAbstractButton* button);
+  void resetDefaults(QAbstractButton* button);
   void accept();
   void currentFontChanged(QFont font);
   void valueChanged(int size);

@@ -41,7 +41,7 @@ class PXMPeerWorker : public QObject
                                 evutil_socket_t s,
                                 QUuid uuid,
                                 bufferevent* bev);
-    void newTcpConnection(bufferevent* bev);
+    void newIncomingConnection(bufferevent* bev);
     void peerQuit(evutil_socket_t s, bufferevent* bev);
     void peerNameChange(QString hname, QUuid uuid);
     void sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
