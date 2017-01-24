@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/cbpeckles/PXMessenger/raw/master/resources/PXMessenger_TightCrop_100px.png"/>
+  <img src="https://github.com/cbpeckles/PXMessenger/raw/master/resources/PXM_Icon.ico"/>
 </p>
 
 ###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
