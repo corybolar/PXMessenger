@@ -13,10 +13,8 @@
 /build-win32/debug
 /build-win32/release
 /PXMessenger
-/src/.qmake.stash
-/src/object_script*
+/.qmake.stash
 /src/pxmessenger_plugin_import.cpp
-/build-PXMessenger-*
 /*.exe
 /.directory
 /vgcore*
