@@ -3,9 +3,9 @@
 </p>
 <h3 align="center">P2P cross platform home or small office instant messenger.  Written in C++ with Qt.</h3>
 -------------
-
-![alt text](http://i.imgur.com/6rLhyvL.png "PXMessenger")
-
+<p align="center">
+  <img src="http://i.imgur.com/6rLhyvL.png"/>
+</p>
 ####Dependencies:
 
 qt5 >= qt5.7.1
