@@ -1,8 +1,7 @@
 <p align="center">
   <img src="http://i.imgur.com/ZzEp29l.png"/>
 </p>
-
-###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
+<h3 align="center">P2P cross platform home or small office instant messenger.  Written in C++ with Qt.</h3>
 -------------
 
 ![alt text](http://i.imgur.com/6rLhyvL.png "PXMessenger")
