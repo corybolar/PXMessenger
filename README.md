@@ -22,22 +22,24 @@ libevent >= 2.0.22
 
 git clone
 
-cd ./PXMessenger/src
+cd ./PXMessenger
 
 qmake
 
 make
 
-../PXMessenger
+./PXMessenger
 
 If compiling on Windows, the .pro file will have to be edited to point to your
 installation of libevent.  Specifically the lines
 
 ```
-win32 { LIBS += -L$$PWD/../../libevent-2.0.22-stable/.libs/ -levent
+win32 { LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
 
-INCLUDEPATH += $$PWD/../../libevent-2.0.22-stable/include
-DEPENDPATH += $$PWD/../../libevent-2.0.22-stable/include
+INCLUDEPATH += $$PWD/../libevent/include \
+                $$PWD/../libevent/build/include
+
+DEPENDPATH += $$PWD/../libevent/include
 }
 ```
 
