@@ -5,7 +5,7 @@
 ###P2P cross platform home or small office instant messenger.  Written in C++ with Qt.
 -------------
 
-![alt text](http://i.imgur.com/ipp5QwT.png "PXMessenger")
+![alt text](http://i.imgur.com/6rLhyvL.png "PXMessenger")
 
 ####Dependencies:
 
