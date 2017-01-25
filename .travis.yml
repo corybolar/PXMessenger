@@ -1,0 +1,14 @@
+nguage: cpp
+sudo: required
+dist: trusty
+
+install:
+          - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r-test/ppa
+              - sudo apt-get install -y qt5-default qttools5-dev-tools 
+                  - sudo apt-get install -y llvm-toolchain-3.7
+                      - sudo apt-get install -y gcc-5 g++5
+script: 
+   qmake -qt=qt5 -v
+      qmake -qt=qt5
+         make
+env: COMPILER_NAME=gcc CXX=g++-5 CC=gcc-5
