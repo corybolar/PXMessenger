@@ -147,7 +147,8 @@ class PXMSettingsDialog : public QDialog {
   void accept();
   void currentFontChanged(QFont font);
   void valueChanged(int size);
- signals:
+  void logStateChange(int state);
+signals:
   void nameChange(QString);
   void verbosityChanged();
 };

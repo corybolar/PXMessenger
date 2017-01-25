@@ -453,8 +453,24 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
                      &PXMSettingsDialog::currentFontChanged);
     void (QSpinBox::*signal)(int) = &QSpinBox::valueChanged;
     QObject::connect(ui->fontSizeSpinBox, signal, this, &PXMSettingsDialog::valueChanged);
+    QObject::connect(ui->LogActiveCheckBox, &QCheckBox::stateChanged, this, &PXMSettingsDialog::logStateChange);
 
     readIni();
+}
+
+void PXMSettingsDialog::logStateChange(int state)
+{
+    if (state == true) {
+#ifdef __WIN32
+        QMessageBox::information(this, "Log Status Change",
+                                 "You have enabled file logging.\n"
+                                 "Log location will be C:\Program Files\PXMessenger\log.txt");
+#else
+        QMessageBox::information(this, "Log Status Change",
+                                 "You have enabled file logging.\n"
+                                 "Log location will be ~\\.pxmessenger-log");
+#endif
+    }
 }
 
 void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
