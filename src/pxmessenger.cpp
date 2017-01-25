@@ -41,34 +41,38 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
     localMsg = msg.toLocal8Bit();
 #endif
 
-    QByteArray time = QDateTime::currentDateTime().time().toString("[hh:mm:ss] ").toLatin1();
     QColor msgColor;
     switch (type) {
         case QtDebugMsg:
-            fprintf(stderr, "%sDEBUG: %s\n", time.constData(), localMsg.constData());
+            localMsg.prepend("DEBUG: ");
             msgColor = Qt::gray;
             break;
         case QtWarningMsg:
-            fprintf(stderr, "%sWARN:  %s\n", time.constData(), localMsg.constData());
+            localMsg.prepend("WARN:  ");
             msgColor = Qt::darkYellow;
             break;
         case QtCriticalMsg:
-            fprintf(stderr, "%sCRIT:  %s\n", time.constData(), localMsg.constData());
+            localMsg.prepend("CRIT:  ");
             msgColor = Qt::red;
             break;
         case QtFatalMsg:
-            fprintf(stderr, "%sFATAL: %s\n", time.constData(), localMsg.constData());
+            localMsg.prepend("FATAL: ");
             abort();
             break;
         case QtInfoMsg:
-            fprintf(stderr, "%sINFO:  %s\n", time.constData(), localMsg.constData());
+            localMsg.prepend("INFO:  ");
             msgColor = QGuiApplication::palette().foreground().color();
             break;
     }
+    localMsg.prepend(QDateTime::currentDateTime().time().toString("[hh:mm:ss] ").toLatin1());
+    localMsg.append(QChar('\n'));
+    fprintf(stderr, "%s", localMsg.constData());
     if (Window::textEdit) {
-        localMsg.prepend(time);
-        localMsg.append(QChar('\n'));
         qApp->postEvent(logger, new AppendTextEvent(localMsg, msgColor), Qt::LowEventPriority);
+    }
+    if (logger->getLogStatus() && logger->logFile->isOpen()) {
+        logger->logFile->write(localMsg.constData(), localMsg.length());
+        logger->logFile->flush();
     }
 }
 
@@ -85,6 +89,7 @@ int main(int argc, char** argv)
 
     PXMAgent overlord;
     if (overlord.init()) {
+        qInfo() << "working";
         return -1;
     }
 

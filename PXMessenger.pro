@@ -6,8 +6,8 @@ QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
 
 QT = core gui widgets multimedia
-CONFIG += DEBUG \
-        RELEASE
+CONFIG += RELEASE\
+        DEBUG
 
 unix: LIBS += -levent -levent_pthreads
 

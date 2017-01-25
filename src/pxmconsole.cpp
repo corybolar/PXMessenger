@@ -6,6 +6,7 @@
 #include <QScrollBar>
 #include <QStringBuilder>
 #include <QTextEdit>
+#include <QDir>
 
 using namespace PXMConsole;
 struct PXMConsole::WindowPrivate {
@@ -20,7 +21,6 @@ struct PXMConsole::WindowPrivate {
 QTextEdit* Window::textEdit                      = 0;
 int AppendTextEvent::type                        = QEvent::registerEventType();
 LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
-int LoggerSingleton::verbosityLevel              = 0;
 
 Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::WindowPrivate())
 {
@@ -45,7 +45,8 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     pushButton->setMaximumSize(QSize(250, 16777215));
 
     d_ptr->verbosity = new QLabel(d_ptr->centralwidget);
-    d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+    d_ptr->verbosity->setText("Debug Verbosity: " %
+                              QString::number(LoggerSingleton::getInstance()->getVerbosityLevel()));
     d_ptr->gridLayout->addWidget(d_ptr->verbosity, 1, 2, 1, 2);
 
     d_ptr->gridLayout->addWidget(textEdit, 0, 0, 1, 4);
@@ -62,6 +63,11 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     d_ptr->atMaximum = true;
     QObject::connect(d_ptr->sb, &QScrollBar::valueChanged, this, &Window::adjustScrollBar);
     QObject::connect(d_ptr->sb, &QScrollBar::rangeChanged, this, &Window::rangeChanged);
+
+    if (LoggerSingleton::getInstance()->getLogStatus()) {
+        LoggerSingleton::getInstance()->logFile->remove();
+        LoggerSingleton::getInstance()->logFile->open(QIODevice::ReadWrite);
+    }
 }
 
 Window::~Window()
@@ -83,7 +89,21 @@ void Window::rangeChanged(int, int i2)
 }
 void Window::verbosityChanged()
 {
-    d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(LoggerSingleton::getVerbosityLevel()));
+    d_ptr->verbosity->setText("Debug Verbosity: " %
+                              QString::number(LoggerSingleton::getInstance()->getVerbosityLevel()));
+}
+
+void LoggerSingleton::setLogStatus(bool stat)
+{
+    if (logActive != stat && stat == true && logFile) {
+        logFile->remove();
+        logFile->open(QIODevice::ReadWrite);
+        logActive = true;
+    } else if (logActive != stat && stat == false && logFile) {
+        logActive = false;
+        logFile->flush();
+        logFile->close();
+    }
 }
 
 void LoggerSingleton::customEvent(QEvent* event)

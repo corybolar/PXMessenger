@@ -3,6 +3,7 @@
 #include <pxminireader.h>
 #include <pxmmainwindow.h>
 #include <pxmpeerworker.h>
+#include <pxmconsole.h>
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -57,10 +58,11 @@ struct PXMAgentPrivate {
     PXMPeerWorker* peerWorker;
     PXMIniReader iniReader;
     PXMConsole::LoggerSingleton* logger;
+    QScopedPointer<QLockFile> lockFile;
 
     initialSettings presets;
 
-    QThread* workerThread;
+    QThread* workerThread = nullptr;
 
     // Functions
     QByteArray getUsername();
@@ -80,13 +82,12 @@ PXMAgent::~PXMAgent()
     }
 
     d_ptr->iniReader.resetUUID(d_ptr->presets.uuidNum, d_ptr->presets.uuid);
-    d_ptr->iniReader.setVerbosity(d_ptr->logger->getVerbosityLevel());
 }
 
 int PXMAgent::init()
 {
 #ifndef QT_DEBUG
-    QImage splashImage(":/resources/resources/PXMessenger_wBackground.png");
+    QImage splashImage(":/resources/PXMessenger_wBackground.png");
     splashImage = splashImage.scaledToHeight(400);
     QSplashScreen splash(QPixmap::fromImage(splashImage));
     splash.show();
@@ -122,24 +123,29 @@ int PXMAgent::init()
 
     bool allowMoreThanOne = d_ptr->iniReader.checkAllowMoreThanOne();
     QString tmpDir        = QDir::tempPath();
-    QLockFile lockFile(tmpDir + "/pxmessenger_" + username + ".lock");
-    try {
-        if (!allowMoreThanOne) {
-            if (!lockFile.tryLock(100)) {
-                throw(
-                    "PXMessenger is already"
-                    "running.\r\nOnly one instance"
-                    "is allowed");
-            }
+    QScopedPointer<QLockFile> lf(new QLockFile(tmpDir + "/pxmessenger_" + username + ".lock"));
+    d_ptr->lockFile.swap(lf);
+    if (!allowMoreThanOne) {
+        if (!d_ptr->lockFile->tryLock(100)) {
+            QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(),
+                               "PXMessenger is already "
+                               "running.\r\nOnly one instance "
+                               "is allowed");
+            msgBox.exec();
+            qInfo() << "working";
+            return -1;
         }
-    } catch (const char* msg) {
-        QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(), QString::fromUtf8(msg));
-        msgBox.exec();
-        return -1;
     }
 
     d_ptr->logger = PXMConsole::LoggerSingleton::getInstance();
     d_ptr->logger->setVerbosityLevel(d_ptr->iniReader.getVerbosity());
+#ifdef __WIN32
+    d_ptr->logger->logFile.reset(new QFile(QDir::currentPath() + "/log.txt", this));
+#else
+    d_ptr->logger->logFile.reset(new QFile(QDir::homePath() + "/.pxmessenger-log", this));
+#endif
+    d_ptr->logger->setLogStatus(d_ptr->iniReader.getLogActive());
+
     d_ptr->presets.uuidNum = d_ptr->iniReader.getUUIDNumber();
     d_ptr->presets.uuid    = d_ptr->iniReader.getUUID(d_ptr->presets.uuidNum, allowMoreThanOne);
     d_ptr->presets.username =

@@ -36,6 +36,8 @@ class PXMIniReader {
   QString getMulticastAddress() const;
   int getVerbosity() const;
   void setVerbosity(int level) const;
+  bool getLogActive() const;
+  void setLogActive(bool status) const;
 };
 
 #endif  // MESSINIREADER_H

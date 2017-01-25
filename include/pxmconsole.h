@@ -55,13 +55,17 @@ class LoggerSingleton : public QObject
         return loggerInstance;
     }
     void setTextEdit(QTextEdit* textEdit) { logTextEdit = textEdit; }
-    static int getVerbosityLevel() { return verbosityLevel; }
-    static void setVerbosityLevel(int value) { verbosityLevel = value; }
+    int getVerbosityLevel() { return verbosityLevel; }
+    void setVerbosityLevel(int value) { verbosityLevel = value; }
+    bool getLogStatus() {return logActive;}
+    void setLogStatus(bool stat);
+    QScopedPointer<QFile> logFile;
    private:
     LoggerSingleton() : QObject() {}
     static LoggerSingleton* loggerInstance;
     QTextEdit* logTextEdit = 0;
-    static int verbosityLevel;
+    int verbosityLevel = 0;
+    bool logActive = 0;
 
    protected:
     virtual void customEvent(QEvent* event);

@@ -6,20 +6,43 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>488</width>
-    <height>315</height>
+    <width>542</width>
+    <height>341</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>542</width>
+    <height>341</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <item row="9" column="4">
+    <widget class="QCheckBox" name="LogActiveCheckBox">
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0">
+    <widget class="QLabel" name="logStatusLabel">
+     <property name="text">
+      <string>Enable Logging to File</string>
+     </property>
+    </widget>
+   </item>
    <item row="2" column="0">
     <widget class="QLabel" name="fontLabel">
      <property name="text">
@@ -37,7 +60,7 @@
    <item row="8" column="0" colspan="2">
     <widget class="QLabel" name="verbosityLabel">
      <property name="text">
-      <string>Debug Verbosity</string>
+      <string>Logging Verbosity</string>
      </property>
     </widget>
    </item>
@@ -86,7 +109,7 @@
      </property>
     </widget>
    </item>
-   <item row="9" column="0" colspan="5">
+   <item row="11" column="0" colspan="5">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="focusPolicy">
       <enum>Qt::StrongFocus</enum>
@@ -127,13 +150,6 @@
      </property>
      <property name="maximum">
       <number>65535</number>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="2">
-    <widget class="QLabel" name="allowMultipleLabel">
-     <property name="text">
-      <string>Allow multiple instances</string>
      </property>
     </widget>
    </item>
@@ -191,29 +207,10 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="3" colspan="2">
-    <widget class="QCheckBox" name="allowMultipleCheckBox">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="layoutDirection">
-      <enum>Qt::RightToLeft</enum>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
    <item row="1" column="4">
     <widget class="QLineEdit" name="hostnameLineEdit">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -248,8 +245,40 @@
    </item>
    <item row="6" column="4">
     <widget class="QLineEdit" name="multicastLineEdit">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="layoutDirection">
       <enum>Qt::RightToLeft</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="0">
+    <widget class="QLabel" name="allowMultipleLabel">
+     <property name="text">
+      <string>Allow multiple instances</string>
+     </property>
+    </widget>
+   </item>
+   <item row="10" column="4">
+    <widget class="QCheckBox" name="allowMultipleCheckBox">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
+     <property name="text">
+      <string/>
      </property>
     </widget>
    </item>

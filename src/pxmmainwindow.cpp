@@ -102,7 +102,7 @@ void PXMWindow::initListWidget()
 }
 void PXMWindow::createSystemTray()
 {
-    QIcon trayIcon(":/resources/resources/PXM_Icon.ico");
+    QIcon trayIcon(":/resources/PXM_Icon.ico");
     this->setWindowIcon(trayIcon);
 
     messSystemTrayMenu       = new QMenu(this);
@@ -148,7 +148,7 @@ void PXMWindow::connectGuiSignalsAndSlots()
 }
 void PXMWindow::aboutActionSlot()
 {
-    PXMAboutDialog* about = new PXMAboutDialog(this, QIcon(":/resources/resources/PXM_Icon.ico"));
+    PXMAboutDialog* about = new PXMAboutDialog(this, QIcon(":/resources/PXM_Icon.ico"));
     QObject::connect(about, &PXMAboutDialog::finished, about, &PXMAboutDialog::deleteLater);
     about->open();
 }
@@ -382,7 +382,7 @@ int PXMWindow::changeListItemColor(QUuid uuid, int style)
 int PXMWindow::focusWindow()
 {
     if (!(ui->muteCheckBox->isChecked())) {
-        QSound::play(":/resources/resources/message.wav");
+        QSound::play(":/resources/message.wav");
     }
 
     if (!(this->isMinimized()) && (this->windowState() != Qt::WindowActive)) {
@@ -446,7 +446,7 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
     QRegExpValidator* ipValidator = new QRegExpValidator(ipRegex, this);
     ui->multicastLineEdit->setValidator(ipValidator);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-    ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getVerbosityLevel());
+    ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getInstance()->getVerbosityLevel());
     QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
     QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::resetDefaults);
     QObject::connect(ui->fontComboBox, &QFontComboBox::currentFontChanged, this,
@@ -482,6 +482,7 @@ void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
         ui->hostnameLineEdit->setText(QString::fromLatin1(&localHostname[0]).left(PXMConsts::MAX_HOSTNAME_LENGTH));
         ui->allowMultipleCheckBox->setChecked(false);
         ui->multicastLineEdit->setText(PXMConsts::DEFAULT_MULTICAST_ADDRESS);
+        ui->LogActiveCheckBox->setChecked(false);
     }
     if (dynamic_cast<QPushButton*>(button) == ui->buttonBox->button(QDialogButtonBox::Help)) {
         QMessageBox::information(this, "Help",
@@ -531,6 +532,8 @@ void PXMSettingsDialog::accept()
     iniReader.setPort("TCP", ui->tcpPortSpinBox->value());
     iniReader.setPort("UDP", ui->udpPortSpinBox->value());
     iniReader.setFont(qApp->font().toString());
+    iniReader.setLogActive(ui->LogActiveCheckBox->isChecked());
+    logger->setLogStatus(ui->LogActiveCheckBox->isChecked());
     iniReader.setMulticastAddress(ui->multicastLineEdit->text());
     if (d_ptr->tcpPort != ui->tcpPortSpinBox->value() || d_ptr->udpPort != ui->udpPortSpinBox->value() ||
         d_ptr->AllowMoreThanOneInstance != ui->allowMultipleCheckBox->isChecked() ||
@@ -569,6 +572,7 @@ void PXMSettingsDialog::readIni()
     ui->hostnameLineEdit->setText(d_ptr->hostname.simplified());
     ui->allowMultipleCheckBox->setChecked(d_ptr->AllowMoreThanOneInstance);
     ui->multicastLineEdit->setText(d_ptr->multicastAddress);
+    ui->LogActiveCheckBox->setChecked(iniReader.getLogActive());
 }
 
 PXMSettingsDialog::~PXMSettingsDialog()

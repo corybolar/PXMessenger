@@ -153,3 +153,12 @@ void PXMIniReader::setVerbosity(int level) const
 {
     inisettings->setValue("config/DebugVerbosity", level);
 }
+bool PXMIniReader::getLogActive() const
+{
+    return inisettings->value("config/LogActive", false).toBool();
+}
+
+void PXMIniReader::setLogActive(bool status) const
+{
+    inisettings->setValue("config/LogActive", status);
+}

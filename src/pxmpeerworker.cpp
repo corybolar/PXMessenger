@@ -197,8 +197,8 @@ void PXMPeerWorkerPrivate::startServer()
     QObject::connect(messServer, &PXMServer::ServerThread::messageRecieved, q_ptr, &PXMPeerWorker::recieveServerMessage,
                      Qt::QueuedConnection);
     QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
-    QObject::connect(messServer, &PXMServer::ServerThread::newTCPConnection, q_ptr, &PXMPeerWorker::newIncomingConnection,
-                     Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::ServerThread::newTCPConnection, q_ptr,
+                     &PXMPeerWorker::newIncomingConnection, Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::ServerThread::peerQuit, q_ptr, &PXMPeerWorker::peerQuit,
                      Qt::QueuedConnection);
     QObject::connect(messServer, &PXMServer::ServerThread::attemptConnection, q_ptr, &PXMPeerWorker::attemptConnection,
@@ -651,7 +651,8 @@ void PXMPeerWorker::setlibeventBackend(QString str)
 void PXMPeerWorker::printInfoToDebug()
 {
     // hopefully reduce reallocs here
-    QString str((330 + (DEBUG_PADDING * 16) + (d_ptr->peerDetailsHash.size() * (260 + (9 * DEBUG_PADDING)))), Qt::Initialization::Uninitialized);
+    QString str;
+    str.reserve((330 + (DEBUG_PADDING * 16) + (d_ptr->peerDetailsHash.size() * (260 + (9 * DEBUG_PADDING)))));
 
     str.append(QChar('\n') % QStringLiteral("---Program Info---\n") % QStringLiteral("Program Name: ") %
                qApp->applicationName() % QChar('\n') % QStringLiteral("Version: ") % qApp->applicationVersion() %
