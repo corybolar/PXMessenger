@@ -8,11 +8,11 @@
 </p>
 ####Dependencies:
 
-qt5 >= qt5.7.1
+qt5 >= qt5.7.0
 
 qtmultimedia
 
-gcc/clang
+gcc > 4.9.0 or clang > 3.5.0
 
 libevent >= 2.0.22
 
