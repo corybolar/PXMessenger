@@ -123,8 +123,7 @@ int PXMAgent::init()
 
     bool allowMoreThanOne = d_ptr->iniReader.checkAllowMoreThanOne();
     QString tmpDir        = QDir::tempPath();
-    QScopedPointer<QLockFile> lf(new QLockFile(tmpDir + "/pxmessenger_" + username + ".lock"));
-    d_ptr->lockFile.swap(lf);
+    d_ptr->lockFile.reset(new QLockFile(tmpDir + "/pxmessenger_" + username + ".lock"));
     if (!allowMoreThanOne) {
         if (!d_ptr->lockFile->tryLock(100)) {
             QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(),
@@ -171,13 +170,9 @@ int PXMAgent::init()
     d_ptr->peerWorker->moveToThread(d_ptr->workerThread);
     QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::currentThreadInit);
     QObject::connect(d_ptr->workerThread, &QThread::finished, d_ptr->peerWorker, &PXMPeerWorker::deleteLater);
-    QScopedPointer<PXMWindow> win(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize, d_ptr->presets.mute,
-                                                d_ptr->presets.preventFocus, globalChat));
-    d_ptr->window.swap(win);
-    // d_ptr->window = new PXMWindow(d_ptr->presets.username,
-    // d_ptr->presets.windowSize,
-    //                                  d_ptr->presets.mute,
-    //                                  d_ptr->presets.preventFocus, globalChat);
+    d_ptr->window.reset(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize, d_ptr->presets.mute,
+                                      d_ptr->presets.preventFocus, globalChat));
+
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::printToTextBrowser, d_ptr->window.data(),
                      &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::setItalicsOnItem, d_ptr->window.data(),

@@ -35,20 +35,21 @@ unsigned int PXMIniReader::getUUIDNumber() const
 {
     unsigned int i  = 0;
     QString uuidStr = "uuid/";
-    while (inisettings->value(uuidStr + QString::number(i), "") == "INUSE") {
+    while (inisettings->value(uuidStr + QString::number(i), QString()) == "INUSE") {
         i++;
     }
-    if (inisettings->value(uuidStr + QString::number(i), "") == "") {
-        inisettings->setValue(uuidStr + QString::number(i), QUuid::createUuid());
+    if (inisettings->value(uuidStr + QString::number(i), QString()) == "") {
+        inisettings->setValue(uuidStr + QString::number(i), QUuid::createUuid().toString());
     }
     return i;
 }
 QUuid PXMIniReader::getUUID(unsigned int num, bool takeIt) const
 {
-    if (inisettings->value("uuid/" + QString::number(num), "").toString().isEmpty()) {
+    QString tester = inisettings->value("uuid/" + QString::number(num), QString()).toString();
+    if (tester.isEmpty()) {
         inisettings->setValue("uuid/" + QString::number(num), QUuid::createUuid().toString());
     }
-    QUuid uuid = inisettings->value("uuid/" + QString::number(num), "").toUuid();
+    QUuid uuid = inisettings->value("uuid/" + QString::number(num), QString()).toUuid();
     if (takeIt) {
         inisettings->setValue("uuid/" + QString::number(num), "INUSE");
     }
@@ -83,9 +84,10 @@ void PXMIniReader::setHostname(QString hostname)
 }
 QString PXMIniReader::getHostname(QString defaultHostname)
 {
-    QString hostname = inisettings->value("hostname/hostname", defaultHostname).toString();
+    QString hostname = inisettings->value("hostname/hostname", QString()).toString();
     if (hostname.isEmpty()) {
         inisettings->setValue("hostname/hostname", defaultHostname);
+        hostname = defaultHostname;
     }
 
     return hostname.left(PXMConsts::MAX_HOSTNAME_LENGTH).simplified();
