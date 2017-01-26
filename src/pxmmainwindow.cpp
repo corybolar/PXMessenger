@@ -24,6 +24,7 @@
 #include <QSound>
 #include <QStringBuilder>
 #include <QScopedPointer>
+#include <QDir>
 
 using namespace PXMMessageViewer;
 
@@ -462,9 +463,11 @@ void PXMSettingsDialog::logStateChange(int state)
 {
     if (state == true) {
 #ifdef __WIN32
+        QString logLocation = QDir::currentPath() + "\\log.txt";
         QMessageBox::information(this, "Log Status Change",
                                  "You have enabled file logging.\n"
-                                 "Log location will be C:\Program Files\PXMessenger\log.txt");
+                                 "Log location will be " +
+                                     logLocation);
 #else
         QMessageBox::information(this, "Log Status Change",
                                  "You have enabled file logging.\n"
