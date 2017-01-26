@@ -263,11 +263,10 @@ void PXMPeerWorker::beginSync()
     d_ptr->syncer->syncNext();
     d_ptr->nextSyncTimer->start();
 }
-void PXMPeerWorker::syncPacketIterator(char* ipHeapArray, size_t len, QUuid senderUuid)
+void PXMPeerWorker::syncPacketIterator(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid)
 {
     if (!d_ptr->syncablePeers->contains(senderUuid)) {
         qWarning() << "Sync packet from bad uuid -- timeout or not requested" << senderUuid;
-        delete[] ipHeapArray;
         return;
     }
     qInfo() << "Sync packet from" << senderUuid.toString();
@@ -276,11 +275,11 @@ void PXMPeerWorker::syncPacketIterator(char* ipHeapArray, size_t len, QUuid send
     while (index + UUIDCompression::PACKED_UUID_LENGTH + 6 <= len) {
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
-        memcpy(&(addr.sin_addr.s_addr), &ipHeapArray[index], sizeof(uint32_t));
+        memcpy(&(addr.sin_addr.s_addr), &syncPacket.data()[index], sizeof(uint32_t));
         index += sizeof(uint32_t);
-        memcpy(&(addr.sin_port), &ipHeapArray[index], sizeof(uint16_t));
+        memcpy(&(addr.sin_port), &syncPacket.data()[index], sizeof(uint16_t));
         index += sizeof(uint16_t);
-        QUuid uuid = UUIDCompression::unpackUUID(reinterpret_cast<unsigned char*>(&ipHeapArray[index]));
+        QUuid uuid = UUIDCompression::unpackUUID(reinterpret_cast<unsigned char*>(&syncPacket.data()[index]));
         index += UUIDCompression::PACKED_UUID_LENGTH;
 
         qInfo() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
@@ -294,8 +293,6 @@ void PXMPeerWorker::syncPacketIterator(char* ipHeapArray, size_t len, QUuid send
         d_ptr->nextSyncTimer->start(2000);
         d_ptr->syncer->syncNext();
     }
-
-    delete[] ipHeapArray;
 }
 void PXMPeerWorker::newIncomingConnection(bufferevent* bev)
 {

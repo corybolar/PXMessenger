@@ -174,25 +174,6 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="0" colspan="3">
-     <widget class="PXMTextEdit" name="messTextEdit">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>150</height>
-       </size>
-      </property>
-      <property name="placeholderText">
-       <string>Enter a message to send here!</string>
-      </property>
-     </widget>
-    </item>
     <item row="2" column="0" rowspan="2" colspan="3">
      <widget class="PXMMessageViewer::StackedWidget" name="stackedWidget">
       <property name="sizePolicy">
@@ -209,6 +190,13 @@
       </property>
      </widget>
     </item>
+    <item row="4" column="0" colspan="3">
+     <widget class="PXMTextEdit" name="messTextEdit">
+      <property name="placeholderText">
+       <string>Enter a message to send!</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -217,22 +205,22 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>27</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>PXMTextEdit</class>
-   <extends>QTextEdit</extends>
-   <header>pxmtextedit.h</header>
-  </customwidget>
-  <customwidget>
    <class>PXMMessageViewer::StackedWidget</class>
    <extends>QStackedWidget</extends>
    <header>pxmmessageviewer.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PXMTextEdit</class>
+   <extends>QTextEdit</extends>
+   <header>pxmmainwindow.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -97,8 +97,11 @@ void LoggerSingleton::setLogStatus(bool stat)
 {
     if (logActive != stat && stat == true && logFile) {
         logFile->remove();
-        logFile->open(QIODevice::ReadWrite);
-        logActive = true;
+        if (logFile->open(QIODevice::ReadWrite)) {
+            logActive = true;
+        } else {
+            logActive = false;
+        }
     } else if (logActive != stat && stat == false && logFile) {
         logActive = false;
         logFile->flush();

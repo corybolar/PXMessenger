@@ -6,6 +6,7 @@
 #include <QScopedPointer>
 #include <QTextEdit>
 #include <QFile>
+#include <QDir>
 
 class QPushButton;
 namespace PXMConsole
@@ -33,8 +34,7 @@ class Window : public QMainWindow
 class AppendTextEvent : public QEvent
 {
    public:
-    AppendTextEvent(QString text, QColor color) :
-      QEvent(static_cast<Type>(type)), text(text), textColor(color) {}
+    AppendTextEvent(QString text, QColor color) : QEvent(static_cast<Type>(type)), text(text), textColor(color) {}
     QString getText() { return text; }
     QColor getColor() { return textColor; }
    private:
@@ -50,6 +50,11 @@ class LoggerSingleton : public QObject
     {
         if (!loggerInstance) {
             loggerInstance = new LoggerSingleton;
+#ifdef __WIN32
+            loggerInstance->logFile.reset(new QFile(QDir::currentPath() + "/log.txt", loggerInstance));
+#else
+            loggerInstance->logFile.reset(new QFile(QDir::homePath() + "/.pxmessenger-log", loggerInstance));
+#endif
         }
 
         return loggerInstance;
@@ -57,15 +62,16 @@ class LoggerSingleton : public QObject
     void setTextEdit(QTextEdit* textEdit) { logTextEdit = textEdit; }
     int getVerbosityLevel() { return verbosityLevel; }
     void setVerbosityLevel(int value) { verbosityLevel = value; }
-    bool getLogStatus() {return logActive;}
+    bool getLogStatus() { return logActive; }
     void setLogStatus(bool stat);
     QScopedPointer<QFile> logFile;
+
    private:
     LoggerSingleton() : QObject() {}
     static LoggerSingleton* loggerInstance;
     QTextEdit* logTextEdit = 0;
-    int verbosityLevel = 0;
-    bool logActive = 0;
+    int verbosityLevel     = 0;
+    bool logActive         = 0;
 
    protected:
     virtual void customEvent(QEvent* event);

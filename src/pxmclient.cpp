@@ -129,10 +129,11 @@ void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw,
     QScopedArrayPointer<char> full_mess(new char[packetLen + 1]);
     // char full_mess[packetLen + 1];
 
-    packetLenNBO = htons(static_cast<uint16_t>(packetLen));
+    packetLenNBO     = htons(static_cast<uint16_t>(packetLen));
+    uint32_t typeNBO = htonl(type);
 
     memcpy(&full_mess[0], d_ptr->packedLocalUUID, UUIDCompression::PACKED_UUID_LENGTH);
-    memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH], &type, sizeof(PXMConsts::MESSAGE_TYPE));
+    memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH], &typeNBO, sizeof(PXMConsts::MESSAGE_TYPE));
     memcpy(&full_mess[UUIDCompression::PACKED_UUID_LENGTH + sizeof(PXMConsts::MESSAGE_TYPE)], msg, msgLen);
     full_mess[packetLen] = 0;
 

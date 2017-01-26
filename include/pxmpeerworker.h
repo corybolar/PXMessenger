@@ -33,7 +33,7 @@ class PXMPeerWorker : public QObject
     const static int SYNC_TIMER                        = 900000;
    public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
-    void syncPacketIterator(char* ipHeapArray, size_t len, QUuid senderUuid);
+    void syncPacketIterator(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid);
     void attemptConnection(struct sockaddr_in addr, QUuid uuid);
     void authenticationReceived(QString hname,
                                 unsigned short port,

@@ -65,7 +65,7 @@ class ServerThread : public QThread
     void attemptConnection(struct sockaddr_in, QUuid);
     void sendSyncPacket(bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
-    void syncPacketIterator(char*, size_t, QUuid);
+    void syncPacketIterator(QSharedPointer<unsigned char>, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);

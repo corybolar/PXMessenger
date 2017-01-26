@@ -5,6 +5,9 @@
 #include <pxmpeerworker.h>
 #include <pxmconsole.h>
 
+#include <chrono>
+#include <thread>
+
 #include <QAbstractButton>
 #include <QApplication>
 #include <QDebug>
@@ -138,11 +141,6 @@ int PXMAgent::init()
 
     d_ptr->logger = PXMConsole::LoggerSingleton::getInstance();
     d_ptr->logger->setVerbosityLevel(d_ptr->iniReader.getVerbosity());
-#ifdef __WIN32
-    d_ptr->logger->logFile.reset(new QFile(QDir::currentPath() + "/log.txt", this));
-#else
-    d_ptr->logger->logFile.reset(new QFile(QDir::homePath() + "/.pxmessenger-log", this));
-#endif
     d_ptr->logger->setLogStatus(d_ptr->iniReader.getLogActive());
 
     d_ptr->presets.uuidNum = d_ptr->iniReader.getUUIDNumber();
@@ -201,11 +199,7 @@ int PXMAgent::init()
     qApp->processEvents();
     while (startupTimer.elapsed() < 1500) {
         qApp->processEvents();
-#ifdef _WIN32
-        Sleep(100);
-#else
-        usleep(100.000);
-#endif
+        QThread::currentThread()->msleep(100);
     }
 #endif
 

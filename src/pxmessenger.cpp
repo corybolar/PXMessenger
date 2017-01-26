@@ -87,15 +87,19 @@ int main(int argc, char** argv)
     app.setOrganizationDomain("PXMessenger");
     app.setApplicationVersion("1.4.0");
 
-    PXMAgent overlord;
-    if (overlord.init()) {
-        qInfo() << "working";
-        return -1;
+    int result;
+    {
+        PXMAgent overlord;
+        if (overlord.init()) {
+            qInfo() << "working";
+            return -1;
+        }
+
+        result = app.exec();
+
+        qInfo() << "Exiting PXMessenger";
     }
-
-    int result = app.exec();
-
-    qInfo() << "Exiting PXMessenger";
+    qInfo() << "Successful Shutdown with code:" << result;
 
     return result;
 }

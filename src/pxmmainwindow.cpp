@@ -25,6 +25,8 @@
 #include <QStringBuilder>
 #include <QScopedPointer>
 #include <QDir>
+#include <QTextEdit>
+#include <QKeyEvent>
 
 using namespace PXMMessageViewer;
 
@@ -454,14 +456,16 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
                      &PXMSettingsDialog::currentFontChanged);
     void (QSpinBox::*signal)(int) = &QSpinBox::valueChanged;
     QObject::connect(ui->fontSizeSpinBox, signal, this, &PXMSettingsDialog::valueChanged);
-    QObject::connect(ui->LogActiveCheckBox, &QCheckBox::stateChanged, this, &PXMSettingsDialog::logStateChange);
 
     readIni();
+
+    // Must be connected after ini is read to prevent box from coming up upon opening settings dialog
+    QObject::connect(ui->LogActiveCheckBox, &QCheckBox::stateChanged, this, &PXMSettingsDialog::logStateChange);
 }
 
 void PXMSettingsDialog::logStateChange(int state)
 {
-    if (state == true) {
+    if (state == Qt::Checked) {
 #ifdef __WIN32
         QString logLocation = QDir::currentPath() + "\\log.txt";
         QMessageBox::information(this, "Log Status Change",
@@ -597,4 +601,26 @@ void PXMSettingsDialog::readIni()
 PXMSettingsDialog::~PXMSettingsDialog()
 {
     delete d_ptr;
+}
+
+PXMTextEdit::PXMTextEdit(QWidget* parent) : QTextEdit(parent)
+{
+}
+void PXMTextEdit::keyPressEvent(QKeyEvent* event)
+{
+    if (event->key() == Qt::Key_Return) {
+        emit returnPressed();
+    } else {
+        QTextEdit::keyPressEvent(event);
+    }
+}
+void PXMTextEdit::focusInEvent(QFocusEvent* event)
+{
+    this->setPlaceholderText("");
+    QTextEdit::focusInEvent(event);
+}
+void PXMTextEdit::focusOutEvent(QFocusEvent* event)
+{
+    this->setPlaceholderText("Enter a message to send!");
+    QTextEdit::focusOutEvent(event);
 }
