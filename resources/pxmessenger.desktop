@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Exec=PXMessenger
+Terminal=false
+Name=PXMessenger
+Icon=/usr/share/pixmaps/PXMessenger.png
+GenericName=Instant Messenger
+Comment=P2P Instant Messenger
+Categories=Network;InstantMessaging;Chat
