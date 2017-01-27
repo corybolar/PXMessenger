@@ -68,11 +68,11 @@ class ServerThreadPrivate
     static void connectCB(bufferevent* bev, short error, void* arg);
 };
 
-ServerThread::ServerThread(QUuid uuid,
-                           QObject* parent,
+ServerThread::ServerThread(QObject* parent,
+                           QUuid uuid,
+                           in_addr multicast,
                            unsigned short tcpPort,
-                           unsigned short udpPort,
-                           in_addr multicast)
+                           unsigned short udpPort)
     : QThread(parent), d_ptr(new ServerThreadPrivate(this))
 {
     d_ptr->tcpPortNumber = tcpPort;
@@ -533,17 +533,17 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
     unsigned char readBev[100] = {};
     ServerThreadPrivate* st    = static_cast<ServerThreadPrivate*>(args);
     bufferevent_read(bev, readBev, 100);
-    INTERNAL_MSG type = *(reinterpret_cast<INTERNAL_MSG*>(&readBev[0]));
-    int index         = sizeof(INTERNAL_MSG);
-    switch (type) {
+    INTERNAL_MSG* type = reinterpret_cast<INTERNAL_MSG*>(&readBev[0]);
+    int index          = sizeof(INTERNAL_MSG);
+    switch (*type) {
         case ADD_DEFAULT_BEV: {
             // copy out a pointer address that we are adding with a default setup
-            struct bufferevent* bev = *reinterpret_cast<struct bufferevent**>(&readBev[sizeof(INTERNAL_MSG)]);
+            struct bufferevent** bev = reinterpret_cast<struct bufferevent**>(&readBev[sizeof(INTERNAL_MSG)]);
 
-            evutil_make_socket_nonblocking(bufferevent_getfd(bev));
-            bufferevent_setcb(bev, ServerThreadPrivate::tcpAuth, NULL, ServerThreadPrivate::tcpError, st);
-            bufferevent_setwatermark(bev, EV_READ, PXMServer::PACKET_HEADER_LENGTH, PXMServer::PACKET_HEADER_LENGTH);
-            bufferevent_enable(bev, EV_READ | EV_WRITE);
+            evutil_make_socket_nonblocking(bufferevent_getfd(*bev));
+            bufferevent_setcb(*bev, ServerThreadPrivate::tcpAuth, NULL, ServerThreadPrivate::tcpError, st);
+            bufferevent_setwatermark(*bev, EV_READ, PXMServer::PACKET_HEADER_LENGTH, PXMServer::PACKET_HEADER_LENGTH);
+            bufferevent_enable(*bev, EV_READ | EV_WRITE);
         } break;
         case EXIT:
             event_base_loopexit(st->base.data(), NULL);

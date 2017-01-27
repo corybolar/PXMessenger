@@ -20,11 +20,11 @@ const timeval READ_TIMEOUT         = {1, 0};
 const timeval READ_TIMEOUT_RESET   = {3600, 0};
 const uint8_t PACKET_HEADER_LENGTH = 2;
 enum INTERNAL_MSG : uint16_t {
-  ADD_DEFAULT_BEV = 0x1111,
-  EXIT = 0x2222,
-  CONNECT_TO_ADDR = 0x3333,
-  TCP_PORT_CHANGE = 0x8888, //Under Construction
-  UDP_PORT_CHANGE = 0x9999  //Under Construction
+    ADD_DEFAULT_BEV = 0x1111,
+    EXIT            = 0x2222,
+    CONNECT_TO_ADDR = 0x3333,
+    TCP_PORT_CHANGE = 0x8888,  // Under Construction
+    UDP_PORT_CHANGE = 0x9999   // Under Construction
 };
 class ServerThread : public QThread
 {
@@ -33,11 +33,12 @@ class ServerThread : public QThread
 
    public:
     // Default
-    ServerThread(QUuid uuid,
-                 QObject* parent        = nullptr,
+    ServerThread(QObject* parent,
+                 QUuid uuid,
+                 in_addr multicast,
                  unsigned short tcpPort = 0,
-                 unsigned short udpPort = 0,
-                 in_addr multicast      = {});
+                 unsigned short udpPort = 0);
+
     // Copy
     ServerThread(ServerThread const&) = delete;
     // Copy assignment

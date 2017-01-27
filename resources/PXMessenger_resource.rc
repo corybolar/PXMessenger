@@ -4,7 +4,7 @@
 #  include <windows.h>
 # endif
 
-IDI_ICON1	ICON	DISCARDABLE	"/home/cory/git/PXMessenger/src/resources/PXM_Icon.ico"
+IDI_ICON1	ICON	DISCARDABLE	"/home/cory/git/PXMessenger/resources/PXM_Icon.ico"
 
 VS_VERSION_INFO VERSIONINFO
 	FILEVERSION 1,4,0,0

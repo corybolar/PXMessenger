@@ -184,8 +184,8 @@ void PXMPeerWorker::currentThreadInit()
     in_addr multicast_in_addr;
     multicast_in_addr.s_addr = inet_addr(d_ptr->multicastAddress.toLatin1().constData());
     d_ptr->messClient        = new PXMClient(this, multicast_in_addr, d_ptr->localUUID);
-    d_ptr->messServer = new PXMServer::ServerThread(d_ptr->localUUID, this, d_ptr->serverTCPPort, d_ptr->serverUDPPort,
-                                                    multicast_in_addr);
+    d_ptr->messServer = new PXMServer::ServerThread(this, d_ptr->localUUID, multicast_in_addr, d_ptr->serverTCPPort,
+                                                    d_ptr->serverUDPPort);
 
     d_ptr->connectClient();
     d_ptr->startServer();
