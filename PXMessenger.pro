@@ -64,6 +64,7 @@ RESOURCES += \
     $$PWD/resources/resources.qrc
 
 RC_FILE = $$PWD/resources/PXMessenger_resource.rc
+
 win32 {
 Release:DESTDIR = $$PWD/
 Debug:DESTDIR = $$PWD/
