@@ -64,7 +64,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
             msgColor = QGuiApplication::palette().foreground().color();
             break;
     }
-    localMsg.prepend(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss] ")).toLatin1());
+    localMsg.prepend(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss:zzz] ")).toLatin1());
     localMsg.append(QChar('\n'));
     fprintf(stderr, "%s", localMsg.constData());
     if (Window::textEdit) {
