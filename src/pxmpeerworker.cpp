@@ -271,12 +271,9 @@ void PXMPeerWorker::syncPacketIterator(QSharedPointer<unsigned char> syncPacket,
     size_t index = 0;
     while (index + NetCompression::PACKED_UUID_LENGTH + 6 <= len) {
         struct sockaddr_in addr;
+        index += NetCompression::unpackSockaddr_in(&syncPacket.data()[index], addr);
         addr.sin_family = AF_INET;
-        memcpy(&(addr.sin_addr.s_addr), &syncPacket.data()[index], sizeof(uint32_t));
-        index += sizeof(uint32_t);
-        memcpy(&(addr.sin_port), &syncPacket.data()[index], sizeof(uint16_t));
-        index += sizeof(uint16_t);
-        QUuid uuid = QUuid();
+        QUuid uuid      = QUuid();
         index += NetCompression::unpackUUID(&syncPacket.data()[index], uuid);
 
         qInfo() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
@@ -385,10 +382,7 @@ void PXMPeerWorker::sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid u
     size_t index = 0;
     for (Peers::PeerData& itr : d_ptr->peerDetailsHash) {
         if (itr.isAuthenticated) {
-            memcpy(&msgRaw[index], &(itr.ipAddressRaw.sin_addr.s_addr), sizeof(uint32_t));
-            index += sizeof(uint32_t);
-            memcpy(&msgRaw[index], &(itr.ipAddressRaw.sin_port), sizeof(uint16_t));
-            index += sizeof(uint16_t);
+            index += NetCompression::packSockaddr_in(&msgRaw[index], itr.ipAddressRaw);
             index += NetCompression::packUUID(&msgRaw[index], itr.identifier);
         }
     }
