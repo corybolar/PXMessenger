@@ -5,9 +5,6 @@
 #include <pxmpeerworker.h>
 #include <pxmconsole.h>
 
-#include <chrono>
-#include <thread>
-
 #include <QAbstractButton>
 #include <QApplication>
 #include <QDebug>
@@ -189,10 +186,10 @@ int PXMAgent::init()
     d_ptr->workerThread->start();
 
 #ifdef QT_DEBUG
-    qInfo() << "Running in debug mode";
+    qInfo() << "Built in debug mode";
     qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
 #else
-    qInfo() << "Running in release mode";
+    qInfo() << "Built in release mode";
     qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
     splash.finish(d_ptr->window.data());
     qApp->processEvents();
