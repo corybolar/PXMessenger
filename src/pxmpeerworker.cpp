@@ -1,3 +1,5 @@
+#include <pxmpeerworker.h>
+
 #include <QApplication>
 #include <QDebug>
 #include <QRegularExpression>
@@ -5,7 +7,7 @@
 #include <QStringBuilder>
 #include <QThread>
 #include <QTimer>
-#include <pxmpeerworker.h>
+#include <QSharedPointer>
 
 #include "pxmclient.h"
 #include "pxmserver.h"
@@ -375,24 +377,23 @@ void PXMPeerWorker::sendSyncPacketBev(bufferevent* bev, QUuid uuid)
 void PXMPeerWorker::sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid)
 {
     qInfo() << "Sending ips to" << d_ptr->peerDetailsHash.value(uuid).hostname;
-    unsigned char* msgRaw =
+    QSharedPointer<unsigned char> msgRaw(
         new unsigned char[static_cast<size_t>(d_ptr->peerDetailsHash.size()) *
                               (sizeof(uint32_t) + sizeof(uint16_t) + NetCompression::PACKED_UUID_LENGTH) +
-                          1];
+                          1]);
     size_t index = 0;
     for (Peers::PeerData& itr : d_ptr->peerDetailsHash) {
         if (itr.isAuthenticated) {
-            index += NetCompression::packSockaddr_in(&msgRaw[index], itr.ipAddressRaw);
-            index += NetCompression::packUUID(&msgRaw[index], itr.identifier);
+            index += NetCompression::packSockaddr_in(&msgRaw.data()[index], itr.ipAddressRaw);
+            index += NetCompression::packUUID(&msgRaw.data()[index], itr.identifier);
         }
     }
-    msgRaw[index + 1] = 0;
+    msgRaw.data()[index + 1] = 0;
 
     if (d_ptr->messClient) {
         emit sendIpsPacket(bw, msgRaw, index, MSG_SYNC);
     } else {
         qCritical() << "messClient not initialized";
-        delete[] msgRaw;
     }
 }
 void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket, bool result, bufferevent* bev, QUuid uuid)

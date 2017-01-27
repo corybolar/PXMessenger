@@ -134,7 +134,6 @@ int PXMAgent::init()
                                "running.\r\nOnly one instance "
                                "is allowed");
             msgBox.exec();
-            qInfo() << "working";
             return -1;
         }
     }

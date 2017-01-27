@@ -81,7 +81,7 @@ class PXMPeerWorker : public QObject
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
     void sendUDP(const char*, unsigned short);
-    void sendIpsPacket(QSharedPointer<Peers::BevWrapper>, unsigned char*, size_t len,
+    void sendIpsPacket(QSharedPointer<Peers::BevWrapper>, QSharedPointer<unsigned char>, size_t len,
                        PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
     //void connectToPeer(evutil_socket_t, struct sockaddr_in,
     //                   QSharedPointer<Peers::BevWrapper>);

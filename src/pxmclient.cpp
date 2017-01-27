@@ -155,11 +155,10 @@ void PXMClient::sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw,
 }
 
 void PXMClient::sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw,
-                            unsigned char* msg,
+                            QSharedPointer<unsigned char> msg,
                             size_t len,
                             PXMConsts::MESSAGE_TYPE type,
                             QUuid theiruuid)
 {
-    this->sendMsg(bw, (char*)msg, len, type, theiruuid);
-    delete[] msg;
+    this->sendMsg(bw, (char*)msg.data(), len, type, theiruuid);
 }

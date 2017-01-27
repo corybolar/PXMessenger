@@ -51,7 +51,7 @@ class PXMClient : public QObject
     //void connectToPeer(evutil_socket_t, struct sockaddr_in socketAddr,
     //                   QSharedPointer<Peers::BevWrapper> bw);
     void sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw,
-                     unsigned char* msg,
+                     QSharedPointer<unsigned char> msg,
                      size_t len,
                      PXMConsts::MESSAGE_TYPE type,
                      QUuid theiruuid = QUuid());
