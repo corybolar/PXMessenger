@@ -1,28 +1,27 @@
-
 TEMPLATE = app
 TARGET = PXMessenger
 VERSION = 1.4.0
 QMAKE_TARGET_COMPANY = Bolar Code Solutions
 QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
-target.path = /usr/local/bin
-desktop.path = /usr/share/applications
-desktop.files += $$PWD/resources/pxmessenger.desktop
-icon.path = /usr/share/pixmaps
-icon.files += $$PWD/resources/PXMessenger.png
 
+target.path 	= /usr/local/bin
+desktop.path 	= /usr/share/applications
+desktop.files 	+= $$PWD/resources/pxmessenger.desktop
+icon.path 	= /usr/share/pixmaps
+icon.files 	+= $$PWD/resources/PXMessenger.png
 INSTALLS += target desktop icon
 
 QT = core gui widgets multimedia
 CONFIG += RELEASE\
-        DEBUG
+          DEBUG
 
 unix: LIBS += -levent -levent_pthreads
 
 win32 { LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
 
 INCLUDEPATH += $$PWD/../libevent/include \
-                $$PWD/../libevent/build/include
+               $$PWD/../libevent/build/include
 
 DEPENDPATH += $$PWD/../libevent/include
 }
@@ -65,8 +64,6 @@ HEADERS += \
     $$PWD/include/pxmconsts.h \
     $$PWD/include/pxmpeers.h \
     $$PWD/include/pxmagent.h
-
-DISTFILES +=
 
 RESOURCES += \
     $$PWD/resources/resources.qrc
