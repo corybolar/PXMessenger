@@ -540,10 +540,13 @@ void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
 
 void PXMSettingsDialog::accept()
 {
-    PXMConsole::LoggerSingleton* logger = PXMConsole::LoggerSingleton::getInstance();
-    logger->setVerbosityLevel(ui->verbositySpinBox->value());
-    emit verbosityChanged();
     PXMIniReader iniReader;
+    PXMConsole::LoggerSingleton* logger = PXMConsole::LoggerSingleton::getInstance();
+
+    logger->setVerbosityLevel(ui->verbositySpinBox->value());
+    iniReader.setVerbosity(ui->verbositySpinBox->value());
+    emit verbosityChanged();
+
     iniReader.setAllowMoreThanOne(ui->allowMultipleCheckBox->isChecked());
     iniReader.setHostname(ui->hostnameLineEdit->text().simplified());
     if (d_ptr->hostname != ui->hostnameLineEdit->text().simplified()) {

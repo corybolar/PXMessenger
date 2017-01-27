@@ -30,12 +30,12 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
     localMsg.reserve(128);
     QString filename = QString::fromUtf8(context.file);
 #ifdef __WIN32
-    filename = filename.right(filename.length() - filename.lastIndexOf(QChar('\\')) - 1);
+    filename = filename.right(filename.length() - filename.lastIndexOf(QLatin1Char('\\')) - 1);
 #else
-    filename = filename.right(filename.length() - filename.lastIndexOf(QChar('/')) - 1);
+    filename = filename.right(filename.length() - filename.lastIndexOf(QLatin1Char('/')) - 1);
 #endif
-    filename.append(":" + QByteArray::number(context.line));
-    filename.append(QString(PXMConsts::DEBUG_PADDING - filename.length(), QChar(' ')));
+    filename.append(QLatin1Char(':') + QByteArray::number(context.line));
+    filename.append(QString(PXMConsts::DEBUG_PADDING - filename.length(), QLatin1Char(' ')));
     localMsg = filename.toUtf8() % msg.toUtf8();
 #else
     localMsg = msg.toLocal8Bit();
@@ -44,27 +44,27 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
     QColor msgColor;
     switch (type) {
         case QtDebugMsg:
-            localMsg.prepend("DEBUG: ");
+            localMsg.prepend(QByteArray::fromRawData("DEBUG: ", 7));
             msgColor = Qt::gray;
             break;
         case QtWarningMsg:
-            localMsg.prepend("WARN:  ");
+            localMsg.prepend(QByteArray::fromRawData("WARN:  ", 7));
             msgColor = Qt::darkYellow;
             break;
         case QtCriticalMsg:
-            localMsg.prepend("CRIT:  ");
+            localMsg.prepend(QByteArray::fromRawData("CRIT:  ", 7));
             msgColor = Qt::red;
             break;
         case QtFatalMsg:
-            localMsg.prepend("FATAL: ");
+            localMsg.prepend(QByteArray::fromRawData("FATAL: ", 7));
             abort();
             break;
         case QtInfoMsg:
-            localMsg.prepend("INFO:  ");
+            localMsg.prepend(QByteArray::fromRawData("INFO:  ", 7));
             msgColor = QGuiApplication::palette().foreground().color();
             break;
     }
-    localMsg.prepend(QDateTime::currentDateTime().time().toString("[hh:mm:ss] ").toLatin1());
+    localMsg.prepend(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss] ")).toLatin1());
     localMsg.append(QChar('\n'));
     fprintf(stderr, "%s", localMsg.constData());
     if (Window::textEdit) {
@@ -91,15 +91,15 @@ int main(int argc, char** argv)
     {
         PXMAgent overlord;
         if (overlord.init()) {
-            qInfo() << "working";
+            qCritical().noquote() << QStringLiteral("PXMInit failed");
             return -1;
         }
 
         result = app.exec();
 
-        qInfo() << "Exiting PXMessenger";
+        qInfo().noquote() << QStringLiteral("Exiting PXMessenger");
     }
-    qInfo() << "Successful Shutdown with code:" << result;
+    qInfo().noquote() << QStringLiteral("Successful Shutdown with code:") << result;
 
     return result;
 }

@@ -37,7 +37,7 @@ SOURCES += \
     $$PWD/src/pxmserver.cpp \
     $$PWD/src/pxmmainwindow.cpp \
     $$PWD/src/pxmessenger.cpp \
-    $$PWD/src/uuidcompression.cpp \
+    $$PWD/src/netcompression.cpp \
     $$PWD/src/pxmmessageviewer.cpp \
     $$PWD/src/pxmconsole.cpp \
     $$PWD/src/pxmpeers.cpp \
@@ -50,7 +50,7 @@ HEADERS += \
     $$PWD/include/pxminireader.h \
     $$PWD/include/pxmserver.h \
     $$PWD/include/pxmclient.h \
-    $$PWD/include/uuidcompression.h \
+    $$PWD/include/netcompression.h \
     $$PWD/include/timedvector.h \
     $$PWD/include/pxmmessageviewer.h \
     $$PWD/include/pxmconsole.h \

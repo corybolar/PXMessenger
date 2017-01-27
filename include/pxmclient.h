@@ -48,16 +48,15 @@ class PXMClient : public QObject
                      PXMConsts::MESSAGE_TYPE type,
                      QUuid theiruuid = QUuid());
     int sendUDP(const char* msg, unsigned short port);
-    void connectToPeer(evutil_socket_t, struct sockaddr_in socketAddr,
-                       QSharedPointer<Peers::BevWrapper> bw);
+    //void connectToPeer(evutil_socket_t, struct sockaddr_in socketAddr,
+    //                   QSharedPointer<Peers::BevWrapper> bw);
     void sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw,
-                     char* msg,
+                     unsigned char* msg,
                      size_t len,
                      PXMConsts::MESSAGE_TYPE type,
                      QUuid theiruuid = QUuid());
-    static void connectCB(bufferevent* bev, short event, void* arg);
+    //static void connectCB(bufferevent* bev, short event, void* arg);
    signals:
-    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*);
     void resultOfTCPSend(int, QUuid, QString, bool,
                          QSharedPointer<Peers::BevWrapper>);
 };

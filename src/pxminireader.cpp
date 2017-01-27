@@ -62,13 +62,13 @@ int PXMIniReader::resetUUID(unsigned int num, QUuid uuid)
 }
 void PXMIniReader::setPort(QString protocol, int portNumber)
 {
-    inisettings->setValue("port/" + protocol, portNumber);
+    inisettings->setValue("net/" + protocol, portNumber);
 }
 unsigned short PXMIniReader::getPort(QString protocol)
 {
-    unsigned int portNumber = inisettings->value("port/" + protocol, 0).toUInt();
+    unsigned int portNumber = inisettings->value("net/" + protocol, 0).toUInt();
     if (portNumber == 13649) {
-        inisettings->setValue("port/" + protocol, 0);
+        inisettings->setValue("net/" + protocol, 0);
         portNumber = 0;
     } else if (portNumber != 0 && protocol == QLatin1String("TCP")) {
         portNumber += getUUIDNumber();

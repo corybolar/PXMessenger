@@ -29,8 +29,8 @@ class PXMPeerWorker : public QObject
     PXMPeerWorker& operator=(PXMPeerWorker const&) = delete;
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
-    const static int SYNC_TIMEOUT_MSECS                = 2000;
-    const static int SYNC_TIMER                        = 900000;
+    const int SYNC_TIMEOUT_MSECS                = 2000;
+    const int SYNC_TIMER                        = 900000;
    public slots:
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
     void syncPacketIterator(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid);
@@ -47,7 +47,7 @@ class PXMPeerWorker : public QObject
     void sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
     void sendSyncPacketBev(bufferevent* bev, QUuid uuid);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result,
-                                   bufferevent* bev);
+                                   bufferevent* bev, QUuid uuid);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
                          bool print, QSharedPointer<Peers::BevWrapper>);
     void currentThreadInit();
@@ -65,7 +65,7 @@ class PXMPeerWorker : public QObject
     void serverSetupFailure(QString error);
     void setLocalHostname(QString);
     void sendUDPAccessor(const char* msg);
-    void setCloseBufferevent(bufferevent* bev);
+    void setInternalBufferevent(bufferevent* bev);
 
     // void restartServer();
    private slots:
@@ -81,10 +81,10 @@ class PXMPeerWorker : public QObject
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
     void sendUDP(const char*, unsigned short);
-    void sendIpsPacket(QSharedPointer<Peers::BevWrapper>, char*, size_t len,
+    void sendIpsPacket(QSharedPointer<Peers::BevWrapper>, unsigned char*, size_t len,
                        PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
-    void connectToPeer(evutil_socket_t, struct sockaddr_in,
-                       QSharedPointer<Peers::BevWrapper>);
+    //void connectToPeer(evutil_socket_t, struct sockaddr_in,
+    //                   QSharedPointer<Peers::BevWrapper>);
     void updateMessServFDS(evutil_socket_t);
     void setItalicsOnItem(QUuid, bool);
     void ipsReceivedFrom(QUuid);

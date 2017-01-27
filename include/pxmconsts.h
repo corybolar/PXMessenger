@@ -4,7 +4,7 @@
 #include <QMetaType>
 #include <stdint.h>
 #include <string.h>
-#include "uuidcompression.h"
+#include "netcompression.h"
 
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 
@@ -39,7 +39,7 @@ constexpr size_t ct_strlen(const char* s) noexcept
 }
 const size_t MAX_AUTH_PACKET_LENGTH =
     sizeof(MESSAGE_TYPE) +
-    UUIDCompression::PACKED_UUID_LENGTH +
+    NetCompression::PACKED_UUID_LENGTH +
     MAX_HOSTNAME_LENGTH +
     MAX_COMPUTER_NAME +
     strlen(AUTH_SEPERATOR) +

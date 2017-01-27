@@ -20,9 +20,11 @@ const timeval READ_TIMEOUT         = {1, 0};
 const timeval READ_TIMEOUT_RESET   = {3600, 0};
 const uint8_t PACKET_HEADER_LENGTH = 2;
 enum INTERNAL_MSG : uint16_t {
-  EXIT = 0x1111,
-  TCP_PORT_CHANGE = 0x2222, //Under Construction
-  UDP_PORT_CHANGE = 0x3333  //Under Construction
+  ADD_DEFAULT_BEV = 0x1111,
+  EXIT = 0x2222,
+  CONNECT_TO_ADDR = 0x3333,
+  TCP_PORT_CHANGE = 0x8888, //Under Construction
+  UDP_PORT_CHANGE = 0x9999  //Under Construction
 };
 class ServerThread : public QThread
 {
@@ -31,7 +33,8 @@ class ServerThread : public QThread
 
    public:
     // Default
-    ServerThread(QObject* parent        = nullptr,
+    ServerThread(QUuid uuid,
+                 QObject* parent        = nullptr,
                  unsigned short tcpPort = 0,
                  unsigned short udpPort = 0,
                  in_addr multicast      = {});
@@ -47,15 +50,6 @@ class ServerThread : public QThread
     ~ServerThread();
 
     void run() Q_DECL_OVERRIDE;
-    int setLocalHostname(QString hostname);
-    int setLocalUUID(QUuid uuid);
-    static void tcpError(bufferevent* bev, short error, void* arg);
-    static void tcpAuth(bufferevent* bev, void* arg);
-    static void tcpRead(bufferevent* bev, void* arg);
-    static void accept_new(evutil_socket_t socketfd, short, void* arg);
-    static void udpRecieve(evutil_socket_t socketfd, short, void* args);
-    static void internalCommsRead(bufferevent* bev, void*);
-    struct event_base* base;
    signals:
     void messageRecieved(QString, QUuid, bufferevent*, bool);
     void newTCPConnection(bufferevent*);
@@ -75,6 +69,7 @@ class ServerThread : public QThread
     void multicastIsFunctional();
     void serverSetupFailure(QString);
     void nameChange(QString, QUuid);
+    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid);
 };
 }
 
