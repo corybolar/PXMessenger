@@ -6,6 +6,8 @@
 <p align="center">
   <img src="http://i.imgur.com/6rLhyvL.png"/>
 </p>
+####Status
+[![Build Status](https://travis-ci.org/cbpeckles/PXMessenger.png)](https://travis-ci.org/cbpeckles/PXMessenger)
 ####Dependencies:
 
 qt5 >= qt5.7.0
