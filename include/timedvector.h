@@ -19,7 +19,7 @@ class TimedVector
         ~TimedStruct() noexcept { delete t; }
         TimedStruct(TimedStruct&& v) noexcept : t(v.t), epoch(v.epoch) { v.t = nullptr; }
         TimedStruct(const TimedStruct& v) : t(new T(*(v.t))), epoch(v.epoch) {}
-        TimedStruct& operator=(TimedStruct& v)
+        TimedStruct& operator=(const TimedStruct& v)
         {
             TimedStruct tmp(v);
             *this = std::move(tmp);
@@ -52,7 +52,7 @@ class TimedVector
 
     // TimedVector(TimedVector&& tv) noexcept {}
 
-    inline void append(T t) { rawVector.append(TimedStruct(t)); }
+    inline void append(const T t) { rawVector.append(TimedStruct(t)); }
     bool contains(T t)
     {
         if (rawVector.isEmpty())
