@@ -1,0 +1,14 @@
+language: none
+sudo: required
+
+services:
+    - docker
+
+before_install:
+    - docker build -t xenial-pxm ./docker
+    - docker run -t -d -p 127.0.0.1:80:80 --name build xenial-pxm /bin/sh
+
+script:
+    - docker ps -a
+    - docker exec build sh -c "cd pxmessenger && qmake -qt=qt5 QMAKE_CXX=g++-5 QMAKE_LINK=g++-5 && make"
+    - docker stop build
