@@ -10,7 +10,7 @@
 [![Build Status](https://travis-ci.org/cbpeckles/PXMessenger.png)](https://travis-ci.org/cbpeckles/PXMessenger)
 ####Dependencies:
 
-qt5 >= qt5.7.0
+qt5 >= qt5.5.0
 
 qtmultimedia
 
