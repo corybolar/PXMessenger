@@ -18,7 +18,7 @@ namespace PXMServer
 {
 const timeval READ_TIMEOUT         = {1, 0};
 const timeval READ_TIMEOUT_RESET   = {3600, 0};
-const uint8_t PACKET_HEADER_LENGTH = 2;
+const uint8_t PACKET_HEADER_LEN = 2;
 enum INTERNAL_MSG : uint16_t {
     ADD_DEFAULT_BEV = 0x1111,
     EXIT            = 0x2222,
@@ -52,13 +52,13 @@ class ServerThread : public QThread
 
     void run() Q_DECL_OVERRIDE;
    signals:
-    void messageRecieved(QString, QUuid, bufferevent*, bool);
+    void messageRecieved(QString, QUuid, const bufferevent*, bool);
     void newTCPConnection(bufferevent*);
     void authenticationReceived(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(struct sockaddr_in, QUuid);
-    void sendSyncPacket(bufferevent*, QUuid);
+    void sendSyncPacket(const bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
     void syncPacketIterator(QSharedPointer<unsigned char>, size_t, QUuid);
     void setPeerHostname(QString, QUuid);

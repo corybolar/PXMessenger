@@ -38,11 +38,11 @@ class PXMClient : public QObject
      * @param type Type of message to append to front of message
      * @param uuidReceiver Specifies a uuid for returning a result
      */
-    void sendMsg(QSharedPointer<Peers::BevWrapper> bw,
+    void sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
                  const char* msg,
-                 size_t msgLen,
-                 PXMConsts::MESSAGE_TYPE type,
-                 QUuid uuidReceiver);
+                 const size_t msgLen,
+                 const PXMConsts::MESSAGE_TYPE type,
+                 const QUuid uuidReceiver);
     void sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw,
                      QByteArray msg,
                      PXMConsts::MESSAGE_TYPE type,

@@ -14,7 +14,7 @@ const char DEFAULT_MULTICAST_ADDRESS[]       = "239.192.13.13";
 const int MESSAGE_HISTORY_LENGTH             = 500;
 const size_t MIDNIGHT_TIMER_INTERVAL_MINUTES = 1;
 #ifdef QT_DEBUG
-const size_t DEBUG_PADDING = 25;
+const size_t DEBUG_PADDING = 23;
 #else
 const size_t DEBUG_PADDING = 0;
 #endif
@@ -37,7 +37,7 @@ constexpr size_t ct_strlen(const char* s) noexcept
 {
     return *s ? 1 + ct_strlen(s + 1) : 0;
 }
-const size_t MAX_AUTH_PACKET_LENGTH =
+const size_t MAX_AUTH_PACKET_LEN =
     sizeof(MESSAGE_TYPE) +
     NetCompression::PACKED_UUID_LENGTH +
     MAX_HOSTNAME_LENGTH +

@@ -45,7 +45,7 @@ class PXMPeerWorker : public QObject
     void peerQuit(evutil_socket_t s, bufferevent* bev);
     void peerNameChange(QString hname, QUuid uuid);
     void sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
-    void sendSyncPacketBev(bufferevent* bev, QUuid uuid);
+    void sendSyncPacketBev(const bufferevent *bev, QUuid uuid);
     void resultOfConnectionAttempt(evutil_socket_t socket, bool result,
                                    bufferevent* bev, QUuid uuid);
     void resultOfTCPSend(int levelOfSuccess, QUuid uuid, QString msg,
@@ -54,7 +54,7 @@ class PXMPeerWorker : public QObject
     int addMessageToPeer(QString str, QUuid uuid, bool alert, bool);
     void printInfoToDebug();
     void setlibeventBackend(QString str);
-    int recieveServerMessage(QString str, QUuid uuid, bufferevent* bev,
+    int recieveServerMessage(QString str, QUuid uuid, const bufferevent* bev,
                              bool global);
     void addMessageToAllPeers(QString str, bool alert, bool formatAsMessage);
     void printFullHistory(QUuid uuid);

@@ -52,7 +52,7 @@
      </spacer>
     </item>
     <item row="5" column="1">
-     <widget class="QPushButton" name="messSendButton">
+     <widget class="QPushButton" name="sendButton">
       <property name="text">
        <string>Send</string>
       </property>
@@ -72,7 +72,7 @@
      </spacer>
     </item>
     <item row="7" column="1">
-     <widget class="QPushButton" name="messQuitButton">
+     <widget class="QPushButton" name="quitButton">
       <property name="text">
        <string>Quit</string>
       </property>
@@ -111,7 +111,7 @@
      </widget>
     </item>
     <item row="2" column="3">
-     <widget class="QLineEdit" name="messLineEdit">
+     <widget class="QLineEdit" name="lineEdit">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
         <horstretch>0</horstretch>
@@ -133,7 +133,7 @@
      </widget>
     </item>
     <item row="3" column="3" rowspan="2">
-     <widget class="QListWidget" name="messListWidget">
+     <widget class="QListWidget" name="listWidget">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -191,7 +191,7 @@
      </widget>
     </item>
     <item row="4" column="0" colspan="3">
-     <widget class="PXMTextEdit" name="messTextEdit">
+     <widget class="PXMTextEdit" name="textEdit">
       <property name="placeholderText">
        <string>Enter a message to send!</string>
       </property>
@@ -205,22 +205,22 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>27</height>
     </rect>
    </property>
   </widget>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>PXMMessageViewer::StackedWidget</class>
-   <extends>QStackedWidget</extends>
-   <header>pxmmessageviewer.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>PXMTextEdit</class>
    <extends>QTextEdit</extends>
    <header>pxmmainwindow.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PXMMessageViewer::StackedWidget</class>
+   <extends>QStackedWidget</extends>
+   <header>pxmstackwidget.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

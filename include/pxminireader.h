@@ -8,7 +8,7 @@ class QSettings;
 class QString;
 class QSize;
 class PXMIniReader {
-  QScopedPointer<QSettings> inisettings;
+  QScopedPointer<QSettings> iniFile;
 
  public:
   PXMIniReader();

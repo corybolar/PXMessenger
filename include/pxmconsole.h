@@ -11,7 +11,7 @@
 class QPushButton;
 namespace PXMConsole
 {
-const int HISTORY_LIMIT = 5000;
+const int HISTORY_LIMIT = 2000;
 static QFile file;
 struct WindowPrivate;
 class Window : public QMainWindow
@@ -43,13 +43,13 @@ class AppendTextEvent : public QEvent
     QColor textColor;
 };
 
-class LoggerSingleton : public QObject
+class Logger : public QObject
 {
    public:
-    static LoggerSingleton* getInstance()
+    static Logger* getInstance()
     {
         if (!loggerInstance) {
-            loggerInstance = new LoggerSingleton;
+            loggerInstance = new Logger;
 #ifdef __WIN32
             loggerInstance->logFile.reset(new QFile(QDir::currentPath() + "/log.txt", loggerInstance));
 #else
@@ -67,8 +67,8 @@ class LoggerSingleton : public QObject
     QScopedPointer<QFile> logFile;
 
    private:
-    LoggerSingleton() : QObject() {}
-    static LoggerSingleton* loggerInstance;
+    Logger() : QObject() {}
+    static Logger* loggerInstance;
     QTextEdit* logTextEdit = 0;
     int verbosityLevel     = 0;
     bool logActive         = 0;

@@ -6,10 +6,16 @@
 #include "pxmagent.h"
 #include "pxmconsole.h"
 
+#ifdef _WIN32
+QLatin1Char seperator = QLatin1Char('\\');
+#else
+QLatin1Char seperator = QLatin1Char('/');
+#endif
+
 void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
     using namespace PXMConsole;
-    LoggerSingleton* logger = LoggerSingleton::getInstance();
+    Logger* logger = Logger::getInstance();
 
     switch (logger->getVerbosityLevel()) {
         case 0:
@@ -24,54 +30,50 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
             break;
     }
 
-    QByteArray localMsg = QByteArray();
-
-#ifdef QT_DEBUG
-    localMsg.reserve(128);
-    QString filename = QString::fromUtf8(context.file);
-#ifdef __WIN32
-    filename = filename.right(filename.length() - filename.lastIndexOf(QLatin1Char('\\')) - 1);
-#else
-    filename = filename.right(filename.length() - filename.lastIndexOf(QLatin1Char('/')) - 1);
-#endif
-    filename.append(QLatin1Char(':') + QByteArray::number(context.line));
-    filename.append(QString(PXMConsts::DEBUG_PADDING - filename.length(), QLatin1Char(' ')));
-    localMsg = filename.toUtf8() % msg.toUtf8();
-#else
-    localMsg = msg.toLocal8Bit();
-#endif
+    QString localMsg = QString();
+    localMsg.append(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss:zzz] ")));
 
     QColor msgColor;
     switch (type) {
         case QtDebugMsg:
-            localMsg.prepend(QByteArray::fromRawData("DEBUG: ", 7));
+            localMsg.append(QString("%1").arg(QStringLiteral("DEBUG:"), -7, QChar(' ')));
             msgColor = Qt::gray;
             break;
         case QtWarningMsg:
-            localMsg.prepend(QByteArray::fromRawData("WARN:  ", 7));
+            localMsg.append(QString("%1").arg(QStringLiteral("WARN:"), -7, QChar(' ')));
             msgColor = Qt::darkYellow;
             break;
         case QtCriticalMsg:
-            localMsg.prepend(QByteArray::fromRawData("CRIT:  ", 7));
+            localMsg.append(QString("%1").arg(QStringLiteral("CRIT:"), -7, QChar(' ')));
             msgColor = Qt::red;
             break;
         case QtFatalMsg:
-            localMsg.prepend(QByteArray::fromRawData("FATAL: ", 7));
+            localMsg.append(QString("%1").arg(QStringLiteral("FATAL:"), -7, QChar(' ')));
             abort();
             break;
         case QtInfoMsg:
-            localMsg.prepend(QByteArray::fromRawData("INFO:  ", 7));
+            localMsg.append(QString("%1").arg(QStringLiteral("INFO:"), -7, QChar(' ')));
             msgColor = QGuiApplication::palette().foreground().color();
             break;
     }
-    localMsg.prepend(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss:zzz] ")).toLatin1());
-    localMsg.append(QChar('\n'));
-    fprintf(stderr, "%s", localMsg.constData());
+
+    QString filename = QString();
+#ifdef QT_DEBUG
+    filename = QString::fromUtf8(context.file);
+    filename = filename.right(filename.length() - filename.lastIndexOf(seperator) - 1);
+    filename = QString("%1").arg(filename.append(':' + QString::number(context.line)), -((int)PXMConsts::DEBUG_PADDING),
+                                 QChar(' '));
+#endif /* end QT_DEBUG */
+    localMsg.append(filename.toUtf8() % msg.toUtf8());
+
+    localMsg.append(QLatin1Char('\n'));
+    const char* cmsg = localMsg.toLatin1().constData();
+    fprintf(stderr, "%s", cmsg);
     if (Window::textEdit) {
         qApp->postEvent(logger, new AppendTextEvent(localMsg, msgColor), Qt::LowEventPriority);
     }
     if (logger->getLogStatus() && logger->logFile->isOpen()) {
-        logger->logFile->write(localMsg.constData(), localMsg.length());
+        logger->logFile->write(cmsg, strlen(cmsg));
         logger->logFile->flush();
     }
 }

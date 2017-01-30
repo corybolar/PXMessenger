@@ -21,10 +21,12 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <lmcons.h>
-#else
+#elif __unix__
 #include <pwd.h>
 #include <sys/types.h>
 #include <unistd.h>
+#else
+#error "include headers for querying username"
 #endif
 
 Q_DECLARE_METATYPE(QSharedPointer<QString>)
@@ -57,7 +59,7 @@ struct PXMAgentPrivate {
     QScopedPointer<PXMWindow> window;
     PXMPeerWorker* peerWorker;
     PXMIniReader iniReader;
-    PXMConsole::LoggerSingleton* logger;
+    PXMConsole::Logger* logger;
     QScopedPointer<QLockFile> lockFile;
 
     initialSettings presets;
@@ -66,7 +68,7 @@ struct PXMAgentPrivate {
 
     // Functions
     QByteArray getUsername();
-    QString setupHostname(unsigned int uuidNum, QString username);
+    int setupHostname(const unsigned int uuidNum, QString& username);
 };
 
 PXMAgent::PXMAgent(QObject* parent) : QObject(parent), d_ptr(new PXMAgentPrivate)
@@ -135,14 +137,14 @@ int PXMAgent::init()
         }
     }
 
-    d_ptr->logger = PXMConsole::LoggerSingleton::getInstance();
+    d_ptr->logger = PXMConsole::Logger::getInstance();
     d_ptr->logger->setVerbosityLevel(d_ptr->iniReader.getVerbosity());
     d_ptr->logger->setLogStatus(d_ptr->iniReader.getLogActive());
 
-    d_ptr->presets.uuidNum = d_ptr->iniReader.getUUIDNumber();
-    d_ptr->presets.uuid    = d_ptr->iniReader.getUUID(d_ptr->presets.uuidNum, allowMoreThanOne);
-    d_ptr->presets.username =
-        d_ptr->setupHostname(d_ptr->presets.uuidNum, localHostname.left(PXMConsts::MAX_HOSTNAME_LENGTH));
+    d_ptr->presets.uuidNum  = d_ptr->iniReader.getUUIDNumber();
+    d_ptr->presets.uuid     = d_ptr->iniReader.getUUID(d_ptr->presets.uuidNum, allowMoreThanOne);
+    d_ptr->presets.username = localHostname.left(PXMConsts::MAX_HOSTNAME_LENGTH);
+    d_ptr->setupHostname(d_ptr->presets.uuidNum, d_ptr->presets.username);
     d_ptr->presets.tcpPort      = d_ptr->iniReader.getPort("TCP");
     d_ptr->presets.udpPort      = d_ptr->iniReader.getPort("UDP");
     d_ptr->presets.windowSize   = d_ptr->iniReader.getWindowSize(QSize(700, 500));
@@ -215,17 +217,19 @@ QByteArray PXMAgentPrivate::getUsername()
         return QByteArray(localHostname);
     } else
         return QByteArray("user");
-#else
+#elif __unix__
     struct passwd* user;
     user = getpwuid(getuid());
     if (!user)
         return QByteArray("user");
     else
         return QByteArray(user->pw_name);
+#else
+#error "implement username query"
 #endif
 }
 
-QString PXMAgentPrivate::setupHostname(unsigned int uuidNum, QString username)
+int PXMAgentPrivate::setupHostname(const unsigned int uuidNum, QString& username)
 {
     char computerHostname[256] = {};
 
@@ -238,5 +242,5 @@ QString PXMAgentPrivate::setupHostname(unsigned int uuidNum, QString username)
     }
     username.append("@");
     username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
-    return username;
+    return 0;
 }

@@ -90,17 +90,17 @@ void PXMWindow::setupMenuBar()
 
 void PXMWindow::initListWidget()
 {
-    ui->messListWidget->setSortingEnabled(false);
-    ui->messListWidget->insertItem(0, QStringLiteral("Global Chat"));
-    QListWidgetItem* seperator = new QListWidgetItem(ui->messListWidget);
+    ui->listWidget->setSortingEnabled(false);
+    ui->listWidget->insertItem(0, QStringLiteral("Global Chat"));
+    QListWidgetItem* seperator = new QListWidgetItem(ui->listWidget);
     seperator->setSizeHint(QSize(200, 10));
     seperator->setFlags(Qt::NoItemFlags);
-    ui->messListWidget->insertItem(1, seperator);
-    fsep = new QFrame(ui->messListWidget);
+    ui->listWidget->insertItem(1, seperator);
+    fsep = new QFrame(ui->listWidget);
     fsep->setFrameStyle(QFrame::HLine | QFrame::Plain);
     fsep->setLineWidth(2);
-    ui->messListWidget->setItemWidget(seperator, fsep);
-    ui->messListWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
+    ui->listWidget->setItemWidget(seperator, fsep);
+    ui->listWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
     ui->stackedWidget->addWidget(new TextWidget(ui->stackedWidget, globalChatUuid));
 }
 void PXMWindow::createSystemTray()
@@ -108,20 +108,20 @@ void PXMWindow::createSystemTray()
     QIcon trayIcon(":/resources/PXM_Icon.ico");
     this->setWindowIcon(trayIcon);
 
-    messSystemTrayMenu       = new QMenu(this);
+    sysTrayMenu              = new QMenu(this);
     messSystemTrayExitAction = new QAction(tr("&Exit"), this);
-    messSystemTrayMenu->addAction(messSystemTrayExitAction);
+    sysTrayMenu->addAction(messSystemTrayExitAction);
     QObject::connect(messSystemTrayExitAction, &QAction::triggered, this, &PXMWindow::quitButtonClicked);
 
-    messSystemTray = new QSystemTrayIcon(this);
-    messSystemTray->setIcon(trayIcon);
-    messSystemTray->setContextMenu(messSystemTrayMenu);
-    messSystemTray->show();
+    sysTray = new QSystemTrayIcon(this);
+    sysTray->setIcon(trayIcon);
+    sysTray->setContextMenu(sysTrayMenu);
+    sysTray->show();
 }
 void PXMWindow::setupGui()
 {
     ui->setupUi(this);
-    ui->messLineEdit->setText(localHostname);
+    ui->lineEdit->setText(localHostname);
 
     if (this->objectName().isEmpty()) {
         this->setObjectName(QStringLiteral("PXMessenger"));
@@ -137,15 +137,14 @@ void PXMWindow::setupGui()
 }
 void PXMWindow::connectGuiSignalsAndSlots()
 {
-    QObject::connect(ui->messSendButton, &QAbstractButton::clicked, this, &PXMWindow::sendButtonClicked);
-    QObject::connect(ui->messQuitButton, &QAbstractButton::clicked, this, &PXMWindow::quitButtonClicked);
-    QObject::connect(ui->messListWidget, &QListWidget::currentItemChanged, this, &PXMWindow::currentItemChanged);
-    QObject::connect(ui->messTextEdit, &PXMTextEdit::returnPressed, this, &PXMWindow::sendButtonClicked);
-    QObject::connect(messSystemTray, &QSystemTrayIcon::activated, this, &PXMWindow::systemTrayAction);
-    QObject::connect(messSystemTray, &QObject::destroyed, messSystemTrayMenu, &QObject::deleteLater);
-    QObject::connect(ui->messTextEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
-    QObject::connect(messSystemTrayMenu, &QMenu::aboutToHide, messSystemTrayMenu, &QObject::deleteLater);
-    ;
+    QObject::connect(ui->sendButton, &QAbstractButton::clicked, this, &PXMWindow::sendButtonClicked);
+    QObject::connect(ui->quitButton, &QAbstractButton::clicked, this, &PXMWindow::quitButtonClicked);
+    QObject::connect(ui->listWidget, &QListWidget::currentItemChanged, this, &PXMWindow::currentItemChanged);
+    QObject::connect(ui->textEdit, &PXMTextEdit::returnPressed, this, &PXMWindow::sendButtonClicked);
+    QObject::connect(sysTray, &QSystemTrayIcon::activated, this, &PXMWindow::systemTrayAction);
+    QObject::connect(sysTray, &QObject::destroyed, sysTrayMenu, &QObject::deleteLater);
+    QObject::connect(ui->textEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
+    QObject::connect(sysTrayMenu, &QMenu::aboutToHide, sysTrayMenu, &QObject::deleteLater);
 
     QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, this, &PXMWindow::printInfoToDebug);
 }
@@ -167,7 +166,7 @@ void PXMWindow::settingsActionsSlot()
 void PXMWindow::nameChange(QString hname)
 {
     qInfo() << "Self Name Change";
-    this->ui->messLineEdit->setText(hname);
+    this->ui->lineEdit->setText(hname);
     emit sendMsg(hname.toUtf8(), PXMConsts::MSG_NAME, QUuid());
 }
 
@@ -204,33 +203,33 @@ void PXMWindow::debugActionSlot()
 
 void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
-    for (int i = 0; i < ui->messListWidget->count(); i++) {
-        if (ui->messListWidget->item(i)->data(Qt::UserRole) == uuid) {
-            QFont mfont = ui->messListWidget->item(i)->font();
+    for (int i = 0; i < ui->listWidget->count(); i++) {
+        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
+            QFont mfont = ui->listWidget->item(i)->font();
             if (mfont.italic() == italics)
                 return;
             mfont.setItalic(italics);
-            ui->messListWidget->item(i)->setFont(mfont);
+            ui->listWidget->item(i)->setFont(mfont);
             QString changeInConnection;
             if (italics)
                 changeInConnection = " disconnected";
             else
                 changeInConnection = " reconnected";
-            emit addMessageToPeer(ui->messListWidget->item(i)->text() % changeInConnection, uuid, false, true);
+            emit addMessageToPeer(ui->listWidget->item(i)->text() % changeInConnection, uuid, false, true);
             return;
         }
     }
 }
 void PXMWindow::textEditChanged()
 {
-    if (ui->messTextEdit->toPlainText().length() > PXMConsts::TEXT_EDIT_MAX_LENGTH) {
-        int diff     = ui->messTextEdit->toPlainText().length() - PXMConsts::TEXT_EDIT_MAX_LENGTH;
-        QString temp = ui->messTextEdit->toPlainText();
+    if (ui->textEdit->toPlainText().length() > PXMConsts::TEXT_EDIT_MAX_LENGTH) {
+        int diff     = ui->textEdit->toPlainText().length() - PXMConsts::TEXT_EDIT_MAX_LENGTH;
+        QString temp = ui->textEdit->toPlainText();
         temp.chop(diff);
-        ui->messTextEdit->setText(temp);
-        QTextCursor cursor(ui->messTextEdit->textCursor());
+        ui->textEdit->setText(temp);
+        QTextCursor cursor(ui->textEdit->textCursor());
         cursor.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
-        ui->messTextEdit->setTextCursor(cursor);
+        ui->textEdit->setTextCursor(cursor);
     }
 }
 void PXMWindow::systemTrayAction(QSystemTrayIcon::ActivationReason reason)
@@ -274,33 +273,33 @@ void PXMWindow::quitButtonClicked()
 }
 void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 {
-    ui->messListWidget->setUpdatesEnabled(false);
-    for (int i = 2; i < ui->messListWidget->count(); i++) {
-        if (ui->messListWidget->item(i)->data(Qt::UserRole).toUuid() == uuid) {
-            if (ui->messListWidget->item(i)->text() != hostname) {
-                emit addMessageToPeer(ui->messListWidget->item(i)->text() % " has changed their name to " % hostname,
-                                      uuid, false, false);
-                ui->messListWidget->item(i)->setText(hostname);
-                QListWidgetItem* global = ui->messListWidget->takeItem(0);
-                ui->messListWidget->sortItems();
-                ui->messListWidget->insertItem(0, global);
+    ui->listWidget->setUpdatesEnabled(false);
+    for (int i = 2; i < ui->listWidget->count(); i++) {
+        if (ui->listWidget->item(i)->data(Qt::UserRole).toUuid() == uuid) {
+            if (ui->listWidget->item(i)->text() != hostname) {
+                emit addMessageToPeer(ui->listWidget->item(i)->text() % " has changed their name to " % hostname, uuid,
+                                      false, false);
+                ui->listWidget->item(i)->setText(hostname);
+                QListWidgetItem* global = ui->listWidget->takeItem(0);
+                ui->listWidget->sortItems();
+                ui->listWidget->insertItem(0, global);
             }
             setItalicsOnItem(uuid, 0);
-            ui->messListWidget->setUpdatesEnabled(true);
+            ui->listWidget->setUpdatesEnabled(true);
             return;
         }
     }
 
-    QListWidgetItem* global = ui->messListWidget->takeItem(0);
-    QListWidgetItem* item   = new QListWidgetItem(hostname, ui->messListWidget);
+    QListWidgetItem* global = ui->listWidget->takeItem(0);
+    QListWidgetItem* item   = new QListWidgetItem(hostname, ui->listWidget);
 
     item->setData(Qt::UserRole, uuid);
-    ui->messListWidget->addItem(item);
+    ui->listWidget->addItem(item);
     ui->stackedWidget->addWidget(new TextWidget(ui->stackedWidget, uuid));
-    ui->messListWidget->sortItems();
-    ui->messListWidget->insertItem(0, global);
+    ui->listWidget->sortItems();
+    ui->listWidget->insertItem(0, global);
 
-    ui->messListWidget->setUpdatesEnabled(true);
+    ui->listWidget->setUpdatesEnabled(true);
 }
 
 void PXMWindow::closeEvent(QCloseEvent* event)
@@ -313,7 +312,7 @@ void PXMWindow::closeEvent(QCloseEvent* event)
     }
 #endif
 
-    messSystemTray->hide();
+    sysTray->hide();
     PXMIniReader iniReader;
     iniReader.setWindowSize(this->size());
     iniReader.setMute(ui->muteCheckBox->isChecked());
@@ -337,19 +336,19 @@ int PXMWindow::removeBodyFormatting(QByteArray& str)
 
 int PXMWindow::sendButtonClicked()
 {
-    if (!ui->messListWidget->currentItem()) {
+    if (!ui->listWidget->currentItem()) {
         return -1;
     }
 
-    if (!(ui->messTextEdit->toPlainText().isEmpty())) {
-        QByteArray msg = ui->messTextEdit->toHtml().toUtf8();
+    if (!(ui->textEdit->toPlainText().isEmpty())) {
+        QByteArray msg = ui->textEdit->toHtml().toUtf8();
         if (removeBodyFormatting(msg)) {
             qWarning() << "Bad Html";
             qWarning() << msg;
             return -1;
         }
-        int index                = ui->messListWidget->currentRow();
-        QUuid uuidOfSelectedItem = ui->messListWidget->item(index)->data(Qt::UserRole).toString();
+        int index                = ui->listWidget->currentRow();
+        QUuid uuidOfSelectedItem = ui->listWidget->item(index)->data(Qt::UserRole).toString();
 
         if (uuidOfSelectedItem.isNull())
             return -1;
@@ -359,10 +358,10 @@ int PXMWindow::sendButtonClicked()
         } else {
             emit sendMsg(msg, PXMConsts::MSG_TEXT, uuidOfSelectedItem);
         }
-        ui->messTextEdit->setHtml(QString());
-        ui->messTextEdit->setStyleSheet(QString());
-        ui->messTextEdit->clear();
-        ui->messTextEdit->setCurrentCharFormat(QTextCharFormat());
+        ui->textEdit->setHtml(QString());
+        ui->textEdit->setStyleSheet(QString());
+        ui->textEdit->clear();
+        ui->textEdit->setCurrentCharFormat(QTextCharFormat());
     } else {
         return -1;
     }
@@ -370,12 +369,12 @@ int PXMWindow::sendButtonClicked()
 }
 int PXMWindow::changeListItemColor(QUuid uuid, int style)
 {
-    for (int i = 0; i < ui->messListWidget->count(); i++) {
-        if (ui->messListWidget->item(i)->data(Qt::UserRole) == uuid) {
+    for (int i = 0; i < ui->listWidget->count(); i++) {
+        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
             if (!style)
-                ui->messListWidget->item(i)->setBackground(QGuiApplication::palette().base());
+                ui->listWidget->item(i)->setBackground(QGuiApplication::palette().base());
             else {
-                ui->messListWidget->item(i)->setBackground(QBrush(QColor(0xFFCD5C5C)));
+                ui->listWidget->item(i)->setBackground(QBrush(QColor(0xFFCD5C5C)));
             }
             break;
         }
@@ -407,8 +406,8 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool 
         return -1;
     }
     if (alert) {
-        if (ui->messListWidget->currentItem()) {
-            if (ui->messListWidget->currentItem()->data(Qt::UserRole) != uuid) {
+        if (ui->listWidget->currentItem()) {
+            if (ui->listWidget->currentItem()->data(Qt::UserRole) != uuid) {
                 changeListItemColor(uuid, 1);
             }
         } else {
@@ -449,7 +448,7 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
     QRegExpValidator* ipValidator = new QRegExpValidator(ipRegex, this);
     ui->multicastLineEdit->setValidator(ipValidator);
     ui->buttonBox->button(QDialogButtonBox::Ok)->setFocus();
-    ui->verbositySpinBox->setValue(PXMConsole::LoggerSingleton::getInstance()->getVerbosityLevel());
+    ui->verbositySpinBox->setValue(PXMConsole::Logger::getInstance()->getVerbosityLevel());
     QObject::connect(ui->buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
     QObject::connect(ui->buttonBox, &QDialogButtonBox::clicked, this, &PXMSettingsDialog::resetDefaults);
     QObject::connect(ui->fontComboBox, &QFontComboBox::currentFontChanged, this,
@@ -459,7 +458,8 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
 
     readIni();
 
-    // Must be connected after ini is read to prevent box from coming up upon opening settings dialog
+    // Must be connected after ini is read to prevent box from coming up
+    // upon opening settings dialog
     QObject::connect(ui->LogActiveCheckBox, &QCheckBox::stateChanged, this, &PXMSettingsDialog::logStateChange);
 }
 
@@ -472,10 +472,12 @@ void PXMSettingsDialog::logStateChange(int state)
                                  "You have enabled file logging.\n"
                                  "Log location will be " +
                                      logLocation);
-#else
+#elif __unix__
         QMessageBox::information(this, "Log Status Change",
                                  "You have enabled file logging.\n"
                                  "Log location will be ~\\.pxmessenger-log");
+#else
+#error "implement message box with log location"
 #endif
     }
 }
@@ -509,28 +511,39 @@ void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
     }
     if (dynamic_cast<QPushButton*>(button) == ui->buttonBox->button(QDialogButtonBox::Help)) {
         QMessageBox::information(this, "Help",
-                                 "Changes to these settings should not be needed under normal "
+                                 "Changes to these settings should not be needed under "
+                                 "normal "
                                  "conditions.\n\n"
-                                 "Care should be taken in adjusting them as they can prevent "
+                                 "Care should be taken in adjusting them as they can "
+                                 "prevent "
                                  "PXMessenger from functioning properly.\n\n"
-                                 "Allowing more than one instance lets the program be run multiple "
+                                 "Allowing more than one instance lets the program be "
+                                 "run multiple "
                                  "times under the same user.\n(Default:false)\n\n"
-                                 "Hostname will only change the first half of your hostname, the "
-                                 "computer name will remain.\n(Default:Your Username)\n\n"
-                                 "The listener port should be changed only if needed to bypass firewall "
+                                 "Hostname will only change the first half of your "
+                                 "hostname, the "
+                                 "computer name will remain.\n(Default:Your "
+                                 "Username)\n\n"
+                                 "The listener port should be changed only if needed to "
+                                 "bypass firewall "
                                  "restrictions. 0 is Auto.\n(Default:0)\n\n"
-                                 "The discover port must be the same for all computers that wish to "
+                                 "The discover port must be the same for all computers "
+                                 "that wish to "
                                  "communicate together. 0 is " +
                                      QString::number(PXMConsts::DEFAULT_UDP_PORT) + ".\n(Default:0)\n\n" +
-                                     "Multicast Address must be the same for all computers that wish to "
+                                     "Multicast Address must be the same for all "
+                                     "computers that wish to "
                                      "discover each other. Changes "
-                                     "from the default value should only be necessary if firewall "
+                                     "from the default value should only be "
+                                     "necessary if firewall "
                                      "restrictions require it."
                                      "\n(Default:" +
                                      PXMConsts::DEFAULT_MULTICAST_ADDRESS + ")\n\n" +
-                                     "Debug Verbosity will increase the number of message printed to "
+                                     "Debug Verbosity will increase the number of "
+                                     "message printed to "
                                      "both the debugging window\n"
-                                     "and stdout.  0 hides warnings and debug messages, 1 only hides "
+                                     "and stdout.  0 hides warnings and debug "
+                                     "messages, 1 only hides "
                                      "debug messages, 2 shows all\n"
                                      "(Default:0)\n\n"
                                      "More information can be found at "
@@ -541,7 +554,7 @@ void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
 void PXMSettingsDialog::accept()
 {
     PXMIniReader iniReader;
-    PXMConsole::LoggerSingleton* logger = PXMConsole::LoggerSingleton::getInstance();
+    PXMConsole::Logger* logger = PXMConsole::Logger::getInstance();
 
     logger->setVerbosityLevel(ui->verbositySpinBox->value());
     iniReader.setVerbosity(ui->verbositySpinBox->value());

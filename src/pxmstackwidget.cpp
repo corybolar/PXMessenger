@@ -1,4 +1,4 @@
-#include "pxmmessageviewer.h"
+#include "pxmstackwidget.h"
 #include <QFile>
 #include <QLabel>
 #include <QStringBuilder>
@@ -17,15 +17,13 @@ int StackedWidget::append(QString str, QUuid& uuid)
 {
     for (int i = 0; i < this->count(); i++) {
         MVBase* mvb = dynamic_cast<MVBase*>(this->widget(i));
-        if (mvb) {
-            if (mvb->getIdentifier() == uuid) {
-                TextWidget* tw = qobject_cast<TextWidget*>(this->widget(i));
-                if (tw) {
-                    tw->append(str);
-                    return 0;
-                } else {
-                    return -1;
-                }
+        if (mvb && mvb->getIdentifier() == uuid) {
+            TextWidget* tw = qobject_cast<TextWidget*>(this->widget(i));
+            if (tw) {
+                tw->append(str);
+                return 0;
+            } else {
+                return -1;
             }
         }
     }

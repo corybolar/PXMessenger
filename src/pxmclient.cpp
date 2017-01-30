@@ -16,11 +16,13 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#else
+#elif __unix__
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#else
+#error "include headers for socket implementation"
 #endif
 
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
@@ -30,6 +32,7 @@ static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 struct PXMClientPrivate {
     in_addr multicastAddress;
     unsigned char packedLocalUUID[NetCompression::PACKED_UUID_LENGTH];
+    size_t localUUIDLen;
 };
 PXMClient::PXMClient(QObject* parent, in_addr multicast, QUuid localUUID) : QObject(parent), d_ptr(new PXMClientPrivate)
 {
@@ -38,6 +41,7 @@ PXMClient::PXMClient(QObject* parent, in_addr multicast, QUuid localUUID) : QObj
     d_ptr->multicastAddress = multicast;
 
     setLocalUUID(localUUID);
+    d_ptr->localUUIDLen = sizeof(d_ptr->packedLocalUUID) / sizeof(d_ptr->packedLocalUUID[0]);
 }
 
 PXMClient::~PXMClient()
@@ -45,7 +49,7 @@ PXMClient::~PXMClient()
     qDebug() << "Shutdown of PXMClient Successful";
 }
 
-void PXMClient::setLocalUUID(QUuid uuid)
+void PXMClient::setLocalUUID(const QUuid uuid)
 {
     NetCompression::packUUID(&d_ptr->packedLocalUUID[0], uuid);
 }
@@ -90,11 +94,11 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
     return -1;
 }
 
-void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw,
+void PXMClient::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
                         const char* msg,
-                        size_t msgLen,
-                        PXMConsts::MESSAGE_TYPE type,
-                        QUuid uuidReceiver)
+                        const size_t msgLen,
+                        const PXMConsts::MESSAGE_TYPE type,
+                        const QUuid uuidReceiver)
 {
     int bytesSent = -1;
     size_t packetLen;
@@ -105,7 +109,7 @@ void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw,
         emit resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
         return;
     }
-    packetLen = NetCompression::PACKED_UUID_LENGTH + sizeof(PXMConsts::MESSAGE_TYPE) + msgLen;
+    packetLen = d_ptr->localUUIDLen + sizeof(type) + msgLen;
 
     if (type == PXMConsts::MSG_TEXT)
         print = true;
@@ -116,9 +120,9 @@ void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw,
     packetLenNBO     = htons(static_cast<uint16_t>(packetLen));
     uint32_t typeNBO = htonl(type);
 
-    memcpy(&full_mess[0], d_ptr->packedLocalUUID, NetCompression::PACKED_UUID_LENGTH);
-    memcpy(&full_mess[NetCompression::PACKED_UUID_LENGTH], &typeNBO, sizeof(PXMConsts::MESSAGE_TYPE));
-    memcpy(&full_mess[NetCompression::PACKED_UUID_LENGTH + sizeof(PXMConsts::MESSAGE_TYPE)], msg, msgLen);
+    memcpy(&full_mess[0], d_ptr->packedLocalUUID, d_ptr->localUUIDLen);
+    memcpy(&full_mess[d_ptr->localUUIDLen], &typeNBO, sizeof(typeNBO));
+    memcpy(&full_mess[d_ptr->localUUIDLen + sizeof(typeNBO)], msg, msgLen);
     full_mess[packetLen] = 0;
 
     bw->lockBev();
@@ -126,7 +130,7 @@ void PXMClient::sendMsg(QSharedPointer<Peers::BevWrapper> bw,
     if ((bw->getBev() == nullptr) || !(bufferevent_get_enabled(bw->getBev()) & EV_WRITE)) {
         msg = "Peer is Disconnected, message not sent";
     } else {
-        if (bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(uint16_t)) == 0) {
+        if (bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(packetLenNBO)) == 0) {
             if (bufferevent_write(bw->getBev(), full_mess.data(), packetLen) == 0) {
                 qDebug() << "Successful Send";
                 bytesSent = 0;

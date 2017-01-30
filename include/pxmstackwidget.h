@@ -1,5 +1,5 @@
-#ifndef PXMMESSAGEVIEWER_H
-#define PXMMESSAGEVIEWER_H
+#ifndef PXMSTACKWIDGET_H
+#define PXMSTACKWIDGET_H
 
 #include <QTextBrowser>
 #include <QStackedWidget>

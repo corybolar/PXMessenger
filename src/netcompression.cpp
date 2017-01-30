@@ -2,8 +2,10 @@
 #include <QUuid>
 #ifdef _WIN32
 #include <winsock2.h>
-#else
+#elif __unix__
 #include <arpa/inet.h>
+#else
+#error "include header that defines sockaddr_in"
 #endif
 
 size_t NetCompression::unpackUUID(const unsigned char* src, QUuid& uuid)

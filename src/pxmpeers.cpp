@@ -18,23 +18,23 @@ using namespace Peers;
 int Peers::textColorsNext = 0;
 
 PeerData::PeerData()
-    : identifier(QUuid()),
-      ipAddressRaw(sockaddr_in()),
+    : uuid(QUuid()),
+      addrRaw(sockaddr_in()),
       hostname(QString()),
       progVersion(QString()),
       messages(QLinkedList<QSharedPointer<QString>>()),
       bw(QSharedPointer<BevWrapper>(new BevWrapper)),
       socket(-1),
       connectTo(false),
-      isAuthenticated(false)
+      isAuthed(false)
 {
     textColor = textColors.at(textColorsNext % textColors.length());
     textColorsNext++;
 }
 
 PeerData::PeerData(const PeerData& pd)
-    : identifier(pd.identifier),
-      ipAddressRaw(pd.ipAddressRaw),
+    : uuid(pd.uuid),
+      addrRaw(pd.addrRaw),
       hostname(pd.hostname),
       textColor(pd.textColor),
       progVersion(pd.progVersion),
@@ -42,13 +42,13 @@ PeerData::PeerData(const PeerData& pd)
       bw(pd.bw),
       socket(pd.socket),
       connectTo(pd.connectTo),
-      isAuthenticated(pd.isAuthenticated)
+      isAuthed(pd.isAuthed)
 {
 }
 
 PeerData::PeerData(PeerData&& pd) noexcept
-    : identifier(pd.identifier),
-      ipAddressRaw(pd.ipAddressRaw),
+    : uuid(pd.uuid),
+      addrRaw(pd.addrRaw),
       hostname(pd.hostname),
       textColor(pd.textColor),
       progVersion(pd.progVersion),
@@ -56,7 +56,7 @@ PeerData::PeerData(PeerData&& pd) noexcept
       bw(pd.bw),
       socket(pd.socket),
       connectTo(pd.connectTo),
-      isAuthenticated(pd.isAuthenticated)
+      isAuthed(pd.isAuthed)
 {
     pd.bw.clear();
 }
@@ -66,15 +66,15 @@ PeerData& PeerData::operator=(PeerData&& p) noexcept
     if (this != &p) {
         bw = p.bw;
         p.bw.clear();
-        identifier      = p.identifier;
-        ipAddressRaw    = p.ipAddressRaw;
-        hostname        = p.hostname;
-        textColor       = p.textColor;
-        progVersion     = p.progVersion;
-        messages        = p.messages;
-        socket          = p.socket;
-        connectTo       = p.connectTo;
-        isAuthenticated = p.isAuthenticated;
+        uuid        = p.uuid;
+        addrRaw     = p.addrRaw;
+        hostname    = p.hostname;
+        textColor   = p.textColor;
+        progVersion = p.progVersion;
+        messages    = p.messages;
+        socket      = p.socket;
+        connectTo   = p.connectTo;
+        isAuthed    = p.isAuthed;
     }
     return *this;
 }
@@ -89,16 +89,14 @@ PeerData& PeerData::operator=(const PeerData& p)
 QString PeerData::toInfoString()
 {
     return QString(
-        QStringLiteral("Hostname: ") % hostname % QStringLiteral("\n") % QStringLiteral("UUID: ") %
-        identifier.toString() % QStringLiteral("\n") % QStringLiteral("Program Version: ") % progVersion % QChar('\n') %
-        QStringLiteral("Text Color: ") % textColor % QStringLiteral("\n") % QStringLiteral("IP Address: ") %
-        QString::fromLocal8Bit(inet_ntoa(ipAddressRaw.sin_addr)) % QStringLiteral(":") %
-        QString::number(ntohs(ipAddressRaw.sin_port)) % QStringLiteral("\n") % QStringLiteral("IsAuthenticated: ") %
-        QString::fromLocal8Bit((isAuthenticated ? "true" : "false")) % QStringLiteral("\n") %
-        QStringLiteral("preventAttemptConnection: ") % QString::fromLocal8Bit((connectTo ? "true" : "false")) %
-        QStringLiteral("\n") % QStringLiteral("SocketDescriptor: ") % QString::number(socket) % QStringLiteral("\n") %
-        QStringLiteral("History Length: ") % QString::number(messages.count()) % QStringLiteral("\n") %
-        QStringLiteral("Bufferevent: ") %
+        QStringLiteral("Hostname: ") % hostname % QStringLiteral("\nUUID: ") % uuid.toString() %
+        QStringLiteral("\nProgram Version: ") % progVersion % QStringLiteral("\nText Color: ") % textColor %
+        QStringLiteral("\nIP Address: ") % QString::fromLocal8Bit(inet_ntoa(addrRaw.sin_addr)) % QStringLiteral(":") %
+        QString::number(ntohs(addrRaw.sin_port)) % QStringLiteral("\nIsAuthenticated: ") %
+        QString::fromLocal8Bit((isAuthed ? "true" : "false")) % QStringLiteral("\npreventAttemptConnection: ") %
+        QString::fromLocal8Bit((connectTo ? "true" : "false")) % QStringLiteral("\nSocketDescriptor: ") %
+        QString::number(socket) % QStringLiteral("\nHistory Length: ") % QString::number(messages.count()) %
+        QStringLiteral("\nBufferevent: ") %
         (bw->getBev() ? QString::asprintf("%8p", static_cast<void*>(bw->getBev())) : QStringLiteral("NULL")) %
         QStringLiteral("\n"));
 }

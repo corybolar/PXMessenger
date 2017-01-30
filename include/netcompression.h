@@ -5,8 +5,10 @@
 
 #ifdef __WIN32
 #include <winsock2.h>
-#else
+#elif __unix__
 #include <netinet/in.h>
+#else
+#error "include header for sockaddr_in"
 #endif
 
 class QUuid;

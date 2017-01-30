@@ -27,8 +27,8 @@ class PXMWindow : public QMainWindow {
 
   QScopedPointer<Ui::PXMWindow> ui;
   QAction* messSystemTrayExitAction;
-  QMenu* messSystemTrayMenu;
-  QSystemTrayIcon* messSystemTray;
+  QMenu* sysTrayMenu;
+  QSystemTrayIcon* sysTray;
   QFrame* fsep;
   QString localHostname;
   QUuid globalChatUuid;

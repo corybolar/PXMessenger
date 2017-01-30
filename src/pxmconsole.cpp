@@ -18,9 +18,9 @@ struct PXMConsole::WindowPrivate {
     bool atMaximum = false;
 };
 
-QTextEdit* Window::textEdit                      = 0;
-int AppendTextEvent::type                        = QEvent::registerEventType();
-LoggerSingleton* LoggerSingleton::loggerInstance = nullptr;
+QTextEdit* Window::textEdit    = 0;
+int AppendTextEvent::type      = QEvent::registerEventType();
+Logger* Logger::loggerInstance = nullptr;
 
 Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::WindowPrivate())
 {
@@ -39,14 +39,13 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     QFont font("Monospaced");
     font.setStyleHint(QFont::TypeWriter);
     textEdit->setFont(font);
-    LoggerSingleton::getInstance()->setTextEdit(textEdit);
+    Logger::getInstance()->setTextEdit(textEdit);
     pushButton = new QPushButton(d_ptr->centralwidget);
     pushButton->setText("Print Info");
     pushButton->setMaximumSize(QSize(250, 16777215));
 
     d_ptr->verbosity = new QLabel(d_ptr->centralwidget);
-    d_ptr->verbosity->setText("Debug Verbosity: " %
-                              QString::number(LoggerSingleton::getInstance()->getVerbosityLevel()));
+    d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(Logger::getInstance()->getVerbosityLevel()));
     d_ptr->gridLayout->addWidget(d_ptr->verbosity, 1, 2, 1, 2);
 
     d_ptr->gridLayout->addWidget(textEdit, 0, 0, 1, 4);
@@ -64,9 +63,9 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     QObject::connect(d_ptr->sb, &QScrollBar::valueChanged, this, &Window::adjustScrollBar);
     QObject::connect(d_ptr->sb, &QScrollBar::rangeChanged, this, &Window::rangeChanged);
 
-    if (LoggerSingleton::getInstance()->getLogStatus()) {
-        LoggerSingleton::getInstance()->logFile->remove();
-        LoggerSingleton::getInstance()->logFile->open(QIODevice::ReadWrite);
+    if (Logger::getInstance()->getLogStatus()) {
+        Logger::getInstance()->logFile->remove();
+        Logger::getInstance()->logFile->open(QIODevice::ReadWrite);
     }
 }
 
@@ -89,11 +88,10 @@ void Window::rangeChanged(int, int i2)
 }
 void Window::verbosityChanged()
 {
-    d_ptr->verbosity->setText("Debug Verbosity: " %
-                              QString::number(LoggerSingleton::getInstance()->getVerbosityLevel()));
+    d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(Logger::getInstance()->getVerbosityLevel()));
 }
 
-void LoggerSingleton::setLogStatus(bool stat)
+void Logger::setLogStatus(bool stat)
 {
     if (logActive != stat && stat == true && logFile) {
         logFile->remove();
@@ -109,7 +107,7 @@ void LoggerSingleton::setLogStatus(bool stat)
     }
 }
 
-void LoggerSingleton::customEvent(QEvent* event)
+void Logger::customEvent(QEvent* event)
 {
     AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
     if (text) {

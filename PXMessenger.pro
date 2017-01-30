@@ -45,7 +45,7 @@ SOURCES += \
     $$PWD/src/pxmmainwindow.cpp \
     $$PWD/src/pxmessenger.cpp \
     $$PWD/src/netcompression.cpp \
-    $$PWD/src/pxmmessageviewer.cpp \
+    $$PWD/src/pxmstackwidget.cpp \
     $$PWD/src/pxmconsole.cpp \
     $$PWD/src/pxmpeers.cpp \
     $$PWD/src/pxmagent.cpp
@@ -59,7 +59,7 @@ HEADERS += \
     $$PWD/include/pxmclient.h \
     $$PWD/include/netcompression.h \
     $$PWD/include/timedvector.h \
-    $$PWD/include/pxmmessageviewer.h \
+    $$PWD/include/pxmstackwidget.h \
     $$PWD/include/pxmconsole.h \
     $$PWD/include/pxmconsts.h \
     $$PWD/include/pxmpeers.h \

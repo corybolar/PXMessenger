@@ -14,6 +14,8 @@ Q_DECLARE_METATYPE(struct sockaddr_in)
 Q_DECLARE_METATYPE(size_t)
 Q_DECLARE_OPAQUE_POINTER(bufferevent*)
 Q_DECLARE_METATYPE(bufferevent*)
+Q_DECLARE_OPAQUE_POINTER(const bufferevent*)
+Q_DECLARE_METATYPE(const bufferevent*)
 
 class QMutex;
 namespace Peers {
@@ -61,8 +63,8 @@ class BevWrapper {
 
 class PeerData {
  public:
-  QUuid identifier;
-  struct sockaddr_in ipAddressRaw;
+  QUuid uuid;
+  struct sockaddr_in addrRaw;
   QString hostname;
   QString textColor;
   QString progVersion;
@@ -70,7 +72,7 @@ class PeerData {
   QSharedPointer<BevWrapper> bw;
   evutil_socket_t socket;
   bool connectTo;
-  bool isAuthenticated;
+  bool isAuthed;
 
   // Default Constructor
   PeerData();
