@@ -391,6 +391,8 @@ int PXMWindow::focusWindow()
         qApp->alert(this, 0);
     } else if (this->isMinimized()) {
         if (!this->ui->focusCheckBox->isChecked()) {
+            this->raise();
+            this->activateWindow();
             this->setWindowState(Qt::WindowActive);
             this->setFocus();
         } else

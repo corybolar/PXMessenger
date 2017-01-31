@@ -566,8 +566,8 @@ int PXMPeerWorkerPrivate::formatMessage(QString& str, QUuid uuid, QString color)
     int offset                   = qrem.capturedEnd(1);
     QDateTime dt                 = QDateTime::currentDateTime();
     QString date                 = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
-    str.insert(offset, QString("<span style=\"color: " % color % ";\">" % date % peersHash.value(uuid).hostname %
-                               ":&nbsp;</span>"));
+    str.insert(offset, QString("<span style=\"white-space: nowrap\" style=\"color: " % color % ";\">" % date %
+                               peersHash.value(uuid).hostname % ":&nbsp;</span>"));
 
     return 0;
 }
