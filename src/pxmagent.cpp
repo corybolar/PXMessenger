@@ -90,7 +90,6 @@ int PXMAgent::init()
 {
 #ifndef QT_DEBUG
     QImage splashImage(":/resources/PXMessenger_wBackground.png");
-    splashImage = splashImage.scaledToHeight(400);
     QSplashScreen splash(QPixmap::fromImage(splashImage));
     splash.show();
     QElapsedTimer startupTimer;
