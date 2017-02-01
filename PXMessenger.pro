@@ -30,7 +30,7 @@ INCLUDEPATH += $$PWD/include
 
 win32 {
 LIBS += -lws2_32
-RC_ICONS = $$PWD/resources/PXM_Icon.ico
+#RC_ICONS = $$PWD/resources/PXM_Icon.ico
 }
 
 QMAKE_CXXFLAGS += -Wall \
@@ -65,10 +65,9 @@ HEADERS += \
     $$PWD/include/pxmpeers.h \
     $$PWD/include/pxmagent.h
 
-RESOURCES += \
-    $$PWD/resources/resources.qrc
+RESOURCES += 	$$PWD/resources/resources.qrc
 
-RC_FILE = $$PWD/resources/PXMessenger_resource.rc
+RC_FILE = 	$$PWD/resources/PXMessenger_resource.rc
 
 win32 {
 Release:DESTDIR = $$PWD/
@@ -91,3 +90,6 @@ FORMS += \
     $$PWD/ui/pxmmainwindow.ui \
     $$PWD/ui/pxmaboutdialog.ui \
     $$PWD/ui/pxmsettingsdialog.ui
+
+DISTFILES += \
+    resources/PXMessenger_resource.rc
