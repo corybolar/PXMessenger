@@ -323,7 +323,7 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
     int result = 0;
     switch (type) {
         case MSG_TEXT:
-            qInfo().noquote() << "Message from" << quuid.toString();
+            qDebug().noquote() << "Message from" << quuid.toString();
             qDebug().noquote() << "MSG :" << QString::fromUtf8((char*)&buf[0], bufLen);
             emit q_ptr->messageRecieved(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
             break;
@@ -334,22 +334,22 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
             // in a smart pointer
             QSharedPointer<unsigned char> syncPacket(new unsigned char[bufLen]);
             memcpy(syncPacket.data(), &buf[0], bufLen);
-            qInfo().noquote() << "SYNC received from" << quuid.toString();
+            qDebug().noquote() << "SYNC received from" << quuid.toString();
             emit q_ptr->syncPacketIterator(syncPacket, bufLen, quuid);
             break;
         }
         case MSG_SYNC_REQUEST:
-            qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
-                              << quuid.toString();
+            qDebug().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
+                               << quuid.toString();
             emit q_ptr->sendSyncPacket(bev, quuid);
             break;
         case MSG_GLOBAL:
-            qInfo().noquote() << "Global message from" << quuid.toString();
+            qDebug().noquote() << "Global message from" << quuid.toString();
             qDebug().noquote() << "GLOBAL :" << QString::fromUtf8((char*)&buf[0], bufLen);
             emit q_ptr->messageRecieved(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, true);
             break;
         case MSG_NAME:
-            qInfo().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
+            qDebug().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
             emit q_ptr->nameChange(QString::fromUtf8((char*)&buf[0], bufLen), quuid);
             break;
         case MSG_AUTH:

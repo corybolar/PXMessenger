@@ -283,10 +283,10 @@ void PXMPeerWorker::syncPacketIterator(QSharedPointer<unsigned char> syncPacket,
         QUuid uuid      = QUuid();
         index += NetCompression::unpackUUID(&syncPacket.data()[index], uuid);
 
-        qInfo() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
+        qDebug().noquote() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
         attemptConnection(addr, uuid);
     }
-    qInfo() << "End of sync packet";
+    qDebug().noquote() << "End of sync packet";
 
     d_ptr->syncablePeers->remove(senderUuid);
 
@@ -380,7 +380,7 @@ void PXMPeerWorker::sendSyncPacketBev(const bufferevent* bev, QUuid uuid)
 }
 void PXMPeerWorker::sendSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid)
 {
-    qInfo() << "Sending ips to" << d_ptr->peersHash.value(uuid).hostname;
+    qDebug() << "Sending ips to" << d_ptr->peersHash.value(uuid).hostname;
     QSharedPointer<unsigned char> msgRaw(
         new unsigned char[static_cast<size_t>(d_ptr->peersHash.size()) *
                               (NetCompression::PACKED_SOCKADDR_IN_LENGTH + NetCompression::PACKED_UUID_LENGTH) +

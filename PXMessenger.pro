@@ -94,4 +94,6 @@ FORMS += \
 DISTFILES += \
     resources/PXMessenger_resource.rc
 
+win32 {
 include($$PWD/QSimpleUpdater/QSimpleUpdater.pri)
+}

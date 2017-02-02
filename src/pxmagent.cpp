@@ -21,6 +21,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <lmcons.h>
+#include <QSimpleUpdater/include/QSimpleUpdater.h>
 #elif __unix__
 #include <pwd.h>
 #include <sys/types.h>
@@ -57,7 +58,6 @@ struct initialSettings {
 
 struct PXMAgentPrivate {
     QScopedPointer<PXMWindow> window;
-    QSimpleUpdater* qupdater;
     PXMPeerWorker* peerWorker;
     PXMIniReader iniReader;
     PXMConsole::Logger* logger;
@@ -67,6 +67,9 @@ struct PXMAgentPrivate {
     initialSettings presets;
 
     QThread* workerThread = nullptr;
+#ifdef __WIN32
+    QSimpleUpdater* qupdater;
+#endif
 
     // Functions
     QByteArray getUsername();
@@ -204,16 +207,18 @@ int PXMAgent::init()
 
     d_ptr->window->show();
 
+#ifdef __WIN32
     d_ptr->qupdater = QSimpleUpdater::getInstance();
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
     d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
-    qInfo() << d_ptr->qupdater->getUpdateAvailable(d_ptr->address);
+#endif
 
     return 0;
 }
 void PXMAgent::updateChangelog(const QString& str)
 {
+#ifdef __WIN32
     qInfo() << str;
     qInfo() << d_ptr->address;
     if (str == d_ptr->address) {
@@ -222,6 +227,7 @@ void PXMAgent::updateChangelog(const QString& str)
     } else {
         qInfo() << "checking failed";
     }
+#endif
 }
 
 QByteArray PXMAgentPrivate::getUsername()
