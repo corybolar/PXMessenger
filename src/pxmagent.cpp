@@ -208,6 +208,7 @@ int PXMAgent::init()
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
     d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
+    qInfo() << d_ptr->qupdater->getUpdateAvailable(d_ptr->address);
 
     return 0;
 }
