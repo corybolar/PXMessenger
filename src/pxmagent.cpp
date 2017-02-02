@@ -57,10 +57,12 @@ struct initialSettings {
 
 struct PXMAgentPrivate {
     QScopedPointer<PXMWindow> window;
+    QSimpleUpdater* qupdater;
     PXMPeerWorker* peerWorker;
     PXMIniReader iniReader;
     PXMConsole::Logger* logger;
     QScopedPointer<QLockFile> lockFile;
+    QString address = "https://raw.githubusercontent.com/cbpeckles/PXMessenger/updater-testing/resources/updates.json";
 
     initialSettings presets;
 
@@ -201,7 +203,24 @@ int PXMAgent::init()
 #endif
 
     d_ptr->window->show();
+
+    d_ptr->qupdater = QSimpleUpdater::getInstance();
+    connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
+    d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
+    d_ptr->qupdater->checkForUpdates(d_ptr->address);
+
     return 0;
+}
+void PXMAgent::updateChangelog(const QString& str)
+{
+    qInfo() << str;
+    qInfo() << d_ptr->address;
+    if (str == d_ptr->address) {
+        qInfo() << "checking success";
+        qInfo() << d_ptr->qupdater->getChangelog(str);
+    } else {
+        qInfo() << "checking failed";
+    }
 }
 
 QByteArray PXMAgentPrivate::getUsername()

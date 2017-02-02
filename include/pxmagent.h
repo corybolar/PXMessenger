@@ -6,6 +6,7 @@
 
 #include <pxmmainwindow.h>
 #include <pxmpeerworker.h>
+#include <QSimpleUpdater/include/QSimpleUpdater.h>
 
 struct PXMAgentPrivate;
 class PXMAgent : public QObject
@@ -29,6 +30,8 @@ class PXMAgent : public QObject
     ~PXMAgent();
 
     int init();
+public slots:
+    void updateChangelog(const QString &str);
 };
 
 #endif  // PXMAGENT_H
