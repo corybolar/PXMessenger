@@ -2,13 +2,13 @@
 	"updates": {
 		"windows": {
 			"open-url": "",
-			"latest-version": "1.4.1",
+			"latest-version": "1.4",
 			"download-url": "https://github.com/cbpeckles/PXMessenger/releases/download/v1.4.0/PXMessenger-Setup-v1.4.0.exe",
 			"changelog": "This release brings about a long sought after change to allow messages to be formatted in html. This means formatted text copied from other applications and such will retain that formatting and be shared with the recipient. This means in the future, further font formatting capabilities could be implemented into PXMessenger. A log to file feature has been added to help with bug fixes and to assist our clients in assisting us. Massive improvements in code quality and readability. Compile times have been brought way down as messy header files have finally been trimmed of excess dependencies. Bug fixes for version 1.3 are also included. These were primarily regressions caused by over refactoring of code that didn't need it.	Enjoy!"
 		},
 		"linux": {
 			"open-url": "",
-			"latest-version": "1.4.1",
+			"latest-version": "1.4",
 			"download-url": "https://github.com/cbpeckles/PXMessenger/releases/download/v1.4.0/PXMessenger-Setup-v1.4.0.exe",
 			"changelog": "This release brings about a long sought after change to allow messages to be formatted in html. This means formatted text copied from other applications and such will retain that formatting and be shared with the recipient. This means in the future, further font formatting capabilities could be implemented into PXMessenger. A log to file feature has been added to help with bug fixes and to assist our clients in assisting us. Massive improvements in code quality and readability. Compile times have been brought way down as messy header files have finally been trimmed of excess dependencies. Bug fixes for version 1.3 are also included. These were primarily regressions caused by over refactoring of code that didn't need it.	Enjoy!"
 		}
