@@ -66,11 +66,10 @@ struct PXMAgentPrivate {
 
     initialSettings presets;
 
-    QThread* workerThread = nullptr;
 #ifdef __WIN32
     QSimpleUpdater* qupdater;
 #endif
-
+    QThread* workerThread = nullptr;
     // Functions
     QByteArray getUsername();
     int setupHostname(const unsigned int uuidNum, QString& username);
@@ -210,12 +209,10 @@ int PXMAgent::init()
 #ifdef __WIN32
     d_ptr->qupdater = QSimpleUpdater::getInstance();
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
-    d_ptr->qupdater->setModuleVersion(d_ptr->address, "1.0");
-    qInfo() << d_ptr->qupdater->getPlatformKey(d_ptr->address);
-    qInfo() << d_ptr->qupdater->getModuleName(d_ptr->address);
+    d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
-    d_ptr->qupdater->setDownloaderEnabled(d_ptr->address, true);
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
+    qInfo() << d_ptr->qupdater->getUpdateAvailable(d_ptr->address);
 #endif
 
     return 0;
