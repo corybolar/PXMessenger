@@ -52,24 +52,24 @@ class ServerThread : public QThread
 
     void run() Q_DECL_OVERRIDE;
    signals:
-    void messageRecieved(QString, QUuid, const bufferevent*, bool);
+    void msgHandler(QString, QUuid, const bufferevent*, bool);
     void newTCPConnection(bufferevent*);
-    void authenticationReceived(QString, unsigned short, QString,
+    void authHandler(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(struct sockaddr_in, QUuid);
-    void sendSyncPacket(const bufferevent*, QUuid);
+    void syncRequestHandler(const bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
-    void syncPacketIterator(QSharedPointer<unsigned char>, size_t, QUuid);
+    void syncHandler(QSharedPointer<unsigned char>, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);
     void libeventBackend(QString);
-    void setCloseBufferevent(bufferevent*);
+    void setInternalBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
     void serverSetupFailure(QString);
-    void nameChange(QString, QUuid);
+    void nameHandler(QString, QUuid);
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid);
 };
 }

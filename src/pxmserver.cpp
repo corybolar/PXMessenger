@@ -190,7 +190,7 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
             st->q_ptr->peerQuit(socket, bev);
             return;
         }
-        st->q_ptr->authenticationReceived(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
+        st->q_ptr->authHandler(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
         bufferevent_setcb(bev, ServerThreadPrivate::tcpRead, NULL, ServerThreadPrivate::tcpErr, st);
     } else {
@@ -325,7 +325,7 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
         case MSG_TEXT:
             qInfo().noquote() << "Message from" << quuid.toString();
             qDebug().noquote() << "MSG :" << QString::fromUtf8((char*)&buf[0], bufLen);
-            emit q_ptr->messageRecieved(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
+            emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
             break;
         case MSG_SYNC: {
             // QT data structures seem to mangle this packet (i suspect
@@ -335,22 +335,22 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
             QSharedPointer<unsigned char> syncPacket(new unsigned char[bufLen]);
             memcpy(syncPacket.data(), &buf[0], bufLen);
             qInfo().noquote() << "SYNC received from" << quuid.toString();
-            emit q_ptr->syncPacketIterator(syncPacket, bufLen, quuid);
+            emit q_ptr->syncHandler(syncPacket, bufLen, quuid);
             break;
         }
         case MSG_SYNC_REQUEST:
             qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
                               << quuid.toString();
-            emit q_ptr->sendSyncPacket(bev, quuid);
+            emit q_ptr->syncRequestHandler(bev, quuid);
             break;
         case MSG_GLOBAL:
             qInfo().noquote() << "Global message from" << quuid.toString();
             qDebug().noquote() << "GLOBAL :" << QString::fromUtf8((char*)&buf[0], bufLen);
-            emit q_ptr->messageRecieved(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, true);
+            emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, true);
             break;
         case MSG_NAME:
             qInfo().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
-            emit q_ptr->nameChange(QString::fromUtf8((char*)&buf[0], bufLen), quuid);
+            emit q_ptr->nameHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid);
             break;
         case MSG_AUTH:
             qWarning().noquote() << "AUTH packet recieved after alread "
@@ -754,7 +754,7 @@ void ServerThread::run()
     bufferevent_enable(internalCommsPair[0], EV_READ);
     bufferevent_enable(internalCommsPair[1], EV_WRITE);
 
-    emit setCloseBufferevent(internalCommsPair[1]);
+    emit setInternalBufferevent(internalCommsPair[1]);
 
     // Start event loop, this is shutdown using the internalCommsPair by
     // sending an EXIT message
