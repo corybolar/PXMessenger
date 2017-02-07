@@ -584,10 +584,6 @@ int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool)
     }
 
     QSharedPointer<QString> pStr(new QString(str.toUtf8()));
-    d_ptr->peersHash[uuid].messages.append(pStr);
-    if (d_ptr->peersHash[uuid].messages.size() > MESSAGE_HISTORY_LENGTH) {
-        d_ptr->peersHash[uuid].messages.takeFirst();
-    }
     emit msgRecieved(pStr, uuid, alert);
     return 0;
 }

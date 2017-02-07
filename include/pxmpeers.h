@@ -68,7 +68,6 @@ class PeerData {
   QString hostname;
   QString textColor;
   QString progVersion;
-  QLinkedList<QSharedPointer<QString>> messages;
   QSharedPointer<BevWrapper> bw;
   evutil_socket_t socket;
   bool connectTo;
