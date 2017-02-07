@@ -112,9 +112,11 @@ class PXMWindow : public QMainWindow {
   void settingsActionsSlot();
   void debugActionSlot();
   void nameChange(QString hname);
- signals:
+  void syncActionsSlot();
+signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);
+  void syncWithPeers();
   void retryDiscover();
   void addMessageToPeer(QString, QUuid, bool, bool);
   void printInfoToDebug();

@@ -72,11 +72,14 @@ void PXMWindow::setupMenuBar()
     QMenu* optionsMenu;
     QAction* settingsAction = new QAction("&Settings", this);
     QAction* bloomAction    = new QAction("&Bloom", this);
+    QAction* syncAction     = new QAction("&Sync", this);
     optionsMenu             = menuBar()->addMenu("&Tools");
     optionsMenu->addAction(settingsAction);
     optionsMenu->addAction(bloomAction);
+    optionsMenu->addAction(syncAction);
     QObject::connect(settingsAction, &QAction::triggered, this, &PXMWindow::settingsActionsSlot);
     QObject::connect(bloomAction, &QAction::triggered, this, &PXMWindow::bloomActionsSlot);
+    QObject::connect(syncAction, &QAction::triggered, this, &PXMWindow::syncActionsSlot);
 
     QMenu* helpMenu;
     QAction* aboutAction = new QAction("&About", this);
@@ -185,6 +188,19 @@ void PXMWindow::bloomActionsSlot()
     if (box.clickedButton() == bloomButton) {
         qDebug() << "User triggered bloom";
         emit sendUDP("/discover");
+    }
+}
+void PXMWindow::syncActionsSlot()
+{
+    QMessageBox box;
+    box.setWindowTitle("Sync");
+    box.setText("Sync with peers?");
+    QPushButton* bloomButton = box.addButton(tr("Sync"), QMessageBox::ActionRole);
+    box.addButton(QMessageBox::Abort);
+    box.exec();
+    if (box.clickedButton() == bloomButton) {
+        qDebug() << "User triggered Sync";
+        emit syncWithPeers();
     }
 }
 

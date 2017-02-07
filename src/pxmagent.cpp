@@ -182,6 +182,8 @@ int PXMAgent::init()
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::sendUDP, d_ptr->peerWorker, &PXMPeerWorker::sendUDPAccessor,
                      Qt::QueuedConnection);
+    QObject::connect(d_ptr->window.data(), &PXMWindow::syncWithPeers, d_ptr->peerWorker, &PXMPeerWorker::beginSync,
+                     Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::printInfoToDebug, d_ptr->peerWorker,
                      &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);
     d_ptr->workerThread->start();

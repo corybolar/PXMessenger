@@ -66,10 +66,10 @@ class PXMPeerWorker : public QObject
     void setLocalHostname(QString);
     void sendUDPAccessor(const char* msg);
     void setInternalBufferevent(bufferevent* bev);
+    void beginSync();
 
     // void restartServer();
    private slots:
-    void beginSync();
     void doneSync();
     void requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
     void discoveryTimerSingleShot();

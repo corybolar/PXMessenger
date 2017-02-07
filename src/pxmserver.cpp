@@ -649,9 +649,12 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
 void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* arg)
 {
     UUIDStruct* st = static_cast<UUIDStruct*>(arg);
+    qWarning() << "eventcb";
     if (event & BEV_EVENT_CONNECTED) {
+        qWarning() << "succ connect";
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev, st->uuid);
     } else {
+        qWarning() << "bad connect";
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev, st->uuid);
     }
     delete st;
