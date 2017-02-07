@@ -92,6 +92,17 @@ PXMAgent::~PXMAgent()
 
 int PXMAgent::init()
 {
+#ifdef __WIN32
+    d_ptr->qupdater = QSimpleUpdater::getInstance();
+    connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
+    d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
+    d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
+    d_ptr->qupdater->checkForUpdates(d_ptr->address);
+    if (d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
+        return -2;
+    }
+#endif
+
 #ifndef QT_DEBUG
     QImage splashImage(":/resources/PXMessenger_wBackground.png");
     QSplashScreen splash(QPixmap::fromImage(splashImage));
@@ -106,7 +117,7 @@ int PXMAgent::init()
         WSADATA wsa;
         if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
             qCritical() << "Failed WSAStartup error:" << WSAGetLastError();
-            throw(&"Failed WSAStartup error: " [ WSAGetLastError()]);
+            throw(&"Failed WSAStartup error: "[WSAGetLastError()]);
         }
     } catch (const char* msg) {
         QMessageBox msgBox(QMessageBox::Critical, "WSAStartup Error", QString::fromUtf8(msg));
@@ -205,15 +216,6 @@ int PXMAgent::init()
 #endif
 
     d_ptr->window->show();
-
-#ifdef __WIN32
-    d_ptr->qupdater = QSimpleUpdater::getInstance();
-    connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
-    d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
-    d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
-    d_ptr->qupdater->checkForUpdates(d_ptr->address);
-    qInfo() << d_ptr->qupdater->getUpdateAvailable(d_ptr->address);
-#endif
 
     return 0;
 }
