@@ -19,6 +19,7 @@ namespace PXMServer
 const timeval READ_TIMEOUT         = {1, 0};
 const timeval READ_TIMEOUT_RESET   = {3600, 0};
 const uint8_t PACKET_HEADER_LEN = 2;
+const size_t INTERNAL_MSG_LENGTH 	  = 200;
 enum INTERNAL_MSG : uint16_t {
     ADD_DEFAULT_BEV = 0x1111,
     EXIT            = 0x2222,

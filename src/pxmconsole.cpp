@@ -43,13 +43,17 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     pushButton = new QPushButton(d_ptr->centralwidget);
     pushButton->setText("Print Info");
     pushButton->setMaximumSize(QSize(250, 16777215));
+    pushButton1 = new QPushButton(d_ptr->centralwidget);
+    pushButton1->setText("Clear");
+    pushButton1->setMaximumSize(QSize(250, 16777215));
 
     d_ptr->verbosity = new QLabel(d_ptr->centralwidget);
     d_ptr->verbosity->setText("Debug Verbosity: " % QString::number(Logger::getInstance()->getVerbosityLevel()));
-    d_ptr->gridLayout->addWidget(d_ptr->verbosity, 1, 2, 1, 2);
+    d_ptr->gridLayout->addWidget(d_ptr->verbosity, 1, 3, 1, 1);
 
     d_ptr->gridLayout->addWidget(textEdit, 0, 0, 1, 4);
-    d_ptr->gridLayout->addWidget(pushButton, 1, 0, 1, 2);
+    d_ptr->gridLayout->addWidget(pushButton, 1, 0, 1, 1);
+    d_ptr->gridLayout->addWidget(pushButton1, 1, 1, 1, 1);
 
     d_ptr->gridLayout_2->addLayout(d_ptr->gridLayout, 0, 0, 1, 1);
 
@@ -62,6 +66,7 @@ Window::Window(QWidget* parent) : QMainWindow(parent), d_ptr(new PXMConsole::Win
     d_ptr->atMaximum = true;
     QObject::connect(d_ptr->sb, &QScrollBar::valueChanged, this, &Window::adjustScrollBar);
     QObject::connect(d_ptr->sb, &QScrollBar::rangeChanged, this, &Window::rangeChanged);
+    QObject::connect(pushButton1, &QPushButton::clicked, textEdit, &QTextEdit::clear);
 
     if (Logger::getInstance()->getLogStatus()) {
         Logger::getInstance()->logFile->remove();
@@ -112,7 +117,14 @@ void Logger::customEvent(QEvent* event)
     AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
     if (text) {
         logTextEdit->setTextColor(text->getColor());
+        /*
+        QTextCursor curs   = logTextEdit->textCursor();
+        QTextCursor insert = curs;
+        insert.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+        logTextEdit->setTextCursor(insert);
+        */
         logTextEdit->insertPlainText(text->getText());
+        // logTextEdit->setTextCursor(curs);
         event->accept();
     } else {
         QObject::customEvent(event);

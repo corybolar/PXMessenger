@@ -119,7 +119,7 @@ void ServerThreadPrivate::accept_new(evutil_socket_t s, short, void* arg)
     } else {
         struct bufferevent* bev;
         evutil_make_socket_nonblocking(result);
-        bev = bufferevent_socket_new(st->base.data(), result, BEV_OPT_THREADSAFE);
+        bev = bufferevent_socket_new(st->base.data(), result, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
         bufferevent_setcb(bev, ServerThreadPrivate::tcpAuth, NULL, ServerThreadPrivate::tcpErr, st);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
         bufferevent_enable(bev, EV_READ | EV_WRITE);
@@ -190,6 +190,7 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
             st->q_ptr->peerQuit(socket, bev);
             return;
         }
+        qDebug() << "Successful Auth" << hpsplit[0];
         st->q_ptr->authHandler(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
         bufferevent_setcb(bev, ServerThreadPrivate::tcpRead, NULL, ServerThreadPrivate::tcpErr, st);
@@ -543,21 +544,22 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
 {
     // Other than the exit message this is under heavy construction and not
     // in use yet
-    unsigned char readBev[100] = {};
-    ServerThreadPrivate* st    = static_cast<ServerThreadPrivate*>(args);
-    bufferevent_read(bev, readBev, 100);
+    unsigned char readBev[INTERNAL_MSG_LENGTH] = {};
+    ServerThreadPrivate* st                    = static_cast<ServerThreadPrivate*>(args);
+    bufferevent_read(bev, readBev, INTERNAL_MSG_LENGTH);
     INTERNAL_MSG* type = reinterpret_cast<INTERNAL_MSG*>(&readBev[0]);
     int index          = sizeof(INTERNAL_MSG);
     switch (*type) {
         case ADD_DEFAULT_BEV: {
             // copy out a pointer address that we are adding with a default
             // setup
-            struct bufferevent** bev = reinterpret_cast<struct bufferevent**>(&readBev[sizeof(INTERNAL_MSG)]);
+            struct bufferevent** newBev = reinterpret_cast<struct bufferevent**>(&readBev[sizeof(INTERNAL_MSG)]);
 
-            evutil_make_socket_nonblocking(bufferevent_getfd(*bev));
-            bufferevent_setcb(*bev, ServerThreadPrivate::tcpAuth, NULL, ServerThreadPrivate::tcpErr, st);
-            bufferevent_setwatermark(*bev, EV_READ, PXMServer::PACKET_HEADER_LEN, PXMServer::PACKET_HEADER_LEN);
-            bufferevent_enable(*bev, EV_READ | EV_WRITE);
+            evutil_make_socket_nonblocking(bufferevent_getfd(*newBev));
+
+            bufferevent_setcb(*newBev, ServerThreadPrivate::tcpAuth, NULL, ServerThreadPrivate::tcpErr, st);
+            bufferevent_setwatermark(*newBev, EV_READ, PXMServer::PACKET_HEADER_LEN, PXMServer::PACKET_HEADER_LEN);
+            bufferevent_enable(*newBev, EV_READ | EV_WRITE);
         } break;
         case EXIT:
             event_base_loopexit(st->base.data(), NULL);
@@ -572,7 +574,8 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
 
             evutil_socket_t socketfd = socket(AF_INET, SOCK_STREAM, 0);
             evutil_make_socket_nonblocking(socketfd);
-            struct bufferevent* bev = bufferevent_socket_new(st->base.data(), socketfd, BEV_OPT_THREADSAFE);
+            struct bufferevent* bev =
+                bufferevent_socket_new(st->base.data(), socketfd, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
 
             UUIDStruct* uuidStruct = new UUIDStruct{uuid, st};
             bufferevent_setcb(bev, NULL, NULL, ServerThreadPrivate::connectCB, uuidStruct);
@@ -580,8 +583,8 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
             bufferevent_set_timeouts(bev, &timeout, &timeout);
             bufferevent_socket_connect(bev, reinterpret_cast<struct sockaddr*>(&addr), sizeof(sockaddr_in));
         } break;
+        /*
         case TCP_PORT_CHANGE:
-            /*
                 if (st->eventAccept) {
                 evutil_closesocket(event_get_fd(st->eventAccept));
                 event_free(st->eventAccept);
@@ -609,10 +612,10 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
                 st->q_ptr->serverSetupFailure(errorMsg);
                 return;
                 }
-                */
             break;
+                */
+        /*
         case UDP_PORT_CHANGE:
-            /*
                 if (st->eventDiscover) {
                 evutil_closesocket(event_get_fd(st->eventDiscover));
                 event_free(st->eventDiscover);
@@ -639,10 +642,11 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
                 st->q_ptr->serverSetupFailure(errorMsg);
                 return;
                 }
-                */
             break;
+                */
         default:
             bufferevent_flush(bev, EV_READ, BEV_FLUSH);
+            qCritical() << "Bad Internal comms";
             break;
     }
 }
@@ -677,7 +681,7 @@ void ServerThread::run()
 
     // Pair for self communication
     struct bufferevent* selfCommsPair[2];
-    bufferevent_pair_new(d_ptr->base.data(), BEV_OPT_THREADSAFE, selfCommsPair);
+    bufferevent_pair_new(d_ptr->base.data(), BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS, selfCommsPair);
     bufferevent_setcb(selfCommsPair[0], ServerThreadPrivate::tcpRead, NULL, ServerThreadPrivate::tcpErr, d_ptr.data());
     bufferevent_setwatermark(selfCommsPair[0], EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
     bufferevent_enable(selfCommsPair[0], EV_READ);
@@ -749,8 +753,9 @@ void ServerThread::run()
 
     // Pair to shutdown server
     struct bufferevent* internalCommsPair[2];
-    bufferevent_pair_new(d_ptr->base.data(), BEV_OPT_THREADSAFE, internalCommsPair);
+    bufferevent_pair_new(d_ptr->base.data(), BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS, internalCommsPair);
     bufferevent_setcb(internalCommsPair[0], ServerThreadPrivate::internalCommsRead, NULL, NULL, d_ptr.data());
+    bufferevent_setwatermark(internalCommsPair[0], EV_READ, INTERNAL_MSG_LENGTH, INTERNAL_MSG_LENGTH);
     bufferevent_enable(internalCommsPair[0], EV_READ);
     bufferevent_enable(internalCommsPair[1], EV_WRITE);
 

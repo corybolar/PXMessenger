@@ -143,8 +143,10 @@ PXMPeerWorker::~PXMPeerWorker()
     d_ptr->peersHash.clear();
 
     if (d_ptr->messServer != 0 && d_ptr->messServer->isRunning()) {
-        INTERNAL_MSG exit = INTERNAL_MSG::EXIT;
-        bufferevent_write(d_ptr->internalBev, &exit, sizeof(exit));
+        INTERNAL_MSG exit                 = INTERNAL_MSG::EXIT;
+        char exitMsg[INTERNAL_MSG_LENGTH] = {};
+        memcpy(&exitMsg[0], &exit, sizeof(exit));
+        bufferevent_write(d_ptr->internalBev, &exitMsg[0], INTERNAL_MSG_LENGTH);
         d_ptr->messServer->wait(5000);
     }
 
@@ -327,10 +329,9 @@ void PXMPeerWorker::attemptConnection(struct sockaddr_in addr, QUuid uuid)
     d_ptr->peersHash[uuid].addrRaw   = addr;
 
     // Tell Server to connect
-    size_t index                   = 0;
-    PXMServer::INTERNAL_MSG addBev = PXMServer::INTERNAL_MSG::CONNECT_TO_ADDR;
-    size_t msgLen                  = sizeof(addr) + sizeof(addBev) + NetCompression::PACKED_UUID_LENGTH;
-    unsigned char bevPtr[msgLen];
+    size_t index                                         = 0;
+    PXMServer::INTERNAL_MSG addBev                       = PXMServer::INTERNAL_MSG::CONNECT_TO_ADDR;
+    unsigned char bevPtr[PXMServer::INTERNAL_MSG_LENGTH] = {};
     memcpy(&bevPtr[index], &addBev, sizeof(addBev));
     index += sizeof(addBev);
     memcpy(&bevPtr[index], &(addr.sin_addr.s_addr), sizeof(addr.sin_addr.s_addr));
@@ -338,7 +339,7 @@ void PXMPeerWorker::attemptConnection(struct sockaddr_in addr, QUuid uuid)
     memcpy(&bevPtr[index], &(addr.sin_port), sizeof(addr.sin_port));
     index += sizeof(addr.sin_port);
     index += NetCompression::packUUID(&bevPtr[index], uuid);
-    bufferevent_write(d_ptr->internalBev, &bevPtr[0], msgLen);
+    bufferevent_write(d_ptr->internalBev, &bevPtr[0], PXMServer::INTERNAL_MSG_LENGTH);
 }
 void PXMPeerWorker::nameHandler(QString hname, const QUuid uuid)
 {
@@ -413,11 +414,11 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket,
     if (result) {
         qInfo() << "Successful connection attempt to" << uuid.toString();
         // send internal comms for this bev to be enabled
-        PXMServer::INTERNAL_MSG addBev                     = PXMServer::INTERNAL_MSG::ADD_DEFAULT_BEV;
-        unsigned char bevPtr[sizeof(addBev) + sizeof(bev)] = {};
+        PXMServer::INTERNAL_MSG addBev                       = PXMServer::INTERNAL_MSG::ADD_DEFAULT_BEV;
+        unsigned char bevPtr[PXMServer::INTERNAL_MSG_LENGTH] = {};
         memcpy(&bevPtr[0], &addBev, sizeof(addBev));
-        memcpy(&bevPtr[sizeof(addBev)], &bev, sizeof(bev));
-        bufferevent_write(d_ptr->internalBev, &bevPtr[0], sizeof(addBev) + sizeof(bev));
+        memcpy(&bevPtr[sizeof(addBev)], &bev, sizeof(void*));
+        bufferevent_write(d_ptr->internalBev, &bevPtr[0], PXMServer::INTERNAL_MSG_LENGTH);
 
         d_ptr->peersHash[uuid].bw->lockBev();
         if (d_ptr->peersHash.value(uuid).bw->getBev() != nullptr && d_ptr->peersHash.value(uuid).bw->getBev() != bev) {
