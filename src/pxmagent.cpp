@@ -168,11 +168,11 @@ int PXMAgent::init()
     d_ptr->window.reset(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize, d_ptr->presets.mute,
                                       d_ptr->presets.preventFocus, globalChat));
 
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::printToTextBrowser, d_ptr->window.data(),
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::msgRecieved, d_ptr->window.data(),
                      &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::setItalicsOnItem, d_ptr->window.data(),
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::connectionStatusChange, d_ptr->window.data(),
                      &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::updateListWidget, d_ptr->window.data(),
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::newAuthedPeer, d_ptr->window.data(),
                      &PXMWindow::updateListWidget, Qt::QueuedConnection);
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox, d_ptr->window.data(), &PXMWindow::warnBox,
                      Qt::AutoConnection);
@@ -182,7 +182,7 @@ int PXMAgent::init()
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::sendUDP, d_ptr->peerWorker, &PXMPeerWorker::sendUDPAccessor,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::syncWithPeers, d_ptr->peerWorker, &PXMPeerWorker::beginSync,
+    QObject::connect(d_ptr->window.data(), &PXMWindow::syncWithPeers, d_ptr->peerWorker, &PXMPeerWorker::beginPeerSync,
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::printInfoToDebug, d_ptr->peerWorker,
                      &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);

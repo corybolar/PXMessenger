@@ -311,7 +311,7 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 
     item->setData(Qt::UserRole, uuid);
     ui->listWidget->addItem(item);
-    ui->stackedWidget->addWidget(new TextWidget(ui->stackedWidget, uuid));
+    ui->stackedWidget->newHistory(uuid);
     ui->listWidget->sortItems();
     ui->listWidget->insertItem(0, global);
 

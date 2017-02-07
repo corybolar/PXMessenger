@@ -23,6 +23,7 @@ class Window : public QMainWindow
     explicit Window(QWidget* parent = 0);
     ~Window();
     QPushButton* pushButton;
+    QPushButton* pushButton1;
     static QTextEdit* textEdit;
    public slots:
     void verbosityChanged();

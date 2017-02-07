@@ -19,6 +19,7 @@ namespace PXMServer
 const timeval READ_TIMEOUT         = {1, 0};
 const timeval READ_TIMEOUT_RESET   = {3600, 0};
 const uint8_t PACKET_HEADER_LEN = 2;
+const size_t INTERNAL_MSG_LENGTH 	  = 200;
 enum INTERNAL_MSG : uint16_t {
     ADD_DEFAULT_BEV = 0x1111,
     EXIT            = 0x2222,
@@ -52,24 +53,24 @@ class ServerThread : public QThread
 
     void run() Q_DECL_OVERRIDE;
    signals:
-    void messageRecieved(QString, QUuid, const bufferevent*, bool);
+    void msgHandler(QString, QUuid, const bufferevent*, bool);
     void newTCPConnection(bufferevent*);
-    void authenticationReceived(QString, unsigned short, QString,
+    void authHandler(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(struct sockaddr_in, QUuid);
-    void sendSyncPacket(const bufferevent*, QUuid);
+    void syncRequestHandler(const bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
-    void syncPacketIterator(QSharedPointer<unsigned char>, size_t, QUuid);
+    void syncHandler(QSharedPointer<unsigned char>, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);
     void libeventBackend(QString);
-    void setCloseBufferevent(bufferevent*);
+    void setInternalBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
     void serverSetupFailure(QString);
-    void nameChange(QString, QUuid);
+    void nameHandler(QString, QUuid);
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid);
 };
 }
