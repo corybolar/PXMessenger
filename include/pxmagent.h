@@ -28,9 +28,9 @@ class PXMAgent : public QObject
     // Destructor
     ~PXMAgent();
 
-    int preInit();
 public slots:
     void updateChangelog(const QString &str);
+    int preInit();
 private slots:
     int init();
 };
