@@ -2,7 +2,7 @@
 	"updates": {
 		"windows": {
 			"open-url": "",
-			"latest-version": "1.5.0",
+			"latest-version": "1.5.1",
 			"download-url": "https://github.com/cbpeckles/PXMessenger/releases/download/v1.4.0/PXMessenger-Setup-v1.4.0.exe",
 			"changelog": "Hello from version 1.5"
 		}
