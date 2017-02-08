@@ -29,7 +29,7 @@ class PXMAgent : public QObject
     ~PXMAgent();
 
 public slots:
-    void updateChangelog(const QString &str);
+    void doneChkUpdt(const QString &);
     int preInit();
 private slots:
     int init();

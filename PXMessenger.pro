@@ -1,9 +1,10 @@
 TEMPLATE = app
 TARGET = PXMessenger
-VERSION = 1.4.0
+VERSION = 1.5.0
 QMAKE_TARGET_COMPANY = Bolar Code Solutions
 QMAKE_TARGET_PRODUCT = PXMessenger
 QMAKE_TARGET_DESCRIPTION = Instant Messenger
+QMAKE_TARGET_COPYRIGHT = GPLv3
 
 target.path 	= /usr/local/bin
 desktop.path 	= /usr/share/applications
@@ -13,24 +14,23 @@ icon.files 	+= $$PWD/resources/PXMessenger.png
 INSTALLS += target desktop icon
 
 QT = core gui widgets multimedia
-CONFIG += RELEASE\
-          DEBUG
+CONFIG += DEBUG \
+          RELEASE
+win32: CONFIG += windows
 
 unix: LIBS += -levent -levent_pthreads
 
-win32 { LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
-
+win32 {
+LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
 INCLUDEPATH += $$PWD/../libevent/include \
                $$PWD/../libevent/build/include
-
-DEPENDPATH += $$PWD/../libevent/include
 }
 
 INCLUDEPATH += $$PWD/include
 
 win32 {
 LIBS += -lws2_32
-#RC_ICONS = $$PWD/resources/PXM_Icon.ico
+RC_ICONS = $$PWD/resources/PXM_Icon.ico
 }
 
 QMAKE_CXXFLAGS += -Wall \
@@ -65,9 +65,12 @@ HEADERS += \
     $$PWD/include/pxmpeers.h \
     $$PWD/include/pxmagent.h
 
-RESOURCES += 	$$PWD/resources/resources.qrc
+FORMS += \
+    $$PWD/ui/pxmmainwindow.ui \
+    $$PWD/ui/pxmaboutdialog.ui \
+    $$PWD/ui/pxmsettingsdialog.ui
 
-RC_FILE = 	$$PWD/resources/PXMessenger_resource.rc
+RESOURCES += 	$$PWD/resources/resources.qrc
 
 win32 {
 Release:DESTDIR = $$PWD/
@@ -85,14 +88,6 @@ MOC_DIR = $$PWD/build-unix/moc
 RCC_DIR = $$PWD/build-unix/rcc
 UI_DIR = $$PWD/build-unix/ui
 }
-
-FORMS += \
-    $$PWD/ui/pxmmainwindow.ui \
-    $$PWD/ui/pxmaboutdialog.ui \
-    $$PWD/ui/pxmsettingsdialog.ui
-
-DISTFILES += \
-    resources/PXMessenger_resource.rc
 
 win32 {
 include($$PWD/QSimpleUpdater/QSimpleUpdater.pri)
