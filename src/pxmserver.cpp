@@ -324,7 +324,7 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
     int result = 0;
     switch (type) {
         case MSG_TEXT:
-            qInfo().noquote() << "Message from" << quuid.toString();
+            qDebug().noquote() << "Message from" << quuid.toString();
             qDebug().noquote() << "MSG :" << QString::fromUtf8((char*)&buf[0], bufLen);
             emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
             break;
@@ -335,22 +335,22 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
             // in a smart pointer
             QSharedPointer<unsigned char> syncPacket(new unsigned char[bufLen]);
             memcpy(syncPacket.data(), &buf[0], bufLen);
-            qInfo().noquote() << "SYNC received from" << quuid.toString();
+            qDebug().noquote() << "SYNC received from" << quuid.toString();
             emit q_ptr->syncHandler(syncPacket, bufLen, quuid);
             break;
         }
         case MSG_SYNC_REQUEST:
-            qInfo().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
+            qDebug().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
                               << quuid.toString();
             emit q_ptr->syncRequestHandler(bev, quuid);
             break;
         case MSG_GLOBAL:
-            qInfo().noquote() << "Global message from" << quuid.toString();
+            qDebug().noquote() << "Global message from" << quuid.toString();
             qDebug().noquote() << "GLOBAL :" << QString::fromUtf8((char*)&buf[0], bufLen);
             emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, true);
             break;
         case MSG_NAME:
-            qInfo().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
+            qDebug().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
             emit q_ptr->nameHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid);
             break;
         case MSG_AUTH:
@@ -653,12 +653,11 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
 void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* arg)
 {
     UUIDStruct* st = static_cast<UUIDStruct*>(arg);
-    qWarning() << "eventcb";
     if (event & BEV_EVENT_CONNECTED) {
-        qWarning() << "succ connect";
+        qDebug() << "succ connect";
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev, st->uuid);
     } else {
-        qWarning() << "bad connect";
+        qDebug() << "bad connect";
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev, st->uuid);
     }
     delete st;

@@ -285,10 +285,10 @@ void PXMPeerWorker::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t
         QUuid uuid      = QUuid();
         index += NetCompression::unpackUUID(&syncPacket.data()[index], uuid);
 
-        qInfo() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
+        qDebug().noquote() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
         attemptConnection(addr, uuid);
     }
-    qInfo() << "End of sync packet";
+    qDebug().noquote() << "End of sync packet";
 
     d_ptr->syncablePeers->remove(senderUuid);
 

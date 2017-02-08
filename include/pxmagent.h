@@ -28,6 +28,10 @@ class PXMAgent : public QObject
     // Destructor
     ~PXMAgent();
 
+public slots:
+    void doneChkUpdt(const QString &);
+    int preInit();
+private slots:
     int init();
 };
 

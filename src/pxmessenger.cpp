@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QStringBuilder>
 #include <QDateTime>
+#include <QTimer>
 
 #include "pxmagent.h"
 #include "pxmconsole.h"
@@ -30,7 +31,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
             break;
     }
 
-    QString localMsg = QString();
+    QByteArray localMsg = QByteArray();
     localMsg.append(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss:zzz] ")));
 
     QColor msgColor;
@@ -64,10 +65,10 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const
     filename = QString("%1").arg(filename.append(':' + QString::number(context.line)), -((int)PXMConsts::DEBUG_PADDING),
                                  QChar(' '));
 #endif /* end QT_DEBUG */
-    localMsg.append(filename.toUtf8() % msg.toUtf8());
+    localMsg.append(filename.toUtf8() % msg.toLatin1());
 
-    localMsg.append(QLatin1Char('\n'));
-    const char* cmsg = localMsg.toLatin1().constData();
+    localMsg.append(QChar('\n'));
+    const char* cmsg = localMsg.constData();
     fprintf(stderr, "%s", cmsg);
     if (Window::textEdit) {
         qApp->postEvent(logger, new AppendTextEvent(localMsg, msgColor), Qt::LowEventPriority);
@@ -92,10 +93,11 @@ int main(int argc, char** argv)
     int result;
     {
         PXMAgent overlord;
-        if (overlord.init()) {
-            qCritical().noquote() << QStringLiteral("PXMInit failed");
-            return -1;
-        }
+
+        QTimer overlordInit;
+        overlordInit.setSingleShot(true);
+        QObject::connect(&overlordInit, &QTimer::timeout, &overlord, &PXMAgent::preInit);
+        overlordInit.start(1);
 
         result = app.exec();
 

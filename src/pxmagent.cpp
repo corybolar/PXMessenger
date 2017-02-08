@@ -21,6 +21,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <lmcons.h>
+#include <QSimpleUpdater/include/QSimpleUpdater.h>
 #elif __unix__
 #include <pwd.h>
 #include <sys/types.h>
@@ -61,11 +62,14 @@ struct PXMAgentPrivate {
     PXMIniReader iniReader;
     PXMConsole::Logger* logger;
     QScopedPointer<QLockFile> lockFile;
+    QString address = "https://raw.githubusercontent.com/cbpeckles/PXMessenger/updater-testing/resources/updates.json";
 
     initialSettings presets;
 
+#ifdef __WIN32
+    QSimpleUpdater* qupdater;
+#endif
     QThread* workerThread = nullptr;
-
     // Functions
     QByteArray getUsername();
     int setupHostname(const unsigned int uuidNum, QString& username);
@@ -86,6 +90,22 @@ PXMAgent::~PXMAgent()
     d_ptr->iniReader.resetUUID(d_ptr->presets.uuidNum, d_ptr->presets.uuid);
 }
 
+int PXMAgent::preInit()
+{
+#ifdef __WIN32
+    d_ptr->qupdater = QSimpleUpdater::getInstance();
+    connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(doneChkUpdt(QString)));
+    connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
+    connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::init);
+    d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
+    d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
+    d_ptr->qupdater->checkForUpdates(d_ptr->address);
+#else
+    this->init();
+#endif
+    return 0;
+}
+
 int PXMAgent::init()
 {
 #ifndef QT_DEBUG
@@ -102,7 +122,7 @@ int PXMAgent::init()
         WSADATA wsa;
         if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
             qCritical() << "Failed WSAStartup error:" << WSAGetLastError();
-            throw("Failed WSAStartup error: " + WSAGetLastError());
+            throw(&"Failed WSAStartup error: "[WSAGetLastError()]);
         }
     } catch (const char* msg) {
         QMessageBox msgBox(QMessageBox::Critical, "WSAStartup Error", QString::fromUtf8(msg));
@@ -203,7 +223,20 @@ int PXMAgent::init()
 #endif
 
     d_ptr->window->show();
+
     return 0;
+}
+void PXMAgent::doneChkUpdt(const QString&)
+{
+#ifdef __WIN32
+    if (!d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
+        qDebug() << "No update Available";
+        this->init();
+    } else {
+        qDebug() << "Update Available";
+    }
+
+#endif
 }
 
 QByteArray PXMAgentPrivate::getUsername()
