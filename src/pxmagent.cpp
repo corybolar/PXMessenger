@@ -19,9 +19,15 @@
 #include <QThread>
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
 #include <lmcons.h>
 #include <QSimpleUpdater/include/QSimpleUpdater.h>
+
+#ifdef _WIN64
+const char* modName = "windows64";
+#else
+const char* modName = "windows32";
+#endif
+
 #elif __unix__
 #include <pwd.h>
 #include <sys/types.h>
@@ -98,6 +104,7 @@ int PXMAgent::preInit()
     connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
     connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::init);
     d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
+    d_ptr->qupdater->setModuleName(d_ptr->address, modName);
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
 #else

@@ -31,6 +31,14 @@ INCLUDEPATH += $$PWD/include
 win32 {
 LIBS += -lws2_32
 RC_ICONS = $$PWD/resources/PXM_Icon.ico
+contains(QMAKE_HOST.arch, x86_64):{
+TARGET =$$TARGET-x86_64
+BUILDDIR = build-win32-x64
+}
+contains(QMAKE_HOST.arch, x86):{
+TARGET =$$TARGET-x86
+BUILDDIR = build-win32-x86
+}
 }
 
 QMAKE_CXXFLAGS += -Wall \
@@ -79,10 +87,10 @@ RESOURCES += 	$$PWD/resources/resources.qrc
 win32 {
 release:DESTDIR = $$PWD/
 debug:DESTDIR = $$PWD/
-OBJECTS_DIR = $$PWD/build-win32/obj
-MOC_DIR = $$PWD/build-win32/moc
-RCC_DIR = $$PWD/build-win32/rcc
-UI_DIR = $$PWD/build-win32/ui
+OBJECTS_DIR = $$PWD/$$BUILDDIR/obj
+MOC_DIR = $$PWD/$$BUILDDIR/moc
+RCC_DIR = $$PWD/$$BUILDDIR/rcc
+UI_DIR = $$PWD/$$BUILDDIR/ui
 QMAKE_CLEAN += $$PWD/object_script.* \
                $$PWD/PXMessenger_resource.rc
 }

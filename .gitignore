@@ -1,10 +1,10 @@
 /PXMessenger.pro.user
-/PXMessenger.exe
+/*.exe
 /PXMessenger
 /object_script*
 /build-unix
-/build-win32
+/build-win32*
 /.qmake.stash
 /Makefile*
-/pxmessenger_plugin_import.cpp
-/PXMessenger_resource.rc
+/*_plugin_import.cpp
+/PXMessenger*_resource.rc

@@ -9,6 +9,7 @@
 
 #ifdef _WIN32
 QLatin1Char seperator = QLatin1Char('\\');
+#define WIN32_LEAN_AND_MEAN
 #else
 QLatin1Char seperator = QLatin1Char('/');
 #endif

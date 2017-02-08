@@ -1,10 +1,17 @@
 {
 	"updates": {
-		"windows": {
+		"windows32": {
 			"open-url": "",
-			"latest-version": "1.5.0",
-            "download-url": "https://github.com/cbpeckles/PXMessenger/releases/download/v1.5.0/PXMessenger-Setup-v1.5.0.exe",
-			"changelog": "Hello from version 1.5"
+			"latest-version": "1.5.1",
+            "download-url": "https://github.com/cbpeckles/PXMessenger/releases/download/v1.5.0/PXMessenger-Setup-v1.5.0-x86.exe",
+			"changelog": ""
+		},
+		"windows64": {
+			"open-url": "",
+			"latest-version": "1.5.1",
+            "download-url": "https://github.com/cbpeckles/PXMessenger/releases/download/v1.5.0/PXMessenger-Setup-v1.5.0-x86_64.exe",
+			"changelog": ""
 		}
+
 	}
 }
