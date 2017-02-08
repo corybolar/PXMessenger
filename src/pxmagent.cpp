@@ -100,6 +100,8 @@ int PXMAgent::preInit()
     d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
+#else
+    this->init();
 #endif
     return 0;
 }
@@ -225,16 +227,13 @@ int PXMAgent::init()
 void PXMAgent::doneChkUpdt(const QString&)
 {
 #ifdef __WIN32
-    if(!d_ptr->qupdater->getUpdateAvailable(d_ptr->address))
-    {
+    if (!d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
         qDebug() << "No update Available";
         this->init();
-    }
-    else
-    {
+    } else {
         qDebug() << "Update Available";
     }
-    
+
 #endif
 }
 

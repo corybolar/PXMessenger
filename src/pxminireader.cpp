@@ -45,11 +45,11 @@ unsigned int PXMIniReader::getUUIDNumber() const
 }
 QUuid PXMIniReader::getUUID(unsigned int num, bool takeIt) const
 {
-    QString tester = iniFile->value("uuid/" + QString::number(num), QString()).toString();
-    if (tester.isEmpty()) {
-        iniFile->setValue("uuid/" + QString::number(num), QUuid::createUuid().toString());
+    QUuid uuid = iniFile->value("uuid/" + QString::number(num), QUuid()).toUuid();
+    if (uuid.isNull()) {
+        uuid = QUuid::createUuid();
+        iniFile->setValue("uuid/" + QString::number(num), uuid);
     }
-    QUuid uuid = iniFile->value("uuid/" + QString::number(num), QString()).toUuid();
     if (takeIt) {
         iniFile->setValue("uuid/" + QString::number(num), "INUSE");
     }

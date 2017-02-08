@@ -50,6 +50,7 @@ class Downloader : public QWidget
 signals:
     void downloadFinished (const QString& url, const QString& filepath);
     void installerOpened();
+    void downloadCanceled();
 
 public:
     explicit Downloader (QWidget* parent = 0);
