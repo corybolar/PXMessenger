@@ -71,6 +71,8 @@ signals:
     void checkingFinished (const QString& url);
     void appcastDownloaded (const QString& url, const QByteArray& data);
     void downloadFinished (const QString& url, const QString& filepath);
+    void installerOpened();
+    void updateDeclined();
 
 public:
     static QSimpleUpdater* getInstance();

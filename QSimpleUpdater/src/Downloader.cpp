@@ -152,9 +152,12 @@ void Downloader::setFileName (const QString& file)
 void Downloader::openDownload()
 {
     if (!m_fileName.isEmpty())
+    {
         QDesktopServices::openUrl (QUrl::fromLocalFile (DOWNLOAD_DIR.filePath (
                 m_fileName)));
+        emit installerOpened();
 
+    }
     else {
         QMessageBox::critical (this,
                                tr ("Error"),

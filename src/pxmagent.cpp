@@ -90,19 +90,22 @@ PXMAgent::~PXMAgent()
     d_ptr->iniReader.resetUUID(d_ptr->presets.uuidNum, d_ptr->presets.uuid);
 }
 
-int PXMAgent::init()
+int PXMAgent::preInit()
 {
 #ifdef __WIN32
     d_ptr->qupdater = QSimpleUpdater::getInstance();
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(updateChangelog(QString)));
+    connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
+    connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::init);
     d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
-    if (d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
-        return -2;
-    }
 #endif
+    return 0;
+}
 
+int PXMAgent::init()
+{
 #ifndef QT_DEBUG
     QImage splashImage(":/resources/PXMessenger_wBackground.png");
     QSplashScreen splash(QPixmap::fromImage(splashImage));
@@ -222,6 +225,14 @@ int PXMAgent::init()
 void PXMAgent::updateChangelog(const QString& str)
 {
 #ifdef __WIN32
+    if(!d_ptr->qupdater->getUpdateAvailable(d_ptr->address))
+    {
+        this->init();
+    }
+    else
+    {
+    }
+    
     qInfo() << str;
     qInfo() << d_ptr->address;
     if (str == d_ptr->address) {

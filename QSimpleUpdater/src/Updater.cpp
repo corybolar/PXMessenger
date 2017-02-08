@@ -69,6 +69,8 @@ Updater::Updater()
 
     connect (m_downloader, SIGNAL (downloadFinished (QString, QString)),
              this,         SIGNAL (downloadFinished (QString, QString)));
+    connect (m_downloader, SIGNAL (installerOpened()),
+             this,         SIGNAL (installerOpened()));
     connect (m_manager,    SIGNAL (finished (QNetworkReply*)),
              this,           SLOT (onReply  (QNetworkReply*)));
 }
@@ -407,6 +409,10 @@ void Updater::setUpdateAvailable (const bool available)
 
             else
                 QDesktopServices::openUrl (QUrl (downloadUrl()));
+        }
+        else
+        {
+            emit updateDeclined();
         }
     }
 

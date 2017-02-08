@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     int result;
     {
         PXMAgent overlord;
-        if (overlord.init()) {
+        if (overlord.preInit()) {
             qCritical().noquote() << QStringLiteral("PXMInit failed");
             return -1;
         }

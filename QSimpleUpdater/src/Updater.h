@@ -50,6 +50,8 @@ signals:
     void checkingFinished (const QString& url);
     void downloadFinished (const QString& url, const QString& filepath);
     void appcastDownloaded (const QString& url, const QByteArray& data);
+    void installerOpened();
+    void updateDeclined();
 
 public:
     Updater();

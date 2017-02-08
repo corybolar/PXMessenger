@@ -383,6 +383,8 @@ Updater* QSimpleUpdater::getUpdater (const QString& url) const
                  this,    SIGNAL (downloadFinished  (QString, QString)));
         connect (updater, SIGNAL (appcastDownloaded (QString, QByteArray)),
                  this,    SIGNAL (appcastDownloaded (QString, QByteArray)));
+        connect (updater, SIGNAL (installerOpened ()), this, SIGNAL (installerOpened ()));
+        connect (updater, SIGNAL (updateDeclined ()), this, SIGNAL (updateDeclined ()));
     }
 
     return UPDATERS.at (URLS.indexOf (url));
