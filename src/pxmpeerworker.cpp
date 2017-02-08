@@ -67,6 +67,7 @@ class PXMPeerWorkerPrivate
     QUuid localUUID;
     QString multicastAddress;
     QString libeventBackend;
+    QString libeventVers;
     QUuid globalUUID;
     QTimer* syncTimer;
     QTimer* nextSyncTimer;
@@ -275,7 +276,7 @@ void PXMPeerWorker::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t
                    << senderUuid;
         return;
     }
-    qInfo() << "Sync packet from" << senderUuid.toString();
+    qDebug() << "Sync packet from" << senderUuid.toString();
 
     size_t index = 0;
     while (index + NetCompression::PACKED_UUID_LENGTH + 6 <= len) {
@@ -293,6 +294,7 @@ void PXMPeerWorker::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t
     d_ptr->syncablePeers->remove(senderUuid);
 
     if (d_ptr->areWeSyncing) {
+        d_ptr->nextSyncTimer->stop();
         d_ptr->nextSyncTimer->start(2000);
         d_ptr->syncer->syncNext();
     }
@@ -315,7 +317,7 @@ void PXMPeerWorkerPrivate::sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw)
 void PXMPeerWorker::requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid)
 {
     d_ptr->syncablePeers->append(uuid);
-    qInfo() << "Requesting ips from" << d_ptr->peersHash.value(uuid).hostname;
+    qDebug() << "Requesting sync from" << d_ptr->peersHash.value(uuid).hostname;
     emit sendMsg(bw, QByteArray(), MSG_SYNC_REQUEST);
 }
 void PXMPeerWorker::attemptConnection(struct sockaddr_in addr, QUuid uuid)
@@ -368,7 +370,7 @@ void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent* bev)
     for (QSharedPointer<Peers::BevWrapper>& itr : d_ptr->extraBevs) {
         d_ptr->extraBevs.removeAll(itr);
     }
-    qInfo().noquote() << "Non-Authed Peer has quit";
+    qWarning().noquote() << "Non-Authed Peer has quit";
     evutil_closesocket(s);
 }
 void PXMPeerWorker::syncRequestHandlerBev(const bufferevent* bev, const QUuid uuid)
@@ -377,7 +379,7 @@ void PXMPeerWorker::syncRequestHandlerBev(const bufferevent* bev, const QUuid uu
         size_t index                         = 0;
         QSharedPointer<unsigned char> packet = createSyncPacket(index);
         if (d_ptr->messClient && index != 0) {
-            qInfo() << "Sending ips to" << d_ptr->peersHash.value(uuid).hostname;
+            qDebug() << "Sending sync to" << d_ptr->peersHash.value(uuid).hostname;
             emit sendSyncPacket(d_ptr->peersHash.value(uuid).bw, packet, index, MSG_SYNC);
         } else {
             qCritical() << "messClient not initialized";
@@ -630,9 +632,10 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, MESSAGE_TYPE type, QUuid uui
     }
 }
 
-void PXMPeerWorker::setlibeventBackend(QString str)
+void PXMPeerWorker::setlibeventBackend(QString back, QString vers)
 {
-    d_ptr->libeventBackend = str;
+    d_ptr->libeventBackend = back;
+    d_ptr->libeventVers    = vers;
 }
 void PXMPeerWorker::printInfoToDebug()
 {
@@ -642,11 +645,12 @@ void PXMPeerWorker::printInfoToDebug()
 
     str.append(QChar('\n') % QStringLiteral("---Program Info---\n") % QStringLiteral("Program Name: ") %
                qApp->applicationName() % QChar('\n') % QStringLiteral("Version: ") % qApp->applicationVersion() %
-               QChar('\n') % QStringLiteral("---Network Info---\n") % QStringLiteral("Libevent Backend: ") %
-               d_ptr->libeventBackend % QChar('\n') % QStringLiteral("Multicast Address: ") % d_ptr->multicastAddress %
-               QChar('\n') % QStringLiteral("TCP Listener Port: ") % QString::number(d_ptr->serverTCPPort) %
-               QChar('\n') % QStringLiteral("UDP Listener Port: ") % QString::number(d_ptr->serverUDPPort) %
-               QChar('\n') % QStringLiteral("Our UUID: ") % d_ptr->localUUID.toString() % QChar('\n') %
+               QChar('\n') % QStringLiteral("---Network Info---\n") % QStringLiteral("Libevent Version: ") %
+               d_ptr->libeventVers % QChar('\n') % QStringLiteral("Libevent Backend: ") % d_ptr->libeventBackend %
+               QChar('\n') % QStringLiteral("Multicast Address: ") % d_ptr->multicastAddress % QChar('\n') %
+               QStringLiteral("TCP Listener Port: ") % QString::number(d_ptr->serverTCPPort) % QChar('\n') %
+               QStringLiteral("UDP Listener Port: ") % QString::number(d_ptr->serverUDPPort) % QChar('\n') %
+               QStringLiteral("Our UUID: ") % d_ptr->localUUID.toString() % QChar('\n') %
                QStringLiteral("MulticastIsFunctioning: ") %
                QString::fromLocal8Bit((d_ptr->multicastIsFunctioning ? "true" : "false")) % QChar('\n') %
                QStringLiteral("Sync waiting list: ") % QString::number(d_ptr->syncablePeers->length()) % QChar('\n') %
@@ -669,7 +673,7 @@ void PXMPeerWorker::discoveryTimerPersistent()
     if (d_ptr->peersHash.count() < 3) {
         emit sendUDP("/discover", d_ptr->serverUDPPort);
     } else {
-        qInfo() << "Found enough peers";
+        qDebug() << "Found enough peers";
         d_ptr->discoveryTimer->stop();
     }
 }
@@ -690,7 +694,7 @@ void PXMPeerWorker::discoveryTimerSingleShot()
             "for other computers...");
         d_ptr->discoveryTimer->start();
     } else {
-        qInfo() << "Found enough peers";
+        qDebug() << "Found enough peers";
     }
 }
 

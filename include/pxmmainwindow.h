@@ -19,6 +19,7 @@ namespace Ui {
 class PXMWindow;
 class PXMAboutDialog;
 class PXMSettingsDialog;
+class ManualConnect;
 }
 class QListWidgetItem;
 
@@ -113,6 +114,7 @@ class PXMWindow : public QMainWindow {
   void debugActionSlot();
   void nameChange(QString hname);
   void syncActionsSlot();
+  void manualConnect();
 signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);
@@ -120,6 +122,7 @@ signals:
   void retryDiscover();
   void addMessageToPeer(QString, QUuid, bool, bool);
   void printInfoToDebug();
+  void manConnect(QString, int);
 };
 
 class PXMAboutDialog : public QDialog {
@@ -169,4 +172,17 @@ class PXMTextEdit : public QTextEdit
     void focusOutEvent(QFocusEvent* event) Q_DECL_OVERRIDE;
     void focusInEvent(QFocusEvent* event) Q_DECL_OVERRIDE;
 };
+
+class ManualConnect : public QDialog
+{
+  Q_OBJECT
+  Ui::ManualConnect* ui;
+  void accept();
+public:
+  ManualConnect(QWidget *parent);
+  ~ManualConnect();
+signals:
+  void manConnect(QString, int);
+};
+
 #endif

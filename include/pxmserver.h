@@ -65,7 +65,7 @@ class ServerThread : public QThread
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);
-    void libeventBackend(QString);
+    void libeventBackend(QString, QString);
     void setInternalBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();

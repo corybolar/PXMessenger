@@ -62,7 +62,7 @@ struct PXMAgentPrivate {
     PXMIniReader iniReader;
     PXMConsole::Logger* logger;
     QScopedPointer<QLockFile> lockFile;
-    QString address = "https://raw.githubusercontent.com/cbpeckles/PXMessenger/updater-testing/resources/updates.json";
+    QString address = "https://raw.githubusercontent.com/cbpeckles/PXMessenger/master/resources/updates.json";
 
     initialSettings presets;
 

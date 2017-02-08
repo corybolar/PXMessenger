@@ -64,7 +64,7 @@ class PXMPeerWorker : public QObject
     void setLocalHostname(QString);
     void setInternalBufferevent(bufferevent* bev);
     void setListenerPorts(unsigned short tcpport, unsigned short udpport);
-    void setlibeventBackend(QString str);
+    void setlibeventBackend(QString back, QString vers);
 
     void serverSetupFailure(QString error);
     void multicastIsFunctional();

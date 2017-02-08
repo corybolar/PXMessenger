@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     app.setApplicationName("PXMessenger");
     app.setOrganizationName("PXMessenger");
     app.setOrganizationDomain("PXMessenger");
-    app.setApplicationVersion("1.4.0");
+    app.setApplicationVersion("1.5.0");
 
     int result;
     {

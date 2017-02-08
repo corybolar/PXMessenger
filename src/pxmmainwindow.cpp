@@ -4,6 +4,7 @@
 #include "ui_pxmaboutdialog.h"
 #include "ui_pxmmainwindow.h"
 #include "ui_pxmsettingsdialog.h"
+#include "ui_manualconnect.h"
 
 #ifdef _WIN32
 #include <lmcons.h>
@@ -63,31 +64,34 @@ PXMWindow::~PXMWindow()
 void PXMWindow::setupMenuBar()
 {
     QMenu* fileMenu;
-    QAction* quitAction = new QAction("&Quit", this);
 
     fileMenu = menuBar()->addMenu("&File");
+    // QAction* manualConnect = new QAction("&Connect to", this);
+    // fileMenu->addAction(manualConnect);
+    // QObject::connect(manualConnect, &QAction::triggered, this, &PXMWindow::manualConnect);
+    QAction* quitAction = new QAction("&Quit", this);
     fileMenu->addAction(quitAction);
     QObject::connect(quitAction, &QAction::triggered, this, &PXMWindow::quitButtonClicked);
 
     QMenu* optionsMenu;
-    QAction* settingsAction = new QAction("&Settings", this);
-    QAction* bloomAction    = new QAction("&Bloom", this);
-    QAction* syncAction     = new QAction("&Sync", this);
-    optionsMenu             = menuBar()->addMenu("&Tools");
-    optionsMenu->addAction(settingsAction);
+    optionsMenu          = menuBar()->addMenu("&Tools");
+    QAction* bloomAction = new QAction("&Bloom", this);
     optionsMenu->addAction(bloomAction);
-    optionsMenu->addAction(syncAction);
-    QObject::connect(settingsAction, &QAction::triggered, this, &PXMWindow::settingsActionsSlot);
     QObject::connect(bloomAction, &QAction::triggered, this, &PXMWindow::bloomActionsSlot);
+    QAction* syncAction = new QAction("&Sync", this);
+    optionsMenu->addAction(syncAction);
     QObject::connect(syncAction, &QAction::triggered, this, &PXMWindow::syncActionsSlot);
+    QAction* settingsAction = new QAction("&Settings", this);
+    optionsMenu->addAction(settingsAction);
+    QObject::connect(settingsAction, &QAction::triggered, this, &PXMWindow::settingsActionsSlot);
 
     QMenu* helpMenu;
-    QAction* aboutAction = new QAction("&About", this);
-    QAction* debugAction = new QAction("&Debug", this);
     helpMenu             = menuBar()->addMenu("&Help");
+    QAction* aboutAction = new QAction("&About", this);
     helpMenu->addAction(aboutAction);
-    helpMenu->addAction(debugAction);
     QObject::connect(aboutAction, &QAction::triggered, this, &PXMWindow::aboutActionSlot);
+    QAction* debugAction = new QAction("&Console", this);
+    helpMenu->addAction(debugAction);
     QObject::connect(debugAction, &QAction::triggered, this, &PXMWindow::debugActionSlot);
 }
 
@@ -202,6 +206,12 @@ void PXMWindow::syncActionsSlot()
         qDebug() << "User triggered Sync";
         emit syncWithPeers();
     }
+}
+void PXMWindow::manualConnect()
+{
+    ManualConnect* mc = new ManualConnect(this);
+    QObject::connect(mc, &ManualConnect::manConnect, this, &PXMWindow::manConnect);
+    mc->open();
 }
 
 void PXMWindow::warnBox(QString title, QString msg)
@@ -453,6 +463,7 @@ PXMAboutDialog::PXMAboutDialog(QWidget* parent, QIcon icon) : QDialog(parent), u
                        "https://github.com/cbpeckles/PXMessenger</a>"
                        "</center>"
                        "<br><br><br><br>");
+    ui->label->setOpenExternalLinks(true);
     this->setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
@@ -657,4 +668,27 @@ void PXMTextEdit::focusOutEvent(QFocusEvent* event)
 {
     this->setPlaceholderText("Enter a message to send!");
     QTextEdit::focusOutEvent(event);
+}
+
+ManualConnect::ManualConnect(QWidget* parent) : QDialog(parent), ui(new Ui::ManualConnect)
+{
+    ui->setupUi(this);
+    QString ipRange = "(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])";
+    QRegExp ipRegex("^" + ipRange + "\\." + ipRange + "\\." + ipRange + "\\." + ipRange + "$");
+    QRegExpValidator* ipValidator = new QRegExpValidator(ipRegex, this);
+    ui->lineEdit->setValidator(ipValidator);
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setText("Connect");
+    QObject::connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ManualConnect::reject);
+    QObject::connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ManualConnect::accept);
+    this->setAttribute(Qt::WA_DeleteOnClose, true);
+}
+void ManualConnect::accept()
+{
+    emit manConnect(ui->lineEdit->text(), ui->spinBox->value());
+    QDialog::accept();
+}
+
+ManualConnect::~ManualConnect()
+{
+    delete ui;
 }

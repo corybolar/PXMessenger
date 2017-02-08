@@ -68,17 +68,23 @@ HEADERS += \
 FORMS += \
     $$PWD/ui/pxmmainwindow.ui \
     $$PWD/ui/pxmaboutdialog.ui \
-    $$PWD/ui/pxmsettingsdialog.ui
+    $$PWD/ui/pxmsettingsdialog.ui \
+    ui/manualconnect.ui
+
+DISTFILES += \
+    resources/updates.json
 
 RESOURCES += 	$$PWD/resources/resources.qrc
 
 win32 {
-Release:DESTDIR = $$PWD/
-Debug:DESTDIR = $$PWD/
+release:DESTDIR = $$PWD/
+debug:DESTDIR = $$PWD/
 OBJECTS_DIR = $$PWD/build-win32/obj
 MOC_DIR = $$PWD/build-win32/moc
 RCC_DIR = $$PWD/build-win32/rcc
 UI_DIR = $$PWD/build-win32/ui
+QMAKE_CLEAN += $$PWD/object_script.* \
+               $$PWD/PXMessenger_resource.rc
 }
 unix {
 release:DESTDIR = $$PWD/
@@ -89,6 +95,8 @@ RCC_DIR = $$PWD/build-unix/rcc
 UI_DIR = $$PWD/build-unix/ui
 }
 
+
 win32 {
-include($$PWD/QSimpleUpdater/QSimpleUpdater.pri)
+include($$PWD/include/QSimpleUpdater/QSimpleUpdater.pri)
 }
+

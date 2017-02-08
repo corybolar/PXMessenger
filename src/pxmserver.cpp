@@ -341,7 +341,7 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
         }
         case MSG_SYNC_REQUEST:
             qDebug().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
-                              << quuid.toString();
+                               << quuid.toString();
             emit q_ptr->syncRequestHandler(bev, quuid);
             break;
         case MSG_GLOBAL:
@@ -677,9 +677,10 @@ void ServerThread::run()
     }
 
     // Communicate backend to peerworker
-    qInfo().noquote() << "Using " + QString::fromUtf8(event_base_get_method(d_ptr->base.data())) +
-                             " as the libevent backend";
-    emit libeventBackend(QString::fromUtf8(event_base_get_method(d_ptr->base.data())));
+    qDebug().noquote() << "Using " + QString::fromUtf8(event_base_get_method(d_ptr->base.data())) +
+                              " as the libevent backend";
+    emit libeventBackend(QString::fromUtf8(event_base_get_method(d_ptr->base.data())),
+                         QString::fromLatin1(event_get_version()));
 
     // Pair for self communication
     struct bufferevent* selfCommsPair[2];
