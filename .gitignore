@@ -1,1 +1,8 @@
 /PXMessenger.pro.user
+/PXMessenger.exe
+/PXMessenger
+/object_script*
+/build-unix
+/build-win32
+/.qmake.stash
+/Makefile*
