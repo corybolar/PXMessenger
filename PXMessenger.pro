@@ -31,13 +31,16 @@ INCLUDEPATH += $$PWD/include
 win32 {
 LIBS += -lws2_32
 RC_ICONS = $$PWD/resources/PXM_Icon.ico
+}
+
+win32 {
 contains(QMAKE_HOST.arch, x86_64):{
 TARGET =$$TARGET-x86_64
-BUILDDIR = build-win32-x64
+BUILDDIR = build-win64
 }
 contains(QMAKE_HOST.arch, x86):{
 TARGET =$$TARGET-x86
-BUILDDIR = build-win32-x86
+BUILDDIR = build-win32
 }
 }
 
@@ -85,8 +88,8 @@ DISTFILES += \
 RESOURCES += 	$$PWD/resources/resources.qrc
 
 win32 {
-release:DESTDIR = $$PWD/
-debug:DESTDIR = $$PWD/
+release:DESTDIR = $$PWD/$$BUILDDIR/
+debug:DESTDIR = $$PWD/$$BUILDDIR/
 OBJECTS_DIR = $$PWD/$$BUILDDIR/obj
 MOC_DIR = $$PWD/$$BUILDDIR/moc
 RCC_DIR = $$PWD/$$BUILDDIR/rcc

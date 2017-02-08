@@ -24,8 +24,10 @@
 
 #ifdef _WIN64
 const char* modName = "windows64";
+const char* arch    = "x86_64";
 #else
 const char* modName = "windows32";
+const char* arch    = "x86";
 #endif
 
 #elif __unix__
@@ -216,11 +218,9 @@ int PXMAgent::init()
     d_ptr->workerThread->start();
 
 #ifdef QT_DEBUG
-    qInfo() << "Built in debug mode";
-    qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
+    qInfo().noquote() << "Built in debug mode";
 #else
-    qInfo() << "Built in release mode";
-    qInfo() << "Our UUID:" << d_ptr->presets.uuid.toString();
+    qInfo().noquote() << "Built in release mode";
     splash.finish(d_ptr->window.data());
     qApp->processEvents();
     while (startupTimer.elapsed() < 1500) {
@@ -228,6 +228,10 @@ int PXMAgent::init()
         QThread::currentThread()->msleep(100);
     }
 #endif
+#ifdef _WIN32
+    qInfo().noquote() << "Architecture:" << arch;
+#endif
+    qInfo().noquote() << "Our UUID:" << d_ptr->presets.uuid.toString();
 
     d_ptr->window->show();
 

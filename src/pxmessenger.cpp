@@ -14,7 +14,11 @@ QLatin1Char seperator = QLatin1Char('\\');
 QLatin1Char seperator = QLatin1Char('/');
 #endif
 
+#ifdef QT_DEBUG
 void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+#else
+void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString& msg)
+#endif
 {
     using namespace PXMConsole;
     Logger* logger = Logger::getInstance();
