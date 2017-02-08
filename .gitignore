@@ -6,3 +6,5 @@
 /build-win32
 /.qmake.stash
 /Makefile*
+/pxmessenger_plugin_import.cpp
+/PXMessenger_resource.rc
