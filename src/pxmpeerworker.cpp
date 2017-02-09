@@ -54,7 +54,7 @@ class PXMPeerWorkerPrivate
           localUUID(selfUUID),
           multicastAddress(multicast),
           globalUUID(globaluuid),
-          syncablePeers(new TimedVector<QUuid>(q_ptr->SYNC_TIMEOUT_MSECS, SECONDS)),
+          syncablePeers(new TimedVector<QUuid>(q_ptr->SYNCREQUEST_TIMEOUT_MSECS, SECONDS)),
           serverTCPPort(tcpPort),
           serverUDPPort(udpPort)
     {
@@ -166,7 +166,7 @@ void PXMPeerWorker::currentThreadInit()
     srand(static_cast<unsigned int>(time(NULL)));
 
     d_ptr->syncTimer = new QTimer(this);
-    d_ptr->syncTimer->setInterval((rand() % 300000) + SYNC_TIMER);
+    d_ptr->syncTimer->setInterval((rand() % 300000) + SYNC_TIMER_MSECS);
     QObject::connect(d_ptr->syncTimer, &QTimer::timeout, this, &PXMPeerWorker::beginPeerSync);
     d_ptr->syncTimer->start();
 
@@ -273,7 +273,7 @@ void PXMPeerWorker::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t
     if (!d_ptr->syncablePeers->contains(senderUuid)) {
         qWarning() << "Sync packet from bad uuid -- timeout or not "
                       "requested"
-                   << senderUuid;
+                   << senderUuid.toString();
         return;
     }
     qDebug() << "Sync packet from" << senderUuid.toString();

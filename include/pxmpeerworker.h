@@ -29,8 +29,8 @@ class PXMPeerWorker : public QObject
     PXMPeerWorker& operator=(PXMPeerWorker const&) = delete;
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
-    const int SYNC_TIMEOUT_MSECS                = 2000;
-    const int SYNC_TIMER                        = 900000;
+    const int SYNCREQUEST_TIMEOUT_MSECS                = 3000;
+    const int SYNC_TIMER_MSECS                         = 900000;
     QSharedPointer<unsigned char> createSyncPacket(size_t &index);
    public slots:
     int msgHandler(QString str, QUuid uuid, const bufferevent* bev,

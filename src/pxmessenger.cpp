@@ -102,6 +102,7 @@ int main(int argc, char** argv)
         QTimer overlordInit;
         overlordInit.setSingleShot(true);
         QObject::connect(&overlordInit, &QTimer::timeout, &overlord, &PXMAgent::preInit);
+        QObject::connect(&overlord, &PXMAgent::alreadyRunning, &app, &QApplication::quit);
         overlordInit.start(1);
 
         result = app.exec();

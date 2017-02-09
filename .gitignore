@@ -3,7 +3,7 @@
 /PXMessenger
 /object_script*
 /build-unix
-/build-win32*
+/build-win*
 /.qmake.stash
 /Makefile*
 /*_plugin_import.cpp

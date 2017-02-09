@@ -33,6 +33,8 @@ public slots:
     int preInit();
 private slots:
     int init();
+signals:
+    void alreadyRunning();
 };
 
 #endif  // PXMAGENT_H

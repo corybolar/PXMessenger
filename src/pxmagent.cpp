@@ -136,6 +136,7 @@ int PXMAgent::init()
     } catch (const char* msg) {
         QMessageBox msgBox(QMessageBox::Critical, "WSAStartup Error", QString::fromUtf8(msg));
         msgBox.exec();
+        emit alreadyRunning();
         return -1;
     }
 
@@ -156,11 +157,11 @@ int PXMAgent::init()
     d_ptr->lockFile.reset(new QLockFile(tmpDir + "/pxmessenger_" + username + ".lock"));
     if (!allowMoreThanOne) {
         if (!d_ptr->lockFile->tryLock(100)) {
-            QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(),
-                               "PXMessenger is already "
-                               "running.\r\nOnly one instance "
-                               "is allowed");
+            QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(), QString("PXMessenger is already "
+                                                                                      "running.\r\nOnly one instance "
+                                                                                      "is allowed"));
             msgBox.exec();
+            emit alreadyRunning();
             return -1;
         }
     }
@@ -215,7 +216,6 @@ int PXMAgent::init()
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::printInfoToDebug, d_ptr->peerWorker,
                      &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);
-    d_ptr->workerThread->start();
 
 #ifdef QT_DEBUG
     qInfo().noquote() << "Built in debug mode";
@@ -232,6 +232,8 @@ int PXMAgent::init()
     qInfo().noquote() << "Architecture:" << arch;
 #endif
     qInfo().noquote() << "Our UUID:" << d_ptr->presets.uuid.toString();
+
+    d_ptr->workerThread->start();
 
     d_ptr->window->show();
 
