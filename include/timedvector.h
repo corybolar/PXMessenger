@@ -4,8 +4,7 @@
 #include <QVector>
 #include <QTimer>
 #include <QTime>
-
-enum Time_Format : unsigned int { MSECONDS = 1, SECONDS = 1000 };
+#include <QDebug>
 
 template <class T>
 class TimedVector
@@ -14,7 +13,7 @@ class TimedVector
         T* t;
         qint64 epoch;
 
-        TimedStruct() : t(new T()) {}
+        TimedStruct() : t(new T()), epoch(QDateTime::currentMSecsSinceEpoch()) {}
         TimedStruct(T t1) : t(new T(t1)), epoch(QDateTime::currentMSecsSinceEpoch()) {}
         ~TimedStruct() noexcept { delete t; }
         TimedStruct(TimedStruct&& v) noexcept : t(v.t), epoch(v.epoch) { v.t = nullptr; }
@@ -41,7 +40,7 @@ class TimedVector
     unsigned int ItemLifeMsecs;
 
    public:
-    TimedVector(unsigned int itemLife, Time_Format format) : ItemLifeMsecs(itemLife * format) {}
+    TimedVector(unsigned int itemLife) : ItemLifeMsecs(itemLife) {}
     ~TimedVector() {}
     TimedVector(const TimedVector& tv) : ItemLifeMsecs(tv.ItemLifeMsecs)
     {
@@ -58,7 +57,7 @@ class TimedVector
         if (rawVector.isEmpty())
             return false;
 
-        for (TimedStruct itr : rawVector) {
+        for (TimedStruct &itr : rawVector) {
             if (*(itr.t) == t) {
                 if (itr.epoch + ItemLifeMsecs > QDateTime::currentMSecsSinceEpoch())
                     return true;

@@ -323,11 +323,14 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
     bufLen -= sizeof(MESSAGE_TYPE);
     int result = 0;
     switch (type) {
-        case MSG_TEXT:
+        case MSG_TEXT: {
             qDebug().noquote() << "Message from" << quuid.toString();
             qDebug().noquote() << "MSG :" << QString::fromUtf8((char*)&buf[0], bufLen);
-            emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
+            QSharedPointer<QString> msgPtr(new QString(QLatin1String((char*)&buf[0], bufLen)));
+            // emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
+            emit q_ptr->msgHandler(msgPtr, quuid, bev, false);
             break;
+        }
         case MSG_SYNC: {
             // QT data structures seem to mangle this packet (i suspect
             // because it has null characters in it)
@@ -344,11 +347,13 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
                                << quuid.toString();
             emit q_ptr->syncRequestHandler(bev, quuid);
             break;
-        case MSG_GLOBAL:
+        case MSG_GLOBAL: {
             qDebug().noquote() << "Global message from" << quuid.toString();
             qDebug().noquote() << "GLOBAL :" << QString::fromUtf8((char*)&buf[0], bufLen);
-            emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, true);
+            QSharedPointer<QString> msgPtr(new QString(QLatin1String((char*)&buf[0], bufLen)));
+            emit q_ptr->msgHandler(msgPtr, quuid, bev, true);
             break;
+        }
         case MSG_NAME:
             qDebug().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
             emit q_ptr->nameHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid);

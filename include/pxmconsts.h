@@ -12,7 +12,6 @@ namespace PXMConsts
 {
 const char DEFAULT_MULTICAST_ADDRESS[]       = "239.192.13.13";
 const int MESSAGE_HISTORY_LENGTH             = 500;
-const size_t MIDNIGHT_TIMER_INTERVAL_MINUTES = 1;
 #ifdef QT_DEBUG
 const size_t DEBUG_PADDING = 23;
 #else

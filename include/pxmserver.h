@@ -53,7 +53,7 @@ class ServerThread : public QThread
 
     void run() Q_DECL_OVERRIDE;
    signals:
-    void msgHandler(QString, QUuid, const bufferevent*, bool);
+    void msgHandler(QSharedPointer<QString>, QUuid, const bufferevent*, bool);
     void newTCPConnection(bufferevent*);
     void authHandler(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
