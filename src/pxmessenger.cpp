@@ -89,6 +89,7 @@ int main(int argc, char** argv)
     qInstallMessageHandler(debugMessageOutput);
 
     QApplication app(argc, argv);
+    QObject::connect(&app, &QApplication::lastWindowClosed, &app, &QApplication::quit);
 
     app.setApplicationName("PXMessenger");
     app.setOrganizationName("PXMessenger");

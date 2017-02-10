@@ -331,11 +331,15 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
 void PXMWindow::closeEvent(QCloseEvent* event)
 {
 #ifndef __linux__
-    if (QMessageBox::No == QMessageBox::warning(this, "PXMessenger", "Are you sure you want to quit PXMessenger?",
-                                                QMessageBox::Yes, QMessageBox::No)) {
-        event->ignore();
-        return;
-    }
+    event->ignore();
+
+    QMessageBox* box = new QMessageBox(QMessageBox::Question, qApp->applicationName(), "Are you sure you want to quit?",
+                                       QMessageBox::Yes | QMessageBox::No, this);
+
+    QObject::connect(box->button(QMessageBox::Yes), &QAbstractButton::clicked, qApp, &QApplication::quit);
+    QObject::connect(box->button(QMessageBox::No), &QAbstractButton::clicked, box, &QObject::deleteLater);
+    QObject::connect(qApp, &QApplication::aboutToQuit, box, &QObject::deleteLater);
+    box->show();
 #endif
 
     sysTray->hide();
