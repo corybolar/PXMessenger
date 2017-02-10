@@ -45,7 +45,7 @@ PXMPeerWorker::PXMPeerWorker(QObject* parent,
       d_ptr(new PXMPeerWorkerPrivate(this, username, selfUUID, multicast, tcpPort, udpPort, globaluuid))
 {
     d_ptr->areWeSyncing = false;
-    d_ptr->messClient   = nullptr;
+    d_ptr->client       = nullptr;
     // End of Init
 
     // Prevent race condition when starting threads, a bufferevent
@@ -107,9 +107,9 @@ void PXMPeerWorker::init()
 
     in_addr multicast_in_addr;
     multicast_in_addr.s_addr = inet_addr(d_ptr->multicastAddress.toLatin1().constData());
-    d_ptr->messClient        = new PXMClient(this, multicast_in_addr, d_ptr->localUUID);
-    d_ptr->messServer = new PXMServer::ServerThread(this, d_ptr->localUUID, multicast_in_addr, d_ptr->serverTCPPort,
-                                                    d_ptr->serverUDPPort);
+    d_ptr->client            = new PXMClient(this, multicast_in_addr, d_ptr->localUUID);
+    d_ptr->server = new PXMServer::ServerThread(this, d_ptr->localUUID, multicast_in_addr, d_ptr->serverTCPPort,
+                                                d_ptr->serverUDPPort);
 
     d_ptr->connectClient();
     d_ptr->startServer();
@@ -117,47 +117,46 @@ void PXMPeerWorker::init()
 void PXMPeerWorkerPrivate::startServer()
 {
     using namespace PXMServer;
-    QObject::connect(messServer, &ServerThread::authHandler, this, &PXMPeerWorkerPrivate::authHandler,
+    QObject::connect(server, &ServerThread::authHandler, this, &PXMPeerWorkerPrivate::authHandler,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::msgHandler, this, &PXMPeerWorkerPrivate::msgHandler,
+    QObject::connect(server, &ServerThread::msgHandler, this, &PXMPeerWorkerPrivate::msgHandler, Qt::QueuedConnection);
+    QObject::connect(server, &QThread::finished, server, &QObject::deleteLater);
+    QObject::connect(server, &ServerThread::newTCPConnection, this, &PXMPeerWorkerPrivate::newAcceptedConnection,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
-    QObject::connect(messServer, &ServerThread::newTCPConnection, this, &PXMPeerWorkerPrivate::newAcceptedConnection,
+    QObject::connect(server, &ServerThread::peerQuit, this, &PXMPeerWorkerPrivate::peerQuit, Qt::QueuedConnection);
+    QObject::connect(server, &ServerThread::attemptConnection, this, &PXMPeerWorkerPrivate::attemptConnection,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::peerQuit, this, &PXMPeerWorkerPrivate::peerQuit, Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::attemptConnection, this, &PXMPeerWorkerPrivate::attemptConnection,
+    QObject::connect(server, &ServerThread::syncRequestHandler, this, &PXMPeerWorkerPrivate::syncRequestHandlerBev,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::syncRequestHandler, this, &PXMPeerWorkerPrivate::syncRequestHandlerBev,
+    QObject::connect(server, &ServerThread::syncHandler, this, &PXMPeerWorkerPrivate::syncHandler,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::syncHandler, this, &PXMPeerWorkerPrivate::syncHandler,
+    QObject::connect(server, &ServerThread::setPeerHostname, this, &PXMPeerWorkerPrivate::nameHandler,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::setPeerHostname, this, &PXMPeerWorkerPrivate::nameHandler,
+    QObject::connect(server, &ServerThread::setListenerPorts, this, &PXMPeerWorkerPrivate::setListenerPorts,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::setListenerPorts, this, &PXMPeerWorkerPrivate::setListenerPorts,
+    QObject::connect(server, &ServerThread::libeventBackend, this, &PXMPeerWorkerPrivate::setLibeventBackend,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::libeventBackend, this, &PXMPeerWorkerPrivate::setLibeventBackend,
+    QObject::connect(server, &ServerThread::setInternalBufferevent, this, &PXMPeerWorkerPrivate::setInternalBufferevent,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::setInternalBufferevent, this,
-                     &PXMPeerWorkerPrivate::setInternalBufferevent, Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::setSelfCommsBufferevent, this,
+    QObject::connect(server, &ServerThread::setSelfCommsBufferevent, this,
                      &PXMPeerWorkerPrivate::setSelfCommsBufferevent, Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::serverSetupFailure, this, &PXMPeerWorkerPrivate::serverSetupFailure,
+    QObject::connect(server, &ServerThread::serverSetupFailure, this, &PXMPeerWorkerPrivate::serverSetupFailure,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::sendUDP, q_ptr, &PXMPeerWorker::sendUDP, Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::nameHandler, this, &PXMPeerWorkerPrivate::nameHandler,
+    QObject::connect(server, &ServerThread::sendUDP, q_ptr, &PXMPeerWorker::sendUDP, Qt::QueuedConnection);
+    QObject::connect(server, &ServerThread::nameHandler, this, &PXMPeerWorkerPrivate::nameHandler,
                      Qt::QueuedConnection);
-    QObject::connect(messServer, &ServerThread::resultOfConnectionAttempt, this,
+    QObject::connect(server, &ServerThread::resultOfConnectionAttempt, this,
                      &PXMPeerWorkerPrivate::resultOfConnectionAttempt, Qt::QueuedConnection);
-    QObject::connect(messServer, &PXMServer::ServerThread::multicastIsFunctional, this,
+    QObject::connect(server, &PXMServer::ServerThread::multicastIsFunctional, this,
                      &PXMPeerWorkerPrivate::multicastIsFunctional, Qt::QueuedConnection);
-    messServer->start();
+    server->start();
 }
 void PXMPeerWorkerPrivate::connectClient()
 {
-    QObject::connect(messClient, &PXMClient::resultOfTCPSend, this, &PXMPeerWorkerPrivate::resultOfTCPSend,
+    QObject::connect(client, &PXMClient::resultOfTCPSend, this, &PXMPeerWorkerPrivate::resultOfTCPSend,
                      Qt::QueuedConnection);
-    QObject::connect(q_ptr, &PXMPeerWorker::sendMsg, messClient, &PXMClient::sendMsgSlot, Qt::QueuedConnection);
-    QObject::connect(q_ptr, &PXMPeerWorker::sendUDP, messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
+    QObject::connect(q_ptr, &PXMPeerWorker::sendMsg, client, &PXMClient::sendMsgSlot, Qt::QueuedConnection);
+    QObject::connect(q_ptr, &PXMPeerWorker::sendUDP, client, &PXMClient::sendUDP, Qt::QueuedConnection);
 }
 
 void PXMPeerWorkerPrivate::setListenerPorts(unsigned short tcpport, unsigned short udpport)
@@ -295,7 +294,7 @@ void PXMPeerWorkerPrivate::syncRequestHandlerBev(const bufferevent* bev, const Q
     if (peersHash.contains(uuid) && peersHash.value(uuid).bw->getBev() == bev) {
         size_t index = 0;
         QByteArray packet(createSyncPacket(index));
-        if (messClient && index != 0) {
+        if (client && index != 0) {
             qDebug() << "Sending sync to" << peersHash.value(uuid).hostname;
             emit q_ptr->sendMsg(peersHash.value(uuid).bw, packet, index, PXMConsts::MSG_SYNC);
         } else {
@@ -573,7 +572,7 @@ void PXMPeerWorker::printInfoToDebug()
     // hopefully reduce reallocs here
     QString str;
     str.reserve(
-        (330 + (PXMConsts::DEBUG_PADDING * 16) + (d_ptr->peersHash.size() * (260 + (9 * PXMConsts::DEBUG_PADDING)))));
+        (400 + (PXMConsts::DEBUG_PADDING * 16) + (d_ptr->peersHash.size() * (260 + (9 * PXMConsts::DEBUG_PADDING)))));
 
     str.append(QChar('\n') % QStringLiteral("---Program Info---\n") % QStringLiteral("Program Name: ") %
                qApp->applicationName() % QChar('\n') % QStringLiteral("Version: ") % qApp->applicationVersion() %

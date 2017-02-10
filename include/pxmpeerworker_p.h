@@ -53,12 +53,12 @@ class PXMPeerWorkerPrivate : public QObject
         // This must be done before PXMServer is shutdown;
         peersHash.clear();
 
-        if (messServer != 0 && messServer->isRunning()) {
+        if (server != 0 && server->isRunning()) {
             INTERNAL_MSG exit                 = INTERNAL_MSG::EXIT;
             char exitMsg[INTERNAL_MSG_LENGTH] = {};
             memcpy(&exitMsg[0], &exit, sizeof(exit));
             bufferevent_write(internalBev, &exitMsg[0], INTERNAL_MSG_LENGTH);
-            messServer->wait(5000);
+            server->wait(5000);
         }
     }
     void testConnect() {}
@@ -81,8 +81,8 @@ class PXMPeerWorkerPrivate : public QObject
     QTimer* midnightTimer;
     PXMSync* syncer;
     QVector<Peers::BevWrapper*> bwShortLife;
-    PXMServer::ServerThread* messServer;
-    PXMClient* messClient;
+    PXMServer::ServerThread* server;
+    PXMClient* client;
     bufferevent* internalBev;
     QVector<QSharedPointer<Peers::BevWrapper>> extraBevs;
     QScopedPointer<TimedVector<QUuid>> syncablePeers;

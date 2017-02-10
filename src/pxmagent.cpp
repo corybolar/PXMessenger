@@ -100,6 +100,7 @@ PXMAgent::~PXMAgent()
 
 int PXMAgent::init()
 {
+    QThread::currentThread()->setObjectName("MainThread");
 #ifdef __WIN32
     d_ptr->qupdater = QSimpleUpdater::getInstance();
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(doneChkUpdt(QString)));
