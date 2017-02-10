@@ -29,18 +29,18 @@ qmake
 
 make
 
-./PXMessenger
+sudo make install (optional; installs a desktop entry as well)
+
+./build-*/PXMessenger
 
 If compiling on Windows, the .pro file will have to be edited to point to your
 installation of libevent.  Specifically the lines
 
 ```
-win32 { LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
-
+win32 {
+LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
 INCLUDEPATH += $$PWD/../libevent/include \
-                $$PWD/../libevent/build/include
-
-DEPENDPATH += $$PWD/../libevent/include
+               $$PWD/../libevent/build/include
 }
 ```
 
