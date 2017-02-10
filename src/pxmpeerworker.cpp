@@ -12,6 +12,7 @@
 #include "pxmclient.h"
 #include "pxmserver.h"
 #include "pxmsync.h"
+#include "pxmpeerworker_p.h"
 #include "timedvector.h"
 
 #include <event2/event.h>
@@ -33,66 +34,6 @@
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 
-class PXMPeerWorkerPrivate
-{
-    Q_DISABLE_COPY(PXMPeerWorkerPrivate)
-    Q_DECLARE_PUBLIC(PXMPeerWorker)
-
-    const unsigned int SYNCREQUEST_TIMEOUT_MSECS = 2000;
-
-   public:
-    PXMPeerWorkerPrivate(PXMPeerWorker* q) : q_ptr(q) {}
-    PXMPeerWorkerPrivate(PXMPeerWorker* q,
-                         QString username,
-                         QUuid selfUUID,
-                         QString multicast,
-                         unsigned short tcpPort,
-                         unsigned short udpPort,
-                         QUuid globaluuid)
-        : q_ptr(q),
-          localHostname(username),
-          localUUID(selfUUID),
-          multicastAddress(multicast),
-          globalUUID(globaluuid),
-          syncablePeers(new TimedVector<QUuid>(SYNCREQUEST_TIMEOUT_MSECS)),
-          serverTCPPort(tcpPort),
-          serverUDPPort(udpPort)
-    {
-    }
-    PXMPeerWorker* const q_ptr;
-    // Data Members
-
-    QHash<QUuid, Peers::PeerData> peersHash;
-    QString localHostname;
-    QUuid localUUID;
-    QString multicastAddress;
-    QString libeventBackend;
-    QString libeventVers;
-    QUuid globalUUID;
-    QTimer* syncTimer;
-    QTimer* nextSyncTimer;
-    QTimer* discoveryTimer;
-    QTimer* discoveryTimerSingle;
-    QTimer* midnightTimer;
-    PXMSync* syncer;
-    QVector<Peers::BevWrapper*> bwShortLife;
-    PXMServer::ServerThread* messServer;
-    PXMClient* messClient;
-    bufferevent* internalBev;
-    QVector<QSharedPointer<Peers::BevWrapper>> extraBevs;
-    QScopedPointer<TimedVector<QUuid>> syncablePeers;
-    unsigned short serverTCPPort;
-    unsigned short serverUDPPort;
-    bool areWeSyncing;
-    bool multicastIsFunctioning;
-
-    // Functions
-    void sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw);
-    int formatMessage(QString& str, QUuid uuid, QString color);
-    QSharedPointer<unsigned char> createSyncPacket(size_t& index);
-
-    // Slots
-};
 PXMPeerWorker::PXMPeerWorker(QObject* parent,
                              QString username,
                              QUuid selfUUID,
@@ -126,41 +67,17 @@ PXMPeerWorker::PXMPeerWorker(QObject* parent,
 }
 PXMPeerWorker::~PXMPeerWorker()
 {
-    using namespace PXMServer;
-    d_ptr->syncTimer->stop();
-    d_ptr->nextSyncTimer->stop();
-    // delete d_ptr->syncablePeers;
-
-    for (auto& itr : d_ptr->peersHash) {
-        // qDeleteAll(itr.messages);
-        evutil_closesocket(itr.socket);
-    }
-    // Strange memory interaction with libevent, for now set ourSelfComms
-    // bufferevent to null to prevent it being auto freed when its removed
-    // from the hash
-    d_ptr->peersHash[d_ptr->localUUID].bw->setBev(nullptr);
-    // This must be done before PXMServer is shutdown;
-    d_ptr->peersHash.clear();
-
-    if (d_ptr->messServer != 0 && d_ptr->messServer->isRunning()) {
-        INTERNAL_MSG exit                 = INTERNAL_MSG::EXIT;
-        char exitMsg[INTERNAL_MSG_LENGTH] = {};
-        memcpy(&exitMsg[0], &exit, sizeof(exit));
-        bufferevent_write(d_ptr->internalBev, &exitMsg[0], INTERNAL_MSG_LENGTH);
-        d_ptr->messServer->wait(5000);
-    }
-
     qDebug() << "Shutdown of PXMPeerWorker Successful";
 }
-void PXMPeerWorker::setInternalBufferevent(bufferevent* bev)
+void PXMPeerWorkerPrivate::setInternalBufferevent(bufferevent* bev)
 {
-    d_ptr->internalBev = bev;
+    internalBev = bev;
 }
-void PXMPeerWorker::currentThreadInit()
+void PXMPeerWorker::init()
 {
     d_ptr->syncer = new PXMSync(this, d_ptr->peersHash);
-    QObject::connect(d_ptr->syncer, &PXMSync::requestIps, this, &PXMPeerWorker::requestSyncPacket);
-    QObject::connect(d_ptr->syncer, &PXMSync::syncComplete, this, &PXMPeerWorker::donePeerSync);
+    QObject::connect(d_ptr->syncer, &PXMSync::requestIps, d_ptr.data(), &PXMPeerWorkerPrivate::requestSyncPacket);
+    QObject::connect(d_ptr->syncer, &PXMSync::syncComplete, d_ptr.data(), &PXMPeerWorkerPrivate::donePeerSync);
 
     srand(static_cast<unsigned int>(time(NULL)));
 
@@ -176,12 +93,14 @@ void PXMPeerWorker::currentThreadInit()
     d_ptr->discoveryTimerSingle = new QTimer(this);
     d_ptr->discoveryTimerSingle->setSingleShot(true);
     d_ptr->discoveryTimerSingle->setInterval(5000);
-    QObject::connect(d_ptr->discoveryTimerSingle, &QTimer::timeout, this, &PXMPeerWorker::discoveryTimerSingleShot);
+    QObject::connect(d_ptr->discoveryTimerSingle, &QTimer::timeout, d_ptr.data(),
+                     &PXMPeerWorkerPrivate::discoveryTimerSingleShot);
     d_ptr->discoveryTimerSingle->start();
 
     d_ptr->midnightTimer = new QTimer(this);
-    d_ptr->midnightTimer->setInterval(MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
-    QObject::connect(d_ptr->midnightTimer, &QTimer::timeout, this, &PXMPeerWorker::midnightTimerPersistent);
+    d_ptr->midnightTimer->setInterval(d_ptr->MIDNIGHT_TIMER_INTERVAL_MINUTES * 60000);
+    QObject::connect(d_ptr->midnightTimer, &QTimer::timeout, d_ptr.data(),
+                     &PXMPeerWorkerPrivate::midnightTimerPersistent);
     d_ptr->midnightTimer->start();
 
     d_ptr->discoveryTimer = new QTimer(this);
@@ -192,67 +111,64 @@ void PXMPeerWorker::currentThreadInit()
     d_ptr->messServer = new PXMServer::ServerThread(this, d_ptr->localUUID, multicast_in_addr, d_ptr->serverTCPPort,
                                                     d_ptr->serverUDPPort);
 
-    connectClient();
-    startServer();
+    d_ptr->connectClient();
+    d_ptr->startServer();
 }
-void PXMPeerWorker::startServer()
+void PXMPeerWorkerPrivate::startServer()
 {
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::authHandler, this, &PXMPeerWorker::authHandler,
+    using namespace PXMServer;
+    QObject::connect(messServer, &ServerThread::authHandler, this, &PXMPeerWorkerPrivate::authHandler,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::msgHandler, this, &PXMPeerWorker::msgHandler,
+    QObject::connect(messServer, &ServerThread::msgHandler, this, &PXMPeerWorkerPrivate::msgHandler,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &QThread::finished, d_ptr->messServer, &QObject::deleteLater);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::newTCPConnection, this,
-                     &PXMPeerWorker::newAcceptedConnection, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::peerQuit, this, &PXMPeerWorker::peerQuit,
+    QObject::connect(messServer, &QThread::finished, messServer, &QObject::deleteLater);
+    QObject::connect(messServer, &ServerThread::newTCPConnection, this, &PXMPeerWorkerPrivate::newAcceptedConnection,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::attemptConnection, this,
-                     &PXMPeerWorker::attemptConnection, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::syncRequestHandler, this,
-                     &PXMPeerWorker::syncRequestHandlerBev, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::syncHandler, this, &PXMPeerWorker::syncHandler,
+    QObject::connect(messServer, &ServerThread::peerQuit, this, &PXMPeerWorkerPrivate::peerQuit, Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::attemptConnection, this, &PXMPeerWorkerPrivate::attemptConnection,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::setPeerHostname, this, &PXMPeerWorker::nameHandler,
+    QObject::connect(messServer, &ServerThread::syncRequestHandler, this, &PXMPeerWorkerPrivate::syncRequestHandlerBev,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::setListenerPorts, this,
-                     &PXMPeerWorker::setListenerPorts, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::libeventBackend, this,
-                     &PXMPeerWorker::setLibeventBackend, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::setInternalBufferevent, this,
-                     &PXMPeerWorker::setInternalBufferevent, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::setSelfCommsBufferevent, this,
-                     &PXMPeerWorker::setSelfCommsBufferevent, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::multicastIsFunctional, this,
-                     &PXMPeerWorker::multicastIsFunctional, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::serverSetupFailure, this,
-                     &PXMPeerWorker::serverSetupFailure, Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::sendUDP, this, &PXMPeerWorker::sendUDP,
+    QObject::connect(messServer, &ServerThread::syncHandler, this, &PXMPeerWorkerPrivate::syncHandler,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::nameHandler, this, &PXMPeerWorker::nameHandler,
+    QObject::connect(messServer, &ServerThread::setPeerHostname, this, &PXMPeerWorkerPrivate::nameHandler,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->messServer, &PXMServer::ServerThread::resultOfConnectionAttempt, this,
-                     &PXMPeerWorker::resultOfConnectionAttempt, Qt::QueuedConnection);
-    d_ptr->messServer->start();
+    QObject::connect(messServer, &ServerThread::setListenerPorts, this, &PXMPeerWorkerPrivate::setListenerPorts,
+                     Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::libeventBackend, this, &PXMPeerWorkerPrivate::setLibeventBackend,
+                     Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::setInternalBufferevent, this,
+                     &PXMPeerWorkerPrivate::setInternalBufferevent, Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::setSelfCommsBufferevent, this,
+                     &PXMPeerWorkerPrivate::setSelfCommsBufferevent, Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::serverSetupFailure, this, &PXMPeerWorkerPrivate::serverSetupFailure,
+                     Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::sendUDP, q_ptr, &PXMPeerWorker::sendUDP, Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::nameHandler, this, &PXMPeerWorkerPrivate::nameHandler,
+                     Qt::QueuedConnection);
+    QObject::connect(messServer, &ServerThread::resultOfConnectionAttempt, this,
+                     &PXMPeerWorkerPrivate::resultOfConnectionAttempt, Qt::QueuedConnection);
+    QObject::connect(messServer, &PXMServer::ServerThread::multicastIsFunctional, this,
+                     &PXMPeerWorkerPrivate::multicastIsFunctional, Qt::QueuedConnection);
+    messServer->start();
 }
-void PXMPeerWorker::connectClient()
+void PXMPeerWorkerPrivate::connectClient()
 {
-    QObject::connect(d_ptr->messClient, &PXMClient::resultOfTCPSend, this, &PXMPeerWorker::resultOfTCPSend,
+    QObject::connect(messClient, &PXMClient::resultOfTCPSend, this, &PXMPeerWorkerPrivate::resultOfTCPSend,
                      Qt::QueuedConnection);
-    QObject::connect(this, &PXMPeerWorker::sendMsg, d_ptr->messClient, &PXMClient::sendMsgSlot, Qt::QueuedConnection);
-    QObject::connect(this, &PXMPeerWorker::sendSyncPacket, d_ptr->messClient, &PXMClient::sendIpsSlot,
-                     Qt::QueuedConnection);
-    QObject::connect(this, &PXMPeerWorker::sendUDP, d_ptr->messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
+    QObject::connect(q_ptr, &PXMPeerWorker::sendMsg, messClient, &PXMClient::sendMsgSlot, Qt::QueuedConnection);
+    QObject::connect(q_ptr, &PXMPeerWorker::sendUDP, messClient, &PXMClient::sendUDP, Qt::QueuedConnection);
 }
 
-void PXMPeerWorker::setListenerPorts(unsigned short tcpport, unsigned short udpport)
+void PXMPeerWorkerPrivate::setListenerPorts(unsigned short tcpport, unsigned short udpport)
 {
-    d_ptr->serverTCPPort = tcpport;
-    d_ptr->serverUDPPort = udpport;
+    serverTCPPort = tcpport;
+    serverUDPPort = udpport;
 }
-void PXMPeerWorker::donePeerSync()
+void PXMPeerWorkerPrivate::donePeerSync()
 {
-    d_ptr->areWeSyncing = false;
-    d_ptr->nextSyncTimer->stop();
+    areWeSyncing = false;
+    nextSyncTimer->stop();
     qInfo() << "Finished Syncing peers";
 }
 void PXMPeerWorker::beginPeerSync()
@@ -268,9 +184,9 @@ void PXMPeerWorker::beginPeerSync()
     d_ptr->syncer->syncNext();
     d_ptr->nextSyncTimer->start();
 }
-void PXMPeerWorker::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid)
+void PXMPeerWorkerPrivate::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid)
 {
-    if (!d_ptr->syncablePeers->contains(senderUuid)) {
+    if (!syncablePeers->contains(senderUuid)) {
         qWarning() << "Sync packet from bad uuid -- timeout or not "
                       "requested"
                    << senderUuid.toString();
@@ -291,45 +207,45 @@ void PXMPeerWorker::syncHandler(QSharedPointer<unsigned char> syncPacket, size_t
     }
     qDebug().noquote() << "End of sync packet";
 
-    d_ptr->syncablePeers->remove(senderUuid);
+    syncablePeers->remove(senderUuid);
 
-    if (d_ptr->areWeSyncing) {
-        d_ptr->nextSyncTimer->stop();
-        d_ptr->nextSyncTimer->start(2000);
-        d_ptr->syncer->syncNext();
+    if (areWeSyncing) {
+        nextSyncTimer->stop();
+        nextSyncTimer->start(2000);
+        syncer->syncNext();
     }
 }
-void PXMPeerWorker::newAcceptedConnection(bufferevent* bev)
+void PXMPeerWorkerPrivate::newAcceptedConnection(bufferevent* bev)
 {
     QSharedPointer<Peers::BevWrapper> bw(new Peers::BevWrapper);
     bw->setBev(bev);
-    d_ptr->extraBevs.push_back(bw);
-    d_ptr->sendAuthPacket(bw);
+    extraBevs.push_back(bw);
+    sendAuthPacket(bw);
 }
 void PXMPeerWorkerPrivate::sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw)
 {
     using namespace PXMConsts;
     // Auth packet format "Hostname:::12345:::001.001.001
-    emit q_ptr->sendMsg(bw, (localHostname % QString::fromLatin1(AUTH_SEPERATOR) % QString::number(serverTCPPort) %
-                             QString::fromLatin1(AUTH_SEPERATOR) % qApp->applicationVersion())
-                                .toUtf8(),
-                        MSG_AUTH);
+    QByteArray authPacket((localHostname % QString::fromLatin1(AUTH_SEPERATOR) % QString::number(serverTCPPort) %
+                           QString::fromLatin1(AUTH_SEPERATOR) % qApp->applicationVersion())
+                              .toUtf8());
+    emit q_ptr->sendMsg(bw, authPacket, authPacket.size(), MSG_AUTH);
 }
-void PXMPeerWorker::requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid)
+void PXMPeerWorkerPrivate::requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid)
 {
-    d_ptr->syncablePeers->append(uuid);
-    qDebug() << "Requesting sync from" << d_ptr->peersHash.value(uuid).hostname;
-    emit sendMsg(bw, QByteArray(), PXMConsts::MSG_SYNC_REQUEST);
+    syncablePeers->append(uuid);
+    qDebug() << "Requesting sync from" << peersHash.value(uuid).hostname;
+    emit q_ptr->sendMsg(bw, QByteArray(), 0, PXMConsts::MSG_SYNC_REQUEST);
 }
-void PXMPeerWorker::attemptConnection(struct sockaddr_in addr, QUuid uuid)
+void PXMPeerWorkerPrivate::attemptConnection(struct sockaddr_in addr, QUuid uuid)
 {
-    if (d_ptr->peersHash.value(uuid).connectTo || uuid.isNull()) {
+    if (peersHash.value(uuid).connectTo || uuid.isNull()) {
         return;
     }
 
-    d_ptr->peersHash[uuid].uuid      = uuid;
-    d_ptr->peersHash[uuid].connectTo = true;
-    d_ptr->peersHash[uuid].addrRaw   = addr;
+    peersHash[uuid].uuid      = uuid;
+    peersHash[uuid].connectTo = true;
+    peersHash[uuid].addrRaw   = addr;
 
     // Tell Server to connect
     size_t index                                         = 0;
@@ -342,46 +258,46 @@ void PXMPeerWorker::attemptConnection(struct sockaddr_in addr, QUuid uuid)
     memcpy(&bevPtr[index], &(addr.sin_port), sizeof(addr.sin_port));
     index += sizeof(addr.sin_port);
     index += NetCompression::packUUID(&bevPtr[index], uuid);
-    bufferevent_write(d_ptr->internalBev, &bevPtr[0], PXMServer::INTERNAL_MSG_LENGTH);
+    bufferevent_write(internalBev, &bevPtr[0], PXMServer::INTERNAL_MSG_LENGTH);
 }
-void PXMPeerWorker::nameHandler(QString hname, const QUuid uuid)
+void PXMPeerWorkerPrivate::nameHandler(QString hname, const QUuid uuid)
 {
-    if (d_ptr->peersHash.contains(uuid)) {
-        d_ptr->peersHash[uuid].hostname = hname.left(PXMConsts::MAX_HOSTNAME_LENGTH + PXMConsts::MAX_COMPUTER_NAME);
-        emit newAuthedPeer(uuid, d_ptr->peersHash.value(uuid).hostname);
+    if (peersHash.contains(uuid)) {
+        peersHash[uuid].hostname = hname.left(PXMConsts::MAX_HOSTNAME_LENGTH + PXMConsts::MAX_COMPUTER_NAME);
+        emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
     }
 }
-void PXMPeerWorker::peerQuit(evutil_socket_t s, bufferevent* bev)
+void PXMPeerWorkerPrivate::peerQuit(evutil_socket_t s, bufferevent* bev)
 {
-    for (Peers::PeerData& itr : d_ptr->peersHash) {
+    for (Peers::PeerData& itr : peersHash) {
         if (itr.bw->getBev() == bev) {
-            d_ptr->peersHash[itr.uuid].connectTo = false;
-            d_ptr->peersHash[itr.uuid].isAuthed  = false;
-            d_ptr->peersHash[itr.uuid].bw->lockBev();
+            peersHash[itr.uuid].connectTo = false;
+            peersHash[itr.uuid].isAuthed  = false;
+            peersHash[itr.uuid].bw->lockBev();
             qInfo().noquote() << "Peer:" << itr.uuid.toString() << "has disconnected";
-            d_ptr->peersHash[itr.uuid].bw->setBev(nullptr);
+            peersHash[itr.uuid].bw->setBev(nullptr);
             bufferevent_free(bev);
-            d_ptr->peersHash[itr.uuid].bw->unlockBev();
+            peersHash[itr.uuid].bw->unlockBev();
             evutil_closesocket(itr.socket);
-            d_ptr->peersHash[itr.uuid].socket = -1;
-            emit connectionStatusChange(itr.uuid, 1);
+            peersHash[itr.uuid].socket = -1;
+            emit q_ptr->connectionStatusChange(itr.uuid, 1);
             return;
         }
     }
-    for (QSharedPointer<Peers::BevWrapper>& itr : d_ptr->extraBevs) {
-        d_ptr->extraBevs.removeAll(itr);
+    for (QSharedPointer<Peers::BevWrapper>& itr : extraBevs) {
+        extraBevs.removeAll(itr);
     }
     qWarning().noquote() << "Non-Authed Peer has quit";
     evutil_closesocket(s);
 }
-void PXMPeerWorker::syncRequestHandlerBev(const bufferevent* bev, const QUuid uuid)
+void PXMPeerWorkerPrivate::syncRequestHandlerBev(const bufferevent* bev, const QUuid uuid)
 {
-    if (d_ptr->peersHash.contains(uuid) && d_ptr->peersHash.value(uuid).bw->getBev() == bev) {
-        size_t index                         = 0;
-        QSharedPointer<unsigned char> packet = d_ptr->createSyncPacket(index);
-        if (d_ptr->messClient && index != 0) {
-            qDebug() << "Sending sync to" << d_ptr->peersHash.value(uuid).hostname;
-            emit sendSyncPacket(d_ptr->peersHash.value(uuid).bw, packet, index, PXMConsts::MSG_SYNC);
+    if (peersHash.contains(uuid) && peersHash.value(uuid).bw->getBev() == bev) {
+        size_t index = 0;
+        QByteArray packet(createSyncPacket(index));
+        if (messClient && index != 0) {
+            qDebug() << "Sending sync to" << peersHash.value(uuid).hostname;
+            emit q_ptr->sendMsg(peersHash.value(uuid).bw, packet, index, PXMConsts::MSG_SYNC);
         } else {
             qCritical() << "messClient not initialized";
         }
@@ -389,26 +305,30 @@ void PXMPeerWorker::syncRequestHandlerBev(const bufferevent* bev, const QUuid uu
         qCritical() << "sendIpsBev:error";
     }
 }
-QSharedPointer<unsigned char> PXMPeerWorkerPrivate::createSyncPacket(size_t& index)
+QByteArray PXMPeerWorkerPrivate::createSyncPacket(size_t& index)
 {
-    QSharedPointer<unsigned char> msgRaw(
-        new unsigned char[static_cast<size_t>(peersHash.size()) *
-                              (NetCompression::PACKED_SOCKADDR_IN_LENGTH + NetCompression::PACKED_UUID_LENGTH) +
-                          1]);
+    unsigned char msgRaw[static_cast<size_t>(peersHash.size()) *
+                             (NetCompression::PACKED_SOCKADDR_IN_LENGTH + NetCompression::PACKED_UUID_LENGTH) +
+                         1];
+
     index = 0;
     for (Peers::PeerData& itr : peersHash) {
         if (itr.isAuthed) {
-            index += NetCompression::packSockaddr_in(&msgRaw.data()[index], itr.addrRaw);
-            index += NetCompression::packUUID(&msgRaw.data()[index], itr.uuid);
+            index += NetCompression::packSockaddr_in(&msgRaw[index], itr.addrRaw);
+            index += NetCompression::packUUID(&msgRaw[index], itr.uuid);
         }
     }
-    msgRaw.data()[index + 1] = 0;
-    return msgRaw;
+    msgRaw[index + 1]     = 0;
+    QByteArray syncPacket = QByteArray::fromRawData((char*)msgRaw, index);
+    // Make deep copy
+    syncPacket.detach();
+
+    return syncPacket;
 }
-void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket,
-                                              const bool result,
-                                              bufferevent* bev,
-                                              const QUuid uuid)
+void PXMPeerWorkerPrivate::resultOfConnectionAttempt(evutil_socket_t socket,
+                                                     const bool result,
+                                                     bufferevent* bev,
+                                                     const QUuid uuid)
 {
     if (uuid.isNull()) {
         return;
@@ -421,42 +341,42 @@ void PXMPeerWorker::resultOfConnectionAttempt(evutil_socket_t socket,
         unsigned char bevPtr[PXMServer::INTERNAL_MSG_LENGTH] = {};
         memcpy(&bevPtr[0], &addBev, sizeof(addBev));
         memcpy(&bevPtr[sizeof(addBev)], &bev, sizeof(void*));
-        bufferevent_write(d_ptr->internalBev, &bevPtr[0], PXMServer::INTERNAL_MSG_LENGTH);
+        bufferevent_write(internalBev, &bevPtr[0], PXMServer::INTERNAL_MSG_LENGTH);
 
-        d_ptr->peersHash[uuid].bw->lockBev();
-        if (d_ptr->peersHash.value(uuid).bw->getBev() != nullptr && d_ptr->peersHash.value(uuid).bw->getBev() != bev) {
-            bufferevent_free(d_ptr->peersHash.value(uuid).bw->getBev());
+        peersHash[uuid].bw->lockBev();
+        if (peersHash.value(uuid).bw->getBev() != nullptr && peersHash.value(uuid).bw->getBev() != bev) {
+            bufferevent_free(peersHash.value(uuid).bw->getBev());
         }
 
-        d_ptr->peersHash.value(uuid).bw->setBev(bev);
-        d_ptr->peersHash.value(uuid).bw->unlockBev();
+        peersHash.value(uuid).bw->setBev(bev);
+        peersHash.value(uuid).bw->unlockBev();
 
-        d_ptr->sendAuthPacket(d_ptr->peersHash.value(uuid).bw);
+        sendAuthPacket(peersHash.value(uuid).bw);
     } else {
         qWarning() << "Unsuccessful connection attempt to " << uuid.toString();
-        d_ptr->peersHash[uuid].bw->lockBev();
-        d_ptr->peersHash[uuid].bw->setBev(nullptr);
+        peersHash[uuid].bw->lockBev();
+        peersHash[uuid].bw->setBev(nullptr);
         bufferevent_free(bev);
         evutil_closesocket(socket);
-        d_ptr->peersHash[uuid].bw->unlockBev();
-        d_ptr->peersHash[uuid].connectTo = false;
-        d_ptr->peersHash[uuid].isAuthed  = false;
-        d_ptr->peersHash[uuid].socket    = -1;
+        peersHash[uuid].bw->unlockBev();
+        peersHash[uuid].connectTo = false;
+        peersHash[uuid].isAuthed  = false;
+        peersHash[uuid].socket    = -1;
     }
 }
-void PXMPeerWorker::resultOfTCPSend(const int levelOfSuccess,
-                                    const QUuid uuid,
-                                    QString msg,
-                                    const bool print,
-                                    const QSharedPointer<Peers::BevWrapper>)
+void PXMPeerWorkerPrivate::resultOfTCPSend(const int levelOfSuccess,
+                                           const QUuid uuid,
+                                           QString msg,
+                                           const bool print,
+                                           const QSharedPointer<Peers::BevWrapper>)
 {
     if (print) {
         if (levelOfSuccess == 0) {
-            d_ptr->formatMessage(msg, d_ptr->localUUID, Peers::selfColor);
+            formatMessage(msg, localUUID, Peers::selfColor);
         } else {
             qInfo() << "Send Failure";
         }
-        addMessageToPeer(msg, uuid, false, true);
+        q_ptr->addMessageToPeer(msg, uuid, false, true);
     }
     /*
     if(bwShortLife.contains(bw))
@@ -465,12 +385,12 @@ void PXMPeerWorker::resultOfTCPSend(const int levelOfSuccess,
     }
     */
 }
-void PXMPeerWorker::authHandler(const QString hostname,
-                                const unsigned short port,
-                                const QString version,
-                                const evutil_socket_t socket,
-                                const QUuid uuid,
-                                bufferevent* bev)
+void PXMPeerWorkerPrivate::authHandler(const QString hostname,
+                                       const unsigned short port,
+                                       const QString version,
+                                       const evutil_socket_t socket,
+                                       const QUuid uuid,
+                                       bufferevent* bev)
 {
     if (uuid.isNull()) {
         evutil_closesocket(socket);
@@ -486,43 +406,43 @@ void PXMPeerWorker::authHandler(const QString hostname,
 
     qInfo().noquote() << hostname << "on port" << QString::number(port) << "authenticated!";
 
-    if (d_ptr->peersHash[uuid].bw->getBev() != nullptr && d_ptr->peersHash[uuid].bw->getBev() != bev) {
-        peerQuit(-1, d_ptr->peersHash.value(uuid).bw->getBev());
+    if (peersHash[uuid].bw->getBev() != nullptr && peersHash[uuid].bw->getBev() != bev) {
+        peerQuit(-1, peersHash.value(uuid).bw->getBev());
     } else {
-        for (QSharedPointer<Peers::BevWrapper>& itr : d_ptr->extraBevs) {
+        for (QSharedPointer<Peers::BevWrapper>& itr : extraBevs) {
             if (itr->getBev() == bev) {
-                d_ptr->peersHash[uuid].bw = itr;
-                d_ptr->extraBevs.removeAll(itr);
+                peersHash[uuid].bw = itr;
+                extraBevs.removeAll(itr);
                 break;
             }
         }
     }
-    d_ptr->peersHash[uuid].uuid        = uuid;
-    d_ptr->peersHash[uuid].addrRaw     = addr;
-    d_ptr->peersHash[uuid].hostname    = hostname;
-    d_ptr->peersHash[uuid].progVersion = version;
-    d_ptr->peersHash[uuid].bw->lockBev();
-    d_ptr->peersHash[uuid].bw->setBev(bev);
-    d_ptr->peersHash[uuid].bw->unlockBev();
-    d_ptr->peersHash[uuid].socket    = socket;
-    d_ptr->peersHash[uuid].connectTo = true;
-    d_ptr->peersHash[uuid].isAuthed  = true;
+    peersHash[uuid].uuid        = uuid;
+    peersHash[uuid].addrRaw     = addr;
+    peersHash[uuid].hostname    = hostname;
+    peersHash[uuid].progVersion = version;
+    peersHash[uuid].bw->lockBev();
+    peersHash[uuid].bw->setBev(bev);
+    peersHash[uuid].bw->unlockBev();
+    peersHash[uuid].socket    = socket;
+    peersHash[uuid].connectTo = true;
+    peersHash[uuid].isAuthed  = true;
 
-    emit newAuthedPeer(uuid, d_ptr->peersHash.value(uuid).hostname);
-    emit requestSyncPacket(d_ptr->peersHash.value(uuid).bw, uuid);
+    emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
+    emit requestSyncPacket(peersHash.value(uuid).bw, uuid);
 }
-int PXMPeerWorker::msgHandler(QSharedPointer<QString> msgPtr, QUuid uuid, const bufferevent* bev, bool global)
+int PXMPeerWorkerPrivate::msgHandler(QSharedPointer<QString> msgPtr, QUuid uuid, const bufferevent* bev, bool global)
 {
-    if (uuid != d_ptr->localUUID) {
-        if (!(d_ptr->peersHash.contains(uuid))) {
+    if (uuid != localUUID) {
+        if (!(peersHash.contains(uuid))) {
             qWarning() << "Message from invalid uuid, rejection";
             return -1;
         }
 
-        if (d_ptr->peersHash.value(uuid).bw->getBev() != bev) {
+        if (peersHash.value(uuid).bw->getBev() != bev) {
             bool foundIt      = false;
             QUuid uuidSpoofer = QUuid();
-            for (auto& itr : d_ptr->peersHash) {
+            for (auto& itr : peersHash) {
                 if (itr.bw->getBev() == bev) {
                     foundIt     = true;
                     uuidSpoofer = itr.uuid;
@@ -530,12 +450,12 @@ int PXMPeerWorker::msgHandler(QSharedPointer<QString> msgPtr, QUuid uuid, const 
                 }
             }
             if (foundIt) {
-                addMessageToPeer(
+                q_ptr->addMessageToPeer(
                     "This user is trying to spoof another "
                     "users uuid!",
                     uuidSpoofer, true, false);
             } else {
-                addMessageToPeer(
+                q_ptr->addMessageToPeer(
                     "Someone is trying to spoof this users "
                     "uuid!",
                     uuid, true, false);
@@ -546,24 +466,24 @@ int PXMPeerWorker::msgHandler(QSharedPointer<QString> msgPtr, QUuid uuid, const 
     }
 
     if (global) {
-        if (uuid == d_ptr->localUUID) {
-            d_ptr->formatMessage(*msgPtr.data(), uuid, Peers::selfColor);
+        if (uuid == localUUID) {
+            formatMessage(*msgPtr.data(), uuid, Peers::selfColor);
         } else {
-            d_ptr->formatMessage(*msgPtr.data(), uuid, d_ptr->peersHash.value(uuid).textColor);
+            formatMessage(*msgPtr.data(), uuid, peersHash.value(uuid).textColor);
         }
 
-        uuid = d_ptr->globalUUID;
+        uuid = globalUUID;
     } else {
-        d_ptr->formatMessage(*msgPtr.data(), uuid, Peers::peerColor);
+        formatMessage(*msgPtr.data(), uuid, Peers::peerColor);
     }
 
-    addMessageToPeer(msgPtr, uuid, true, true);
+    q_ptr->addMessageToPeer(msgPtr, uuid, true, true);
     return 0;
 }
-void PXMPeerWorker::addMessageToAllPeers(QString str, bool alert, bool formatAsMessage)
+void PXMPeerWorkerPrivate::addMessageToAllPeers(QString str, bool alert, bool formatAsMessage)
 {
-    for (Peers::PeerData& itr : d_ptr->peersHash) {
-        addMessageToPeer(str, itr.uuid, alert, formatAsMessage);
+    for (Peers::PeerData& itr : peersHash) {
+        q_ptr->addMessageToPeer(str, itr.uuid, alert, formatAsMessage);
     }
 }
 
@@ -599,13 +519,13 @@ int PXMPeerWorker::addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, boo
     emit msgRecieved(str, uuid, alert);
     return 0;
 }
-void PXMPeerWorker::setSelfCommsBufferevent(bufferevent* bev)
+void PXMPeerWorkerPrivate::setSelfCommsBufferevent(bufferevent* bev)
 {
-    d_ptr->peersHash.value(d_ptr->localUUID).bw->lockBev();
-    d_ptr->peersHash.value(d_ptr->localUUID).bw->setBev(bev);
-    d_ptr->peersHash.value(d_ptr->localUUID).bw->unlockBev();
+    peersHash.value(localUUID).bw->lockBev();
+    peersHash.value(localUUID).bw->setBev(bev);
+    peersHash.value(localUUID).bw->unlockBev();
 
-    newAuthedPeer(d_ptr->localUUID, d_ptr->localHostname);
+    q_ptr->newAuthedPeer(localUUID, localHostname);
     // addMessageToPeer("<!DOCTYPE html><html><body><style>h2, p {margin:"
     // "0;}h2 {text-align: center;}p {text-align: left;}</style><h2>" %
     // d_ptr->localHostname % "</h2></body></html>",
@@ -617,14 +537,14 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type
     switch (type) {
         case MSG_TEXT:
             if (!uuid.isNull())
-                emit sendMsg(d_ptr->peersHash.value(uuid).bw, msg, MSG_TEXT, uuid);
+                emit sendMsg(d_ptr->peersHash.value(uuid).bw, msg, msg.size(), MSG_TEXT, uuid);
             else
                 qWarning() << "Bad recipient uuid for normal message";
             break;
         case MSG_GLOBAL:
             for (auto& itr : d_ptr->peersHash) {
                 if (itr.isAuthed || itr.uuid == d_ptr->localUUID) {
-                    emit sendMsg(itr.bw, msg, MSG_GLOBAL);
+                    emit sendMsg(itr.bw, msg, msg.size(), MSG_GLOBAL);
                 }
             }
             break;
@@ -633,7 +553,7 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type
             d_ptr->localHostname                        = QString(msg);
             for (auto& itr : d_ptr->peersHash) {
                 if (itr.isAuthed || itr.uuid == d_ptr->localUUID) {
-                    emit sendMsg(itr.bw, msg, MSG_NAME);
+                    emit sendMsg(itr.bw, msg, msg.size(), MSG_NAME);
                 }
             }
             break;
@@ -643,10 +563,10 @@ void PXMPeerWorker::sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type
     }
 }
 
-void PXMPeerWorker::setLibeventBackend(QString back, QString vers)
+void PXMPeerWorkerPrivate::setLibeventBackend(QString back, QString vers)
 {
-    d_ptr->libeventBackend = back;
-    d_ptr->libeventVers    = vers;
+    libeventBackend = back;
+    libeventVers    = vers;
 }
 void PXMPeerWorker::printInfoToDebug()
 {
@@ -681,37 +601,38 @@ void PXMPeerWorker::printInfoToDebug()
     str.squeeze();
     qInfo().noquote() << str;
 }
-void PXMPeerWorker::discoveryTimerPersistent()
+void PXMPeerWorkerPrivate::discoveryTimerPersistent()
 {
-    if (d_ptr->peersHash.count() < 3) {
-        emit sendUDP("/discover", d_ptr->serverUDPPort);
+    if (peersHash.count() < 3) {
+        emit q_ptr->sendUDP("/discover", serverUDPPort);
     } else {
         qDebug() << "Found enough peers";
-        d_ptr->discoveryTimer->stop();
+        discoveryTimer->stop();
     }
 }
-void PXMPeerWorker::discoveryTimerSingleShot()
+void PXMPeerWorkerPrivate::discoveryTimerSingleShot()
 {
-    if (!d_ptr->multicastIsFunctioning) {
-        warnBox(QStringLiteral("Network Problem"), QStringLiteral("Could not find anyone, even ourselves, on "
-                                                                  "the network.\nThis could indicate a "
-                                                                  "problem with your configuration."
-                                                                  "\n\nWe'll keep looking..."));
+    if (!multicastIsFunctioning) {
+        emit q_ptr->warnBox(QStringLiteral("Network Problem"),
+                            QStringLiteral("Could not find anyone, even ourselves, on "
+                                           "the network.\nThis could indicate a "
+                                           "problem with your configuration."
+                                           "\n\nWe'll keep looking..."));
     }
-    if (d_ptr->peersHash.count() < 3) {
-        d_ptr->discoveryTimer->setInterval(30000);
-        QObject::connect(d_ptr->discoveryTimer, &QTimer::timeout, this, &PXMPeerWorker::discoveryTimerPersistent);
-        emit sendUDP("/discover", d_ptr->serverUDPPort);
+    if (peersHash.count() < 3) {
+        discoveryTimer->setInterval(30000);
+        QObject::connect(discoveryTimer, &QTimer::timeout, this, &PXMPeerWorkerPrivate::discoveryTimerPersistent);
+        emit q_ptr->sendUDP("/discover", serverUDPPort);
         qInfo().noquote() << QStringLiteral(
             "Retrying discovery packet, looking "
             "for other computers...");
-        d_ptr->discoveryTimer->start();
+        discoveryTimer->start();
     } else {
         qDebug() << "Found enough peers";
     }
 }
 
-void PXMPeerWorker::midnightTimerPersistent()
+void PXMPeerWorkerPrivate::midnightTimerPersistent()
 {
     QDateTime dt = QDateTime::currentDateTime();
     if (dt.time() <= QTime(0, MIDNIGHT_TIMER_INTERVAL_MINUTES, 0, 0)) {
@@ -727,24 +648,25 @@ void PXMPeerWorker::midnightTimerPersistent()
     }
 }
 
-void PXMPeerWorker::multicastIsFunctional()
+void PXMPeerWorkerPrivate::multicastIsFunctional()
 {
-    d_ptr->multicastIsFunctioning = true;
+    multicastIsFunctioning = true;
 }
 
-void PXMPeerWorker::serverSetupFailure(QString error)
+void PXMPeerWorkerPrivate::serverSetupFailure(QString error)
 {
-    d_ptr->discoveryTimer->stop();
-    d_ptr->discoveryTimerSingle->stop();
-    emit warnBox(QStringLiteral("Server Setup Failure"), QStringLiteral("Server Setup failure:") % "\n" % error % "\n" %
-                                                             QStringLiteral("Settings for your network conditions will "
-                                                                            "have to be adjusted and the program "
-                                                                            "restarted."));
+    discoveryTimer->stop();
+    discoveryTimerSingle->stop();
+    emit q_ptr->warnBox(QStringLiteral("Server Setup Failure"),
+                        QStringLiteral("Server Setup failure:") % "\n" % error % "\n" %
+                            QStringLiteral("Settings for your network conditions will "
+                                           "have to be adjusted and the program "
+                                           "restarted."));
 }
 
-void PXMPeerWorker::setLocalHostname(QString hname)
+void PXMPeerWorkerPrivate::setLocalHostname(QString hname)
 {
-    d_ptr->localHostname = hname;
+    localHostname = hname;
 }
 
 void PXMPeerWorker::sendUDPAccessor(const char* msg)
@@ -772,3 +694,5 @@ QString multicast)
     }
 }
 */
+
+#include "moc_pxmpeerworker.cpp"

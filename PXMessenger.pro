@@ -74,7 +74,8 @@ HEADERS += \
     $$PWD/include/pxmconsole.h \
     $$PWD/include/pxmconsts.h \
     $$PWD/include/pxmpeers.h \
-    $$PWD/include/pxmagent.h
+    $$PWD/include/pxmagent.h \
+    include/pxmpeerworker_p.h
 
 FORMS += \
     $$PWD/ui/pxmmainwindow.ui \
@@ -106,6 +107,7 @@ RCC_DIR = $$PWD/build-unix/rcc
 UI_DIR = $$PWD/build-unix/ui
 }
 
+INCLUDEPATH += MOC_DIR
 
 win32 {
 include($$PWD/include/QSimpleUpdater/QSimpleUpdater.pri)

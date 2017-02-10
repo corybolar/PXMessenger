@@ -30,11 +30,21 @@ static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 
 struct PXMClientPrivate {
+    PXMClientPrivate(PXMClient* q) : q_ptr(q) {}
+    PXMClient* q_ptr;
     in_addr multicastAddress;
     unsigned char packedLocalUUID[NetCompression::PACKED_UUID_LENGTH];
     size_t localUUIDLen;
+
+    // Functions
+    void sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
+                 const char* msg,
+                 const size_t msgLen,
+                 const PXMConsts::MESSAGE_TYPE type,
+                 const QUuid uuidReceiver);
 };
-PXMClient::PXMClient(QObject* parent, in_addr multicast, QUuid localUUID) : QObject(parent), d_ptr(new PXMClientPrivate)
+PXMClient::PXMClient(QObject* parent, in_addr multicast, QUuid localUUID)
+    : QObject(parent), d_ptr(new PXMClientPrivate(this))
 {
     this->setObjectName("PXMClient");
 
@@ -94,11 +104,11 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
     return -1;
 }
 
-void PXMClient::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
-                        const char* msg,
-                        const size_t msgLen,
-                        const PXMConsts::MESSAGE_TYPE type,
-                        const QUuid uuidReceiver)
+void PXMClientPrivate::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
+                               const char* msg,
+                               const size_t msgLen,
+                               const PXMConsts::MESSAGE_TYPE type,
+                               const QUuid uuidReceiver)
 {
     int bytesSent = -1;
     size_t packetLen;
@@ -106,23 +116,22 @@ void PXMClient::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
     bool print = false;
 
     if (msgLen > 65400) {
-        emit resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
+        emit q_ptr->resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
         return;
     }
-    packetLen = d_ptr->localUUIDLen + sizeof(type) + msgLen;
+    packetLen = localUUIDLen + sizeof(type) + msgLen;
 
     if (type == PXMConsts::MSG_TEXT)
         print = true;
 
     QScopedArrayPointer<char> full_mess(new char[packetLen + 1]);
-    // char full_mess[packetLen + 1];
 
     packetLenNBO     = htons(static_cast<uint16_t>(packetLen));
     uint32_t typeNBO = htonl(type);
 
-    memcpy(&full_mess[0], d_ptr->packedLocalUUID, d_ptr->localUUIDLen);
-    memcpy(&full_mess[d_ptr->localUUIDLen], &typeNBO, sizeof(typeNBO));
-    memcpy(&full_mess[d_ptr->localUUIDLen + sizeof(typeNBO)], msg, msgLen);
+    memcpy(&full_mess[0], packedLocalUUID, localUUIDLen);
+    memcpy(&full_mess[localUUIDLen], &typeNBO, sizeof(typeNBO));
+    memcpy(&full_mess[localUUIDLen + sizeof(typeNBO)], msg, msgLen);
     full_mess[packetLen] = 0;
 
     bw->lockBev();
@@ -145,24 +154,16 @@ void PXMClient::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
     bw->unlockBev();
 
     if (!uuidReceiver.isNull()) {
-        emit resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print, bw);
+        emit q_ptr->resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print, bw);
     }
 
     return;
 }
 void PXMClient::sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw,
                             QByteArray msg,
-                            PXMConsts::MESSAGE_TYPE type,
-                            QUuid theiruuid)
-{
-    this->sendMsg(bw, msg.constData(), msg.length(), type, theiruuid);
-}
-
-void PXMClient::sendIpsSlot(QSharedPointer<Peers::BevWrapper> bw,
-                            QSharedPointer<unsigned char> msg,
                             size_t len,
                             PXMConsts::MESSAGE_TYPE type,
                             QUuid theiruuid)
 {
-    this->sendMsg(bw, (char*)msg.data(), len, type, theiruuid);
+    d_ptr->sendMsg(bw, msg.constData(), len, type, theiruuid);
 }
