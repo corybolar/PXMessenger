@@ -103,7 +103,7 @@ class PXMPeerWorkerPrivate : public QObject
     void authHandler(const QString hostname,
                      const unsigned short port,
                      const QString version,
-                     const int socket,
+                     const evutil_socket_t socket,
                      const QUuid uuid,
                      bufferevent* bev);
     void syncHandler(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid);
