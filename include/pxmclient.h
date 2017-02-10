@@ -28,14 +28,14 @@ class PXMClient : public QObject
      */
     void setLocalUUID(QUuid uuid);
    public slots:
-        void sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw,
-                     QByteArray msg, size_t len,
+    void sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw,
+                     QByteArray msg,
+                     size_t len,
                      PXMConsts::MESSAGE_TYPE type,
                      QUuid theiruuid = QUuid());
     int sendUDP(const char* msg, unsigned short port);
    signals:
-    void resultOfTCPSend(int, QUuid, QString, bool,
-                         QSharedPointer<Peers::BevWrapper>);
+    void resultOfTCPSend(int, QUuid, QString, bool, QSharedPointer<Peers::BevWrapper>);
 };
 
 #endif  // PXMCLIENT_H

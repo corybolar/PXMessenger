@@ -98,7 +98,7 @@ PXMAgent::~PXMAgent()
     d_ptr->iniReader.resetUUID(d_ptr->presets.uuidNum, d_ptr->presets.uuid);
 }
 
-int PXMAgent::preInit()
+int PXMAgent::init()
 {
 #ifdef __WIN32
     d_ptr->qupdater = QSimpleUpdater::getInstance();
@@ -110,12 +110,12 @@ int PXMAgent::preInit()
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
 #else
-    this->init();
+    this->postInit();
 #endif
     return 0;
 }
 
-int PXMAgent::init()
+int PXMAgent::postInit()
 {
 #ifndef QT_DEBUG
     QImage splashImage(":/resources/PXMessenger_wBackground.png");

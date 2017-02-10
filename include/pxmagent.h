@@ -30,9 +30,9 @@ class PXMAgent : public QObject
 
 public slots:
     void doneChkUpdt(const QString &);
-    int preInit();
-private slots:
     int init();
+private slots:
+    int postInit();
 signals:
     void alreadyRunning();
 };
