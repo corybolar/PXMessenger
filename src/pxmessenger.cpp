@@ -100,11 +100,14 @@ int main(int argc, char** argv)
     {
         PXMAgent overlord;
 
+        /*
         QTimer overlordInit;
         overlordInit.setSingleShot(true);
         QObject::connect(&overlordInit, &QTimer::timeout, &overlord, &PXMAgent::init);
-        QObject::connect(&overlord, &PXMAgent::alreadyRunning, &app, &QApplication::quit);
         overlordInit.start(1);
+        */
+        QMetaObject::invokeMethod(&overlord, "init", Qt::QueuedConnection);
+        QObject::connect(&overlord, &PXMAgent::alreadyRunning, &app, &QApplication::quit);
 
         result = app.exec();
 

@@ -115,6 +115,7 @@ class PXMWindow : public QMainWindow {
   void nameChange(QString hname);
   void syncActionsSlot();
   void manualConnect();
+  void aboutToClose();
 signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);

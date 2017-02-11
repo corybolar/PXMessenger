@@ -336,12 +336,18 @@ void PXMWindow::closeEvent(QCloseEvent* event)
     QMessageBox* box = new QMessageBox(QMessageBox::Question, qApp->applicationName(), "Are you sure you want to quit?",
                                        QMessageBox::Yes | QMessageBox::No, this);
 
+    QObject::connect(box->button(QMessageBox::Yes), &QAbstractButton::clicked, this, &PXMWindow::aboutToClose);
     QObject::connect(box->button(QMessageBox::Yes), &QAbstractButton::clicked, qApp, &QApplication::quit);
     QObject::connect(box->button(QMessageBox::No), &QAbstractButton::clicked, box, &QObject::deleteLater);
     QObject::connect(qApp, &QApplication::aboutToQuit, box, &QObject::deleteLater);
     box->show();
+#else
+    aboutToClose();
+    event->accept();
 #endif
-
+}
+void PXMWindow::aboutToClose()
+{
     sysTray->hide();
     PXMIniReader iniReader;
     iniReader.setWindowSize(this->size());
@@ -349,8 +355,8 @@ void PXMWindow::closeEvent(QCloseEvent* event)
     iniReader.setFocus(ui->focusCheckBox->isChecked());
 
     debugWindow->hide();
-    event->accept();
 }
+
 int PXMWindow::removeBodyFormatting(QByteArray& str)
 {
     QRegularExpression qre("((?<=<body) style.*?\"(?=>))");

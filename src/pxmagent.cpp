@@ -105,7 +105,7 @@ int PXMAgent::init()
     d_ptr->qupdater = QSimpleUpdater::getInstance();
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(doneChkUpdt(QString)));
     connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
-    connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::init);
+    connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::postInit);
     d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
     d_ptr->qupdater->setModuleName(d_ptr->address, modName);
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
@@ -245,7 +245,7 @@ void PXMAgent::doneChkUpdt(const QString&)
 #ifdef __WIN32
     if (!d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
         qDebug() << "No update Available";
-        this->init();
+        this->postInit();
     } else {
         qDebug() << "Update Available";
     }
