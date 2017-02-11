@@ -64,7 +64,21 @@ struct initialSettings {
     }
 };
 
-struct PXMAgentPrivate {
+class PXMAgentPrivate
+{
+   public:
+    PXMAgentPrivate() {}
+    ~PXMAgentPrivate()
+    {
+        if (workerThread) {
+            workerThread->quit();
+            workerThread->wait(3000);
+            qInfo() << "Shutdown of WorkerThread";
+        }
+
+        iniReader.resetUUID(presets.uuidNum, presets.uuid);
+    }
+
     QScopedPointer<PXMWindow> window;
     PXMPeerWorker* peerWorker;
     PXMIniReader iniReader;
@@ -89,13 +103,6 @@ PXMAgent::PXMAgent(QObject* parent) : QObject(parent), d_ptr(new PXMAgentPrivate
 
 PXMAgent::~PXMAgent()
 {
-    if (d_ptr->workerThread) {
-        d_ptr->workerThread->quit();
-        d_ptr->workerThread->wait(3000);
-        qInfo() << "Shutdown of WorkerThread";
-    }
-
-    d_ptr->iniReader.resetUUID(d_ptr->presets.uuidNum, d_ptr->presets.uuid);
 }
 
 int PXMAgent::init()

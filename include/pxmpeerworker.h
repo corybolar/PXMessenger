@@ -17,8 +17,6 @@ class PXMPeerWorker : public QObject
 
     friend class PXMPeerWorkerPrivate;
     const QScopedPointer<PXMPeerWorkerPrivate> d_ptr;
-
-    int addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool);
 public:
     explicit PXMPeerWorker(QObject* parent,
                            QString username,
@@ -32,7 +30,6 @@ public:
     PXMPeerWorker& operator=(PXMPeerWorker const&)     = delete;
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
-    const int SYNC_TIMER_MSECS                         = 900000;
    public slots:
     int addMessageToPeer(QString str, QUuid uuid, bool alert, bool);
 

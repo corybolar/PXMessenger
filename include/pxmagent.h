@@ -7,7 +7,7 @@
 #include <pxmmainwindow.h>
 #include <pxmpeerworker.h>
 
-struct PXMAgentPrivate;
+class PXMAgentPrivate;
 class PXMAgent : public QObject
 {
     Q_OBJECT
@@ -26,7 +26,7 @@ class PXMAgent : public QObject
     // Move Assignment
     PXMAgent& operator=(PXMAgent&& agent) noexcept = delete;
     // Destructor
-    ~PXMAgent();
+    ~PXMAgent();;
 
 public slots:
     void doneChkUpdt(const QString &);

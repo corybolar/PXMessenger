@@ -74,8 +74,7 @@ HEADERS += \
     $$PWD/include/pxmconsole.h \
     $$PWD/include/pxmconsts.h \
     $$PWD/include/pxmpeers.h \
-    $$PWD/include/pxmagent.h \
-    include/pxmpeerworker_p.h
+    $$PWD/include/pxmagent.h
 
 FORMS += \
     $$PWD/ui/pxmmainwindow.ui \
