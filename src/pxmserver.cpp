@@ -69,6 +69,7 @@ class ServerThreadPrivate
     static void tcpAuth(bufferevent* bev, void* arg);
     static void connectCB(bufferevent* bev, short error, void* arg);
     void addDefaultBev(bufferevent* bev);
+    static void packetLenRecv(bufferevent* bev);
 };
 
 ServerThread::ServerThread(QObject* parent,
@@ -175,8 +176,8 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
         return;
     }
 
-    QScopedArrayPointer<unsigned char> buf(new unsigned char[bufLen + 1]);
-    bufferevent_read(bev, buf.data(), bufLen);
+    unsigned char buf[bufLen + 1];
+    bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
 
     MESSAGE_TYPE* type = reinterpret_cast<MESSAGE_TYPE*>(&buf[0]);
@@ -207,30 +208,40 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
         st->q_ptr->peerQuit(socket, bev);
     }
 }
-void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
+void ServerThreadPrivate::packetLenRecv(struct bufferevent* bev)
 {
-    ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
     uint16_t nboBufLen;
     uint16_t bufLen;
     evbuffer* input = bufferevent_get_input(bev);
+
+    qDebug().noquote() << "Recieved bufferlength value";
+    evbuffer_copyout(input, &nboBufLen, PACKET_HEADER_LEN);
+    bufLen = ntohs(nboBufLen);
+    if (bufLen == 0) {
+        qWarning().noquote() << "Bad buffer length, draining...";
+        evbuffer_drain(input, UINT16_MAX);
+        return;
+    }
+    bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LEN, bufLen + PACKET_HEADER_LEN);
+    bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
+    qDebug().noquote() << "Setting watermark to" << QString::number(bufLen) << "bytes";
+    qDebug().noquote() << "Setting timeout to"
+                       << QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) << "seconds";
+}
+
+void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
+{
+    ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
+    evbuffer* input         = bufferevent_get_input(bev);
+
     if (evbuffer_get_length(input) == 1) {
         qDebug().noquote() << "Setting timeout, 1 byte recieved";
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
     } else if (evbuffer_get_length(input) == PACKET_HEADER_LEN) {
-        qDebug().noquote() << "Recieved bufferlength value";
-        evbuffer_copyout(input, &nboBufLen, PACKET_HEADER_LEN);
-        bufLen = ntohs(nboBufLen);
-        if (bufLen == 0) {
-            qWarning().noquote() << "Bad buffer length, draining...";
-            evbuffer_drain(input, UINT16_MAX);
-            return;
-        }
-        bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LEN, bufLen + PACKET_HEADER_LEN);
-        bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
-        qDebug().noquote() << "Setting watermark to" << QString::number(bufLen) << "bytes";
-        qDebug().noquote() << "Setting timeout to"
-                           << QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) << "seconds";
+        packetLenRecv(bev);
     } else {
+        uint16_t nboBufLen;
+        uint16_t bufLen;
         qDebug() << "Full packet received";
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
 
@@ -257,25 +268,20 @@ void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
         }
 
         // Change length of msg with respect to uuid length
-        unsigned char* buf = new unsigned char[bufLen + 1];
-        // QScopedArrayPointer<char> buf(new char[bufLen +1]);
+        unsigned char buf[bufLen + 1];
 
         // Read rest of message
         bufferevent_read(bev, buf, bufLen);
-        buf[bufLen] = 0;
 
-        // Handle message type and send it along to peerworker for
-        // further
-        // processing
         st->singleMessageIterator(bev, buf, bufLen, uuid);
 
-        // reset timeout -- this is a bug with the libevent
+        // reset timeout -- this is a bug with libevent
         // timeout is set to 1 day, a value of null in the read
         // parameter does nothing.  Timeing out should not cause a
         // problem
         bufferevent_set_timeouts(bev, &READ_TIMEOUT_RESET, NULL);
 
-        delete[] buf;
+        // delete[] buf;
     }
 }
 
@@ -324,11 +330,15 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
         qCritical() << "Blank message! -- Not Good!";
         return -1;
     }
-    MESSAGE_TYPE type = *reinterpret_cast<const MESSAGE_TYPE*>(&buf[0]);
-    type              = static_cast<MESSAGE_TYPE>(htonl(type));
-    buf               = &buf[sizeof(MESSAGE_TYPE)];
+    MESSAGE_TYPE type                     = *reinterpret_cast<const MESSAGE_TYPE*>(&buf[0]);
+    type                                  = static_cast<MESSAGE_TYPE>(htonl(type));
+    buf                                   = &buf[sizeof(MESSAGE_TYPE)];
+    QSharedPointer<unsigned char> bufCopy = QSharedPointer<unsigned char>(new unsigned char[bufLen]);
     bufLen -= sizeof(MESSAGE_TYPE);
-    int result = 0;
+    memcpy(bufCopy.data(), buf, bufLen);
+
+    emit q_ptr->packetHandler(bufCopy, bufLen, type, quuid, bev);
+    /*
     switch (type) {
         case MSG_TEXT: {
             qDebug().noquote() << "Message from" << quuid.toString();
@@ -376,7 +386,8 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
             result = -1;
             break;
     }
-    return result;
+    */
+    return 0;
 }
 void ServerThreadPrivate::udpRecieve(evutil_socket_t socketfd, short int, void* args)
 {

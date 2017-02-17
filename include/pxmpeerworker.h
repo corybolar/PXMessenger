@@ -37,7 +37,7 @@ public:
                          QUuid uuid = QUuid());
     void sendUDPAccessor(const char* msg);
 
-    void init();
+    //void setupTimers();
     void printInfoToDebug();
     void beginPeerSync();
     // void restartServer();

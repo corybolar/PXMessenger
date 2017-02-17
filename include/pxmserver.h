@@ -9,6 +9,7 @@
 #include <sys/time.h>
 
 #include <event2/util.h>
+#include <pxmconsts.h>
 
 struct bufferevent;
 struct event_base;
@@ -53,15 +54,13 @@ class ServerThread : public QThread
 
     void run() Q_DECL_OVERRIDE;
    signals:
-    void msgHandler(QSharedPointer<QString>, QUuid, const bufferevent*, bool);
+    void packetHandler(const QSharedPointer<unsigned char>, const size_t, const PXMConsts::MESSAGE_TYPE, const QUuid, const bufferevent*);
     void newTCPConnection(bufferevent*);
     void authHandler(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
     void peerQuit(evutil_socket_t, bufferevent*);
     void attemptConnection(struct sockaddr_in, QUuid);
-    void syncRequestHandler(const bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
-    void syncHandler(QSharedPointer<unsigned char>, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);
@@ -70,7 +69,6 @@ class ServerThread : public QThread
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
     void serverSetupFailure(QString);
-    void nameHandler(QString, QUuid);
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid);
 };
 }

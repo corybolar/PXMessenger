@@ -201,7 +201,7 @@ int PXMAgent::postInit()
         new PXMPeerWorker(nullptr, d_ptr->presets.username, d_ptr->presets.uuid, d_ptr->presets.multicast,
                           d_ptr->presets.tcpPort, d_ptr->presets.udpPort, globalChat);
     d_ptr->peerWorker->moveToThread(d_ptr->workerThread);
-    QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::init);
+    // QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::init);
     QObject::connect(d_ptr->workerThread, &QThread::finished, d_ptr->peerWorker, &PXMPeerWorker::deleteLater);
     d_ptr->window.reset(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize, d_ptr->presets.mute,
                                       d_ptr->presets.preventFocus, globalChat));
