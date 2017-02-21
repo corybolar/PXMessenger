@@ -31,7 +31,7 @@ public:
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
    public slots:
-    int addMessageToPeer(QString str, QUuid uuid, bool alert, bool);
+    int addMessageToPeer(QString str, QUuid uuid, bool alert, bool fromServer);
 
     void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type,
                          QUuid uuid = QUuid());
@@ -42,7 +42,7 @@ public:
     void beginPeerSync();
     // void restartServer();
    signals:
-    void msgRecieved(QSharedPointer<QString>, QUuid, bool);
+    void msgRecieved(QSharedPointer<QString>, QString, QUuid, bool);
     void newAuthedPeer(QUuid, QString);
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, size_t,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());

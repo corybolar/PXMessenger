@@ -26,12 +26,26 @@ class QListWidgetItem;
 class PXMWindow : public QMainWindow {
   Q_OBJECT
 
+  const QString selfColor = "#6495ED";  // Cornflower Blue
+  const QString peerColor = "#FF0000";  // Red
+  const QVector<QString> textColors = {
+      "#808000",  // Olive
+      "#FFA500",  // Orange
+      "#FF00FF",  // Fuschia
+      "#DC143C",  // Crimson
+      "#FF69B4",  // HotPink
+      "#708090",  // SlateGrey
+      "#008000",  // Green
+      "#00FF00"   // Lime
+  };
+  unsigned int textColorsNext;
   QScopedPointer<Ui::PXMWindow> ui;
   QAction* messSystemTrayExitAction;
   QMenu* sysTrayMenu;
   QSystemTrayIcon* sysTray;
   QFrame* fsep;
   QString localHostname;
+  QUuid localUuid;
   QUuid globalChatUuid;
   QScopedPointer<PXMConsole::Window> debugWindow;
   /*!
@@ -81,11 +95,12 @@ class PXMWindow : public QMainWindow {
   void setupGui();
   int removeBodyFormatting(QByteArray& str);
 
- public:
+  int formatMessage(QString &str, QString& hostname, QString color);
+public:
   PXMWindow(QString hostname,
             QSize windowSize,
             bool mute,
-            bool focus,
+            bool focus, QUuid local,
             QUuid globalChat,
             QWidget* parent = nullptr);
   ~PXMWindow();
@@ -95,7 +110,7 @@ class PXMWindow : public QMainWindow {
   PXMWindow(PXMWindow&&) noexcept = delete;
  public slots:
   void bloomActionsSlot();
-  int printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert);
+  int printToTextBrowser(QSharedPointer<QString> str, QString hostname, QUuid uuid, bool alert, bool fromServer);
   void setItalicsOnItem(QUuid uuid, bool italics);
   void updateListWidget(QUuid uuid, QString hostname);
   void warnBox(QString title, QString msg);

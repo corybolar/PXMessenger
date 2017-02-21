@@ -119,7 +119,7 @@ class PXMPeerWorkerPrivate : public QObject
 
     // Functions
     void sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw);
-    int formatMessage(QString& str, QUuid uuid, QString color);
+    // int formatMessage(QString& str, QUuid uuid, QString color);
     QByteArray createSyncPacket(size_t& index);
     void startServer();
     void connectClient();
@@ -548,9 +548,8 @@ void PXMPeerWorkerPrivate::resultOfTCPSend(const int levelOfSuccess,
                                            const QSharedPointer<Peers::BevWrapper>)
 {
     if (print) {
-        if (levelOfSuccess == 0) {
-            formatMessage(msg, localUUID, Peers::selfColor);
-        } else {
+        if (levelOfSuccess != 0) {
+            // formatMessage(msg, localUUID, Peers::selfColor);
             qInfo() << "Send Failure";
         }
         q_ptr->addMessageToPeer(msg, uuid, false, true);
@@ -646,6 +645,7 @@ int PXMPeerWorkerPrivate::msgHandler(QSharedPointer<unsigned char> msgPtr,
     }
 
     QSharedPointer<QString> msgStr = QSharedPointer<QString>(new QString((char*)msgPtr.data()));
+    /*
     if (global) {
         if (uuid == localUUID) {
             formatMessage(*msgStr.data(), uuid, Peers::selfColor);
@@ -657,6 +657,7 @@ int PXMPeerWorkerPrivate::msgHandler(QSharedPointer<unsigned char> msgPtr,
     } else {
         formatMessage(*msgStr.data(), uuid, Peers::peerColor);
     }
+    */
 
     addMessageToPeer(msgStr, uuid, true, true);
     return 0;
@@ -668,6 +669,7 @@ void PXMPeerWorkerPrivate::addMessageToAllPeers(QString str, bool alert, bool fo
     }
 }
 
+/*
 int PXMPeerWorkerPrivate::formatMessage(QString& str, QUuid uuid, QString color)
 {
     QRegularExpression qre("(<p.*?>)");
@@ -680,15 +682,16 @@ int PXMPeerWorkerPrivate::formatMessage(QString& str, QUuid uuid, QString color)
 
     return 0;
 }
+*/
 
-int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool)
+int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool fromServer)
 {
     if (!d_ptr->peersHash.contains(uuid)) {
         return -1;
     }
 
     QSharedPointer<QString> pStr(new QString(str.toUtf8()));
-    emit msgRecieved(pStr, uuid, alert);
+    emit msgRecieved(pStr, d_ptr->peersHash.value(uuid).hostname, uuid, alert, fromServer);
     return 0;
 }
 int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool)
@@ -697,7 +700,7 @@ int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uu
         return -1;
     }
 
-    emit q_ptr->msgRecieved(str, uuid, alert);
+    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, alert);
     return 0;
 }
 void PXMPeerWorkerPrivate::setSelfCommsBufferevent(bufferevent* bev)

@@ -15,7 +15,7 @@ Q_DECLARE_METATYPE(intptr_t)
 
 using namespace Peers;
 
-int Peers::textColorsNext = 0;
+// int Peers::textColorsNext = 0;
 
 PeerData::PeerData()
     : uuid(QUuid()),
@@ -27,15 +27,15 @@ PeerData::PeerData()
       connectTo(false),
       isAuthed(false)
 {
-    textColor = textColors.at(textColorsNext % textColors.length());
-    textColorsNext++;
+    //   textColor = textColors.at(textColorsNext % textColors.length());
+    //   textColorsNext++;
 }
 
 PeerData::PeerData(const PeerData& pd)
     : uuid(pd.uuid),
       addrRaw(pd.addrRaw),
       hostname(pd.hostname),
-      textColor(pd.textColor),
+      // textColor(pd.textColor),
       progVersion(pd.progVersion),
       bw(pd.bw),
       socket(pd.socket),
@@ -48,9 +48,8 @@ PeerData::PeerData(PeerData&& pd) noexcept
     : uuid(pd.uuid),
       addrRaw(pd.addrRaw),
       hostname(pd.hostname),
-      textColor(pd.textColor),
+      // textColor(pd.textColor),
       progVersion(pd.progVersion),
-      // messages(pd.messages),
       bw(pd.bw),
       socket(pd.socket),
       connectTo(pd.connectTo),
@@ -64,10 +63,10 @@ PeerData& PeerData::operator=(PeerData&& p) noexcept
     if (this != &p) {
         bw = p.bw;
         p.bw.clear();
-        uuid        = p.uuid;
-        addrRaw     = p.addrRaw;
-        hostname    = p.hostname;
-        textColor   = p.textColor;
+        uuid     = p.uuid;
+        addrRaw  = p.addrRaw;
+        hostname = p.hostname;
+        // textColor   = p.textColor;
         progVersion = p.progVersion;
         socket      = p.socket;
         connectTo   = p.connectTo;
@@ -87,8 +86,8 @@ QString PeerData::toInfoString()
 {
     return QString(
         QStringLiteral("Hostname: ") % hostname % QStringLiteral("\nUUID: ") % uuid.toString() %
-        QStringLiteral("\nProgram Version: ") % progVersion % QStringLiteral("\nText Color: ") % textColor %
-        QStringLiteral("\nIP Address: ") % QString::fromLocal8Bit(inet_ntoa(addrRaw.sin_addr)) % QStringLiteral(":") %
+        QStringLiteral("\nProgram Version: ") % progVersion % QStringLiteral("\nIP Address: ") %
+        QString::fromLocal8Bit(inet_ntoa(addrRaw.sin_addr)) % QStringLiteral(":") %
         QString::number(ntohs(addrRaw.sin_port)) % QStringLiteral("\nIsAuthenticated: ") %
         QString::fromLocal8Bit((isAuthed ? "true" : "false")) % QStringLiteral("\npreventAttemptConnection: ") %
         QString::fromLocal8Bit((connectTo ? "true" : "false")) % QStringLiteral("\nSocketDescriptor: ") %

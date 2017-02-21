@@ -43,13 +43,22 @@ class PXMSettingsDialogPrivate
     bool AllowMoreThanOneInstance;
 };
 
-PXMWindow::PXMWindow(QString hostname, QSize windowSize, bool mute, bool focus, QUuid globalChat, QWidget* parent)
+PXMWindow::PXMWindow(QString hostname,
+                     QSize windowSize,
+                     bool mute,
+                     bool focus,
+                     QUuid local,
+                     QUuid globalChat,
+                     QWidget* parent)
     : QMainWindow(parent),
       ui(new Ui::PXMWindow),
       localHostname(hostname),
+      localUuid(local),
       globalChatUuid(globalChat),
       debugWindow(new PXMConsole::Window())
 {
+    srand(static_cast<unsigned int>(time(NULL)));
+    textColorsNext = rand() % textColors.length();
     setupGui();
 
     ui->focusCheckBox->setChecked(focus);
@@ -320,6 +329,9 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
     QListWidgetItem* item   = new QListWidgetItem(hostname, ui->listWidget);
 
     item->setData(Qt::UserRole, uuid);
+    QString textColor = textColors.at(textColorsNext % textColors.length());
+    textColorsNext++;
+    item->setData(Qt::UserRole + 1, textColor);
     ui->listWidget->addItem(item);
     ui->stackedWidget->newHistory(uuid);
     ui->listWidget->sortItems();
@@ -417,6 +429,18 @@ int PXMWindow::changeListItemColor(QUuid uuid, int style)
     }
     return 0;
 }
+int PXMWindow::formatMessage(QString& str, QString& hostname, QString color)
+{
+    QRegularExpression qre("(<p.*?>)");
+    QRegularExpressionMatch qrem = qre.match(str);
+    int offset                   = qrem.capturedEnd(1);
+    QDateTime dt                 = QDateTime::currentDateTime();
+    QString date                 = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
+    str.insert(offset, QString("<span style=\"white-space: nowrap\" style=\"color: " % color % ";\">" % date %
+                               hostname % ":&nbsp;</span>"));
+
+    return 0;
+}
 int PXMWindow::focusWindow()
 {
     if (!(ui->muteCheckBox->isChecked())) {
@@ -438,7 +462,11 @@ int PXMWindow::focusWindow()
     }
     return 0;
 }
-int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert)
+int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
+                                  QString hostname,
+                                  QUuid uuid,
+                                  bool alert,
+                                  bool fromServer)
 {
     if (str->isEmpty()) {
         return -1;
@@ -454,6 +482,18 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool 
         this->focusWindow();
     }
 
+    QString color = peerColor;
+    if (uuid == globalChatUuid) {
+        for (int i = 0; i < ui->listWidget->count(); i++) {
+            if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
+                color = ui->listWidget->item(i)->data(Qt::UserRole + 1).toString();
+            }
+        }
+    } else if (uuid == localUuid && !fromServer) {
+        color = selfColor;
+    }
+
+    this->formatMessage(*str.data(), hostname, color);
     ui->stackedWidget->append(*str.data(), uuid);
 
     return 0;
