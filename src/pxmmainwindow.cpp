@@ -422,20 +422,13 @@ int PXMWindow::focusWindow()
     if (!(ui->muteCheckBox->isChecked())) {
         QSound::play(":/resources/message.wav");
     }
-
-    if (!(this->isMinimized()) && (this->windowState() != Qt::WindowActive)) {
-        qApp->alert(this, 0);
-    } else if (this->isMinimized()) {
-        if (!this->ui->focusCheckBox->isChecked()) {
-            this->raise();
-            this->activateWindow();
-            this->setWindowState(Qt::WindowActive);
-            this->setFocus();
-        } else
-            this->setWindowState(Qt::WindowNoState);
-        this->show();
-        qApp->alert(this, 0);
+    if (!this->ui->focusCheckBox->isChecked()) {
+        this->raise();
+        this->activateWindow();
+        this->setFocus();
     }
+    this->show();
+    qApp->alert(this, 0);
     return 0;
 }
 int PXMWindow::printToTextBrowser(QSharedPointer<QString> str, QUuid uuid, bool alert)
