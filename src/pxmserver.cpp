@@ -424,7 +424,8 @@ void ServerThreadPrivate::udpRecieve(evutil_socket_t socketfd, short int, void* 
         // Set reply destination to the multicast port number
         si_other.sin_port = htons(st->udpPortNumber);
 
-        // Format reply message
+        // Format reply message, ct_strlen works around a compiler warning when
+        // making this a const.
         constexpr size_t len = sizeof(uint16_t) + NetCompression::PACKED_UUID_LENGTH + PXMConsts::ct_strlen("/name:");
 
         char name[len + 1];

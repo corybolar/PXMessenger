@@ -296,6 +296,6 @@ int PXMAgentPrivate::setupHostname(const unsigned int uuidNum, QString& username
         username.append(QString::fromUtf8(temp));
     }
     username.append("@");
-    username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
+    username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME_LENGTH));
     return 0;
 }

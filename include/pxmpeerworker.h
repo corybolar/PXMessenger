@@ -1,3 +1,10 @@
+/** @file pxmpeerworker.h
+ * @brief public header for pxmpeerworker.cpp
+ *
+ * This is the manager for pxmserver and pxmclient.  Meant to be used in it own
+ * thread but will spawn another thread for the server to work from.
+ */
+
 #ifndef PXMPEERWORKER_H
 #define PXMPEERWORKER_H
 

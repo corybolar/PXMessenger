@@ -439,7 +439,7 @@ void PXMPeerWorkerPrivate::attemptConnection(struct sockaddr_in addr, QUuid uuid
 void PXMPeerWorkerPrivate::nameHandler(QString hname, const QUuid uuid)
 {
     if (peersHash.contains(uuid)) {
-        peersHash[uuid].hostname = hname.left(PXMConsts::MAX_HOSTNAME_LENGTH + PXMConsts::MAX_COMPUTER_NAME);
+        peersHash[uuid].hostname = hname.left(PXMConsts::MAX_HOSTNAME_LENGTH + PXMConsts::MAX_COMPUTER_NAME_LENGTH);
         emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
     }
 }

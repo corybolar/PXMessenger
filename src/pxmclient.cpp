@@ -101,7 +101,7 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
         }
     }
     evutil_closesocket(socketfd2);
-    return -1;
+    return 0;
 }
 
 void PXMClientPrivate::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,

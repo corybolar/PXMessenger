@@ -1,3 +1,11 @@
+/** @file pxmconsole.h
+ * @brief Public header for pxmconsole.cpp
+ *
+ * PXMConsole is what handles all logging in PXMessenger as well as drive the
+ * debug console available through the menu bar.  It needs to be used in the
+ * main gui thread as it updates a textbox by default.
+ */
+
 #ifndef PXMCONSOLE_H
 #define PXMCONSOLE_H
 

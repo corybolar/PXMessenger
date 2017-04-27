@@ -1,3 +1,7 @@
+/** @file pxmconsts.h
+ * @brief various constants used throughout pxmessenger
+ */
+
 #ifndef PXMCONSTS_H
 #define PXMCONSTS_H
 
@@ -20,7 +24,7 @@ const size_t DEBUG_PADDING = 0;
 const unsigned short DEFAULT_UDP_PORT = 53273;
 const int TEXT_EDIT_MAX_LENGTH        = 2000;
 const size_t MAX_HOSTNAME_LENGTH      = 24;
-const size_t MAX_COMPUTER_NAME        = 36;
+const size_t MAX_COMPUTER_NAME_LENGTH        = 36;
 const char AUTH_SEPERATOR[]           = ":::";
 enum MESSAGE_TYPE : const uint32_t {
     MSG_TEXT         = 0x11111111,
@@ -32,6 +36,8 @@ enum MESSAGE_TYPE : const uint32_t {
     MSG_DISOVER      = 0x77777777,
     MSG_ID           = 0x88888888
 };
+//This works around a compiler warning in pxmserver when building a reply
+//message for udp discover packets.  See updReceive in pxmserver.cpp
 constexpr size_t ct_strlen(const char* s) noexcept
 {
     return *s ? 1 + ct_strlen(s + 1) : 0;
@@ -40,7 +46,7 @@ const size_t MAX_AUTH_PACKET_LEN =
     sizeof(MESSAGE_TYPE) +
     NetCompression::PACKED_UUID_LENGTH +
     MAX_HOSTNAME_LENGTH +
-    MAX_COMPUTER_NAME +
+    MAX_COMPUTER_NAME_LENGTH +
     strlen(AUTH_SEPERATOR) +
     5 /*port number*/ +
     strlen(AUTH_SEPERATOR) +

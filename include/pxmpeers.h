@@ -1,3 +1,13 @@
+/** @file pxmpeers.h
+ * @brief public header for pxmpeers.cpp
+ *
+ * Defines multiple structures and classes used for storing other connected
+ * computers information such as hostname, connection information, etc.
+ *
+ * Bevwrapper is a mutex wrapped bufferevent
+ * PeerData is everything else we know about them
+ */
+
 #ifndef PXMPEERS_H
 #define PXMPEERS_H
 
