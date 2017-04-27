@@ -700,7 +700,7 @@ int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uu
         return -1;
     }
 
-    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, alert);
+    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, alert, false);
     return 0;
 }
 void PXMPeerWorkerPrivate::setSelfCommsBufferevent(bufferevent* bev)
