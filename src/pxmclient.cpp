@@ -126,7 +126,8 @@ void PXMClientPrivate::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
 
     QScopedArrayPointer<char> full_mess(new char[packetLen + 1]);
 
-    packetLenNBO     = htons(static_cast<uint16_t>(packetLen));
+    packetLenNBO = htons(static_cast<uint16_t>(packetLen));
+    qDebug() << ntohs(packetLenNBO);
     uint32_t typeNBO = htonl(type);
 
     memcpy(&full_mess[0], packedLocalUUID, localUUIDLen);
@@ -165,5 +166,6 @@ void PXMClient::sendMsgSlot(QSharedPointer<Peers::BevWrapper> bw,
                             PXMConsts::MESSAGE_TYPE type,
                             QUuid theiruuid)
 {
-    d_ptr->sendMsg(bw, msg.constData(), len, type, theiruuid);
+    QByteArray test = QByteArray::fromRawData(msg.data(), len);
+    d_ptr->sendMsg(bw, test.constData(), len, type, theiruuid);
 }

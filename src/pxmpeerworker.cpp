@@ -123,7 +123,7 @@ class PXMPeerWorkerPrivate : public QObject
     QByteArray createSyncPacket(size_t& index);
     void startServer();
     void connectClient();
-    int msgHandler(QSharedPointer<unsigned char> msgPtr, QUuid uuid, const bufferevent* bev, bool global);
+    int msgHandler(QByteArray msg, QUuid uuid, const bufferevent* bev, bool global);
     void authHandler(const QString hostname,
                      const unsigned short port,
                      const QString version,
@@ -325,11 +325,14 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
 {
     using namespace PXMConsts;
     switch (type) {
-        case MSG_TEXT:
+        case MSG_TEXT: {
             qDebug().noquote() << "Message from" << uuid.toString();
-            qDebug().noquote() << "MSG :" << QString::fromUtf8((char*)packet.data(), len);
-            msgHandler(packet, uuid, bev, false);
+            QByteArray message = QByteArray::fromRawData((char*)packet.data(), len);
+            message.detach();
+            qDebug().noquote() << "MSG :" << message;
+            msgHandler(message, uuid, bev, false);
             break;
+        }
         case MSG_SYNC:
             qDebug().noquote() << "SYNC received from" << uuid.toString();
             syncHandler(packet, len, uuid);
@@ -339,11 +342,14 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
                                << uuid.toString();
             syncRequestHandlerBev(bev, uuid);
             break;
-        case MSG_GLOBAL:
+        case MSG_GLOBAL: {
             qDebug().noquote() << "Global message from" << uuid.toString();
-            qDebug().noquote() << "GLOBAL :" << QString::fromUtf8((char*)packet.data(), len);
-            msgHandler(packet, uuid, bev, true);
+            QByteArray message = QByteArray::fromRawData((char*)packet.data(), len);
+            message.detach();
+            qDebug().noquote() << "GLOBAL :" << message;
+            msgHandler(message, uuid, bev, true);
             break;
+        }
         case MSG_NAME:
             qDebug().noquote() << "NAME :" << QString::fromUtf8((char*)packet.data(), len) << "from" << uuid.toString();
             nameHandler(QString::fromUtf8((char*)packet.data(), len), uuid);
@@ -607,10 +613,7 @@ void PXMPeerWorkerPrivate::authHandler(const QString hostname,
     emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
     emit requestSyncPacket(peersHash.value(uuid).bw, uuid);
 }
-int PXMPeerWorkerPrivate::msgHandler(QSharedPointer<unsigned char> msgPtr,
-                                     QUuid uuid,
-                                     const bufferevent* bev,
-                                     bool global)
+int PXMPeerWorkerPrivate::msgHandler(QByteArray msg, QUuid uuid, const bufferevent* bev, bool global)
 {
     if (uuid != localUUID) {
         if (!(peersHash.contains(uuid))) {
@@ -644,7 +647,7 @@ int PXMPeerWorkerPrivate::msgHandler(QSharedPointer<unsigned char> msgPtr,
         }
     }
 
-    QSharedPointer<QString> msgStr = QSharedPointer<QString>(new QString((char*)msgPtr.data()));
+    QSharedPointer<QString> msgStr = QSharedPointer<QString>(new QString(msg));
     /*
     if (global) {
         if (uuid == localUUID) {

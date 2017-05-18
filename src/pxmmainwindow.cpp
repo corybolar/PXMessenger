@@ -436,9 +436,11 @@ int PXMWindow::formatMessage(QString& str, QString& hostname, QString color)
     int offset                   = qrem.capturedEnd(1);
     QDateTime dt                 = QDateTime::currentDateTime();
     QString date                 = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
+    qDebug() << str;
     str.insert(offset, QString("<span style=\"white-space: nowrap\" style=\"color: " % color % ";\">" % date %
                                hostname % ":&nbsp;</span>"));
 
+    qDebug() << str;
     return 0;
 }
 int PXMWindow::focusWindow()

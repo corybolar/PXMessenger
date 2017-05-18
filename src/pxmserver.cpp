@@ -336,13 +336,15 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
         qCritical() << "Blank message! -- Not Good!";
         return -1;
     }
-    MESSAGE_TYPE type                     = *reinterpret_cast<const MESSAGE_TYPE*>(&buf[0]);
-    type                                  = static_cast<MESSAGE_TYPE>(htonl(type));
-    buf                                   = &buf[sizeof(MESSAGE_TYPE)];
-    QSharedPointer<unsigned char> bufCopy = QSharedPointer<unsigned char>(new unsigned char[bufLen]);
+    MESSAGE_TYPE type = *reinterpret_cast<const MESSAGE_TYPE*>(&buf[0]);
+    type              = static_cast<MESSAGE_TYPE>(htonl(type));
+    buf               = &buf[sizeof(MESSAGE_TYPE)];
     bufLen -= sizeof(MESSAGE_TYPE);
+    QSharedPointer<unsigned char> bufCopy = QSharedPointer<unsigned char>(new unsigned char[bufLen]);
     memcpy(bufCopy.data(), buf, bufLen);
 
+    QByteArray test = QByteArray::fromRawData((char*)bufCopy.data(), bufLen);
+    qDebug() << test;
     emit q_ptr->packetHandler(bufCopy, bufLen, type, quuid, bev);
 
     return 0;
