@@ -5,6 +5,7 @@
 <p align="center">
   <img src="http://i.imgur.com/6rLhyvL.png"/>
 </p>
+
 #### Status
 
 [![Build Status](https://travis-ci.org/cbpeckles/PXMessenger.svg?branch=master)](https://travis-ci.org/cbpeckles/PXMessenger)
