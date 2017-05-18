@@ -1,6 +1,16 @@
-####Status
-[![Build Status](https://travis-ci.org/cbpeckles/PXMessenger.png)](https://travis-ci.org/cbpeckles/PXMessenger)
-####Dependencies:
+<p align="center">
+  <img src="http://i.imgur.com/ZzEp29l.png"/>
+</p>
+<h3 align="center">P2P cross platform home or small office instant messenger.  Written in C++ with Qt.</h3>
+-------------
+<p align="center">
+  <img src="http://i.imgur.com/6rLhyvL.png"/>
+</p>
+#### Status
+
+[![Build Status](https://travis-ci.org/cbpeckles/PXMessenger.svg?branch=master)](https://travis-ci.org/cbpeckles/PXMessenger)
+
+#### Dependencies:
 
 qt5 >= qt5.5.0
 
@@ -11,7 +21,7 @@ gcc > 4.9.0 or clang > 3.5.0
 libevent >= 2.0.22
 
 
-####BUILD INSTRUCTIONS
+#### BUILD INSTRUCTIONS
 
 git clone
 
@@ -36,7 +46,7 @@ INCLUDEPATH += $$PWD/../libevent/include \
 }
 ```
 
-####USAGE
+#### USAGE
 
 PXMessenger is a cross platform instant messaging client that does not need a
 central server.  It will automatically discover other users of the client
@@ -47,7 +57,7 @@ for more details).  This program can be run multiple times on the same computer
 and login.  The Global send item will send the message to all known peers.  It
 is essentially a global chat room.  
 
-#####Settings
+##### Settings
 
 The multicast group that PXMessenger uses is 239.192.13.13.  This can be changed
 in the settings window.
@@ -66,7 +76,7 @@ believe that an exisiting group of computers have missed all discovery packets.
 PXMessenger will minimize to a tray if the system supports one and will alert
 itself in the event of receiving a message.
 
-#####Notes
+##### Notes
 
 Bugs are possible, please report them here under the issues tab and they will be
 responded to.
