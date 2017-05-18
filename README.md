@@ -1,11 +1,3 @@
-<p align="center">
-  <img src="http://i.imgur.com/ZzEp29l.png"/>
-</p>
-<h3 align="center">P2P cross platform home or small office instant messenger.  Written in C++ with Qt.</h3>
--------------
-<p align="center">
-  <img src="http://i.imgur.com/6rLhyvL.png"/>
-</p>
 ####Status
 [![Build Status](https://travis-ci.org/cbpeckles/PXMessenger.png)](https://travis-ci.org/cbpeckles/PXMessenger)
 ####Dependencies:
