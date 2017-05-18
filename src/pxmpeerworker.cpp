@@ -167,7 +167,7 @@ class PXMPeerWorkerPrivate : public QObject
     void discoveryTimerSingleShot();
     void midnightTimerPersistent();
     void discoveryTimerPersistent();
-    int addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool);
+    int addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool, bool global);
 
     void multicastIsFunctional();
     void setupTimers();
@@ -662,7 +662,8 @@ int PXMPeerWorkerPrivate::msgHandler(QByteArray msg, QUuid uuid, const buffereve
     }
     */
 
-    addMessageToPeer(msgStr, uuid, true, true);
+    // GLOBAL IS NOT WORKING, need to add something as uuid has to be from sender
+    addMessageToPeer(msgStr, uuid, true, true, global);
     return 0;
 }
 void PXMPeerWorkerPrivate::addMessageToAllPeers(QString str, bool alert, bool formatAsMessage)
@@ -694,16 +695,16 @@ int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool fr
     }
 
     QSharedPointer<QString> pStr(new QString(str.toUtf8()));
-    emit msgRecieved(pStr, d_ptr->peersHash.value(uuid).hostname, uuid, alert, fromServer);
+    emit msgRecieved(pStr, d_ptr->peersHash.value(uuid).hostname, uuid, alert, fromServer, false);
     return 0;
 }
-int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool)
+int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool, bool global)
 {
     if (!peersHash.contains(uuid)) {
         return -1;
     }
 
-    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, alert, false);
+    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, alert, false, global);
     return 0;
 }
 void PXMPeerWorkerPrivate::setSelfCommsBufferevent(bufferevent* bev)

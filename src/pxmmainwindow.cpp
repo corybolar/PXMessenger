@@ -468,11 +468,25 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
                                   QString hostname,
                                   QUuid uuid,
                                   bool alert,
-                                  bool fromServer)
+                                  bool fromServer,
+                                  bool global)
 {
     if (str->isEmpty()) {
         return -1;
     }
+
+    QString color = peerColor;
+    if (global) {
+        for (int i = 0; i < ui->listWidget->count(); i++) {
+            if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
+                color = ui->listWidget->item(i)->data(Qt::UserRole + 1).toString();
+            }
+            uuid = globalChatUuid;
+        }
+    } else if (uuid == localUuid && !fromServer) {
+        color = selfColor;
+    }
+
     if (alert) {
         if (ui->listWidget->currentItem()) {
             if (ui->listWidget->currentItem()->data(Qt::UserRole) != uuid) {
@@ -482,17 +496,6 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
             changeListItemColor(uuid, 1);
         }
         this->focusWindow();
-    }
-
-    QString color = peerColor;
-    if (uuid == globalChatUuid) {
-        for (int i = 0; i < ui->listWidget->count(); i++) {
-            if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
-                color = ui->listWidget->item(i)->data(Qt::UserRole + 1).toString();
-            }
-        }
-    } else if (uuid == localUuid && !fromServer) {
-        color = selfColor;
     }
 
     this->formatMessage(*str.data(), hostname, color);

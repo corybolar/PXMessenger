@@ -49,7 +49,7 @@ public:
     void beginPeerSync();
     // void restartServer();
    signals:
-    void msgRecieved(QSharedPointer<QString>, QString, QUuid, bool, bool);
+    void msgRecieved(QSharedPointer<QString>, QString, QUuid, bool, bool, bool);
     void newAuthedPeer(QUuid, QString);
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, size_t,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
