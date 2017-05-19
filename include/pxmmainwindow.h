@@ -136,7 +136,7 @@ signals:
   void sendUDP(const char*);
   void syncWithPeers();
   void retryDiscover();
-  void addMessageToPeer(QString, QUuid, bool, bool);
+  void addMessageToPeer(QString, QUuid, QUuid, bool, bool);
   void printInfoToDebug();
   void manConnect(QString, int);
 };

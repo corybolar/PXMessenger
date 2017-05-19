@@ -38,7 +38,7 @@ public:
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
    public slots:
-    int addMessageToPeer(QString str, QUuid uuid, bool alert, bool fromServer);
+    int addMessageToPeer(QString str, QUuid ruuid, QUuid suuid, bool alert, bool fromServer);
 
     void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type,
                          QUuid uuid = QUuid());

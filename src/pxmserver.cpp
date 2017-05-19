@@ -343,8 +343,6 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
     QSharedPointer<unsigned char> bufCopy = QSharedPointer<unsigned char>(new unsigned char[bufLen]);
     memcpy(bufCopy.data(), buf, bufLen);
 
-    QByteArray test = QByteArray::fromRawData((char*)bufCopy.data(), bufLen);
-    qDebug() << test;
     emit q_ptr->packetHandler(bufCopy, bufLen, type, quuid, bev);
 
     return 0;

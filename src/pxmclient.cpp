@@ -115,8 +115,10 @@ void PXMClientPrivate::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
     uint16_t packetLenNBO;
     bool print = false;
 
+    QUuid uuidLocal;
+    NetCompression::unpackUUID(packedLocalUUID, uuidLocal);
     if (msgLen > 65400) {
-        emit q_ptr->resultOfTCPSend(-1, uuidReceiver, QString("Message too Long!"), print, bw);
+        emit q_ptr->resultOfTCPSend(-1, uuidReceiver, uuidLocal, QString("Message too Long!"), print, bw);
         return;
     }
     packetLen = localUUIDLen + sizeof(type) + msgLen;
@@ -155,7 +157,7 @@ void PXMClientPrivate::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
     bw->unlockBev();
 
     if (!uuidReceiver.isNull()) {
-        emit q_ptr->resultOfTCPSend(bytesSent, uuidReceiver, QString::fromUtf8(msg), print, bw);
+        emit q_ptr->resultOfTCPSend(bytesSent, uuidReceiver, uuidLocal, QString::fromUtf8(msg), print, bw);
     }
 
     return;

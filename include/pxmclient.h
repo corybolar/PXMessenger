@@ -63,7 +63,7 @@ class PXMClient : public QObject
      * This returns the result of the sendMsgSlot, with information about how
      * successful it was contained in the first integer.
      */
-    void resultOfTCPSend(int, QUuid, QString, bool, QSharedPointer<Peers::BevWrapper>);
+    void resultOfTCPSend(int, QUuid, QUuid, QString, bool, QSharedPointer<Peers::BevWrapper>);
 };
 
 #endif  // PXMCLIENT_H

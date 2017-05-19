@@ -160,7 +160,8 @@ class PXMPeerWorkerPrivate : public QObject
     void donePeerSync();
     void requestSyncPacket(QSharedPointer<Peers::BevWrapper> bw, QUuid uuid);
     void resultOfTCPSend(const int levelOfSuccess,
-                         const QUuid uuid,
+                         const QUuid ruuid,
+                         const QUuid suuid,
                          QString msg,
                          const bool print,
                          const QSharedPointer<Peers::BevWrapper>);
@@ -329,7 +330,7 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
             qDebug().noquote() << "Message from" << uuid.toString();
             QByteArray message = QByteArray::fromRawData((char*)packet.data(), len);
             message.detach();
-            qDebug().noquote() << "MSG :" << message;
+            qDebug() << "MSG :" << message;
             msgHandler(message, uuid, bev, false);
             break;
         }
@@ -346,7 +347,7 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
             qDebug().noquote() << "Global message from" << uuid.toString();
             QByteArray message = QByteArray::fromRawData((char*)packet.data(), len);
             message.detach();
-            qDebug().noquote() << "GLOBAL :" << message;
+            qDebug() << "GLOBAL :" << message;
             msgHandler(message, uuid, bev, true);
             break;
         }
@@ -548,7 +549,8 @@ void PXMPeerWorkerPrivate::resultOfConnectionAttempt(evutil_socket_t socket,
     }
 }
 void PXMPeerWorkerPrivate::resultOfTCPSend(const int levelOfSuccess,
-                                           const QUuid uuid,
+                                           const QUuid ruuid,
+                                           const QUuid suuid,
                                            QString msg,
                                            const bool print,
                                            const QSharedPointer<Peers::BevWrapper>)
@@ -558,7 +560,7 @@ void PXMPeerWorkerPrivate::resultOfTCPSend(const int levelOfSuccess,
             // formatMessage(msg, localUUID, Peers::selfColor);
             qInfo() << "Send Failure";
         }
-        q_ptr->addMessageToPeer(msg, uuid, false, true);
+        q_ptr->addMessageToPeer(msg, ruuid, suuid, false, false);
     }
     /*
     if(bwShortLife.contains(bw))
@@ -635,12 +637,12 @@ int PXMPeerWorkerPrivate::msgHandler(QByteArray msg, QUuid uuid, const buffereve
                 q_ptr->addMessageToPeer(
                     "This user is trying to spoof another "
                     "users uuid!",
-                    uuidSpoofer, true, false);
+                    uuidSpoofer, uuidSpoofer, true, false);
             } else {
                 q_ptr->addMessageToPeer(
                     "Someone is trying to spoof this users "
                     "uuid!",
-                    uuid, true, false);
+                    uuid, uuidSpoofer, true, false);
             }
 
             return -1;
@@ -662,14 +664,13 @@ int PXMPeerWorkerPrivate::msgHandler(QByteArray msg, QUuid uuid, const buffereve
     }
     */
 
-    // GLOBAL IS NOT WORKING, need to add something as uuid has to be from sender
     addMessageToPeer(msgStr, uuid, true, true, global);
     return 0;
 }
 void PXMPeerWorkerPrivate::addMessageToAllPeers(QString str, bool alert, bool formatAsMessage)
 {
     for (Peers::PeerData& itr : peersHash) {
-        q_ptr->addMessageToPeer(str, itr.uuid, alert, formatAsMessage);
+        q_ptr->addMessageToPeer(str, itr.uuid, itr.uuid, alert, formatAsMessage);
     }
 }
 
@@ -688,14 +689,14 @@ int PXMPeerWorkerPrivate::formatMessage(QString& str, QUuid uuid, QString color)
 }
 */
 
-int PXMPeerWorker::addMessageToPeer(QString str, QUuid uuid, bool alert, bool fromServer)
+int PXMPeerWorker::addMessageToPeer(QString str, QUuid ruuid, QUuid suuid, bool alert, bool fromServer)
 {
-    if (!d_ptr->peersHash.contains(uuid)) {
+    if (!d_ptr->peersHash.contains(ruuid)) {
         return -1;
     }
 
     QSharedPointer<QString> pStr(new QString(str.toUtf8()));
-    emit msgRecieved(pStr, d_ptr->peersHash.value(uuid).hostname, uuid, alert, fromServer, false);
+    emit msgRecieved(pStr, d_ptr->peersHash.value(suuid).hostname, ruuid, alert, fromServer, false);
     return 0;
 }
 int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool, bool global)

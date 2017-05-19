@@ -214,8 +214,9 @@ int PXMAgent::postInit()
                      &PXMWindow::updateListWidget, Qt::QueuedConnection);
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox, d_ptr->window.data(), &PXMWindow::warnBox,
                      Qt::AutoConnection);
-    QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, bool, bool)), d_ptr->peerWorker,
-                     SLOT(addMessageToPeer(QString, QUuid, bool, bool)), Qt::QueuedConnection);
+    QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
+                     d_ptr->peerWorker, SLOT(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
+                     Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::sendMsg, d_ptr->peerWorker, &PXMPeerWorker::sendMsgAccessor,
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::sendUDP, d_ptr->peerWorker, &PXMPeerWorker::sendUDPAccessor,

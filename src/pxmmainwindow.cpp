@@ -250,7 +250,7 @@ void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
                 changeInConnection = " disconnected";
             else
                 changeInConnection = " reconnected";
-            emit addMessageToPeer(ui->listWidget->item(i)->text() % changeInConnection, uuid, false, true);
+            emit addMessageToPeer(ui->listWidget->item(i)->text() % changeInConnection, uuid, uuid, false, true);
             return;
         }
     }
@@ -313,7 +313,7 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
         if (ui->listWidget->item(i)->data(Qt::UserRole).toUuid() == uuid) {
             if (ui->listWidget->item(i)->text() != hostname) {
                 emit addMessageToPeer(ui->listWidget->item(i)->text() % " has changed their name to " % hostname, uuid,
-                                      false, false);
+                                      uuid, false, false);
                 ui->listWidget->item(i)->setText(hostname);
                 QListWidgetItem* global = ui->listWidget->takeItem(0);
                 ui->listWidget->sortItems();
@@ -436,11 +436,9 @@ int PXMWindow::formatMessage(QString& str, QString& hostname, QString color)
     int offset                   = qrem.capturedEnd(1);
     QDateTime dt                 = QDateTime::currentDateTime();
     QString date                 = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
-    qDebug() << str;
     str.insert(offset, QString("<span style=\"white-space: nowrap\" style=\"color: " % color % ";\">" % date %
                                hostname % ":&nbsp;</span>"));
 
-    qDebug() << str;
     return 0;
 }
 int PXMWindow::focusWindow()
@@ -476,15 +474,18 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
     }
 
     QString color = peerColor;
-    if (global) {
+    if (uuid == localUuid && !fromServer) {
+        color = selfColor;
+    } else if (global) {
         for (int i = 0; i < ui->listWidget->count(); i++) {
             if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
                 color = ui->listWidget->item(i)->data(Qt::UserRole + 1).toString();
             }
-            uuid = globalChatUuid;
         }
-    } else if (uuid == localUuid && !fromServer) {
-        color = selfColor;
+    }
+
+    if (global) {
+        uuid = globalChatUuid;
     }
 
     if (alert) {
