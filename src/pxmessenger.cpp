@@ -3,6 +3,7 @@
 #include <QStringBuilder>
 #include <QDateTime>
 #include <QTimer>
+#include <QStyleFactory>
 
 #include "pxmagent.h"
 #include "pxmconsole.h"
@@ -37,7 +38,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString
     }
 
     QByteArray localMsg = QByteArray();
-    localMsg.append(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss:zzz] ")));
+    localMsg.append(QDateTime::currentDateTime().time().toString(QStringLiteral("[hh:mm:ss] ")));
 
     QColor msgColor;
     switch (type) {
@@ -82,6 +83,27 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString
         logger->logFile->write(cmsg, strlen(cmsg));
         logger->logFile->flush();
     }
+}
+
+void testPalette()
+{
+    qApp->setStyle(QStyleFactory::create("fusion"));
+
+    QPalette palette;
+    palette.setColor(QPalette::Window, QColor(53, 53, 53));
+    palette.setColor(QPalette::WindowText, Qt::white);
+    palette.setColor(QPalette::Base, QColor(15, 15, 15));
+    palette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+    palette.setColor(QPalette::ToolTipBase, Qt::white);
+    palette.setColor(QPalette::ToolTipText, Qt::white);
+    palette.setColor(QPalette::Text, Qt::white);
+    palette.setColor(QPalette::Button, QColor(53, 53, 53));
+    palette.setColor(QPalette::ButtonText, Qt::white);
+    palette.setColor(QPalette::BrightText, Qt::red);
+
+    palette.setColor(QPalette::Highlight, QColor(142, 45, 197).lighter());
+    palette.setColor(QPalette::HighlightedText, Qt::black);
+    qApp->setPalette(palette);
 }
 
 int main(int argc, char** argv)

@@ -1,3 +1,13 @@
+/** @file pxmpeers.h
+ * @brief public header for pxmpeers.cpp
+ *
+ * Defines multiple structures and classes used for storing other connected
+ * computers information such as hostname, connection information, etc.
+ *
+ * Bevwrapper is a mutex wrapped bufferevent
+ * PeerData is everything else we know about them
+ */
+
 #ifndef PXMPEERS_H
 #define PXMPEERS_H
 
@@ -19,6 +29,7 @@ Q_DECLARE_METATYPE(const bufferevent*)
 
 class QMutex;
 namespace Peers {
+  /*
 const QString selfColor = "#6495ED";  // Cornflower Blue
 const QString peerColor = "#FF0000";  // Red
 const QVector<QString> textColors = {
@@ -32,6 +43,7 @@ const QVector<QString> textColors = {
     "#00FF00"   // Lime
 };
 extern int textColorsNext;
+*/
 class BevWrapper {
   bufferevent* bev;
   QMutex* locker;
@@ -66,7 +78,7 @@ class PeerData {
   QUuid uuid;
   struct sockaddr_in addrRaw;
   QString hostname;
-  QString textColor;
+  //QString textColor;
   QString progVersion;
   QSharedPointer<BevWrapper> bw;
   evutil_socket_t socket;

@@ -111,4 +111,6 @@ INCLUDEPATH += MOC_DIR
 win32 {
 include($$PWD/include/QSimpleUpdater/QSimpleUpdater.pri)
 }
-
+#QMAKE_CXXFLAGS+="-fsanitize=undefined -fno-omit-frame-pointer"
+#QMAKE_CFLAGS+="-fsanitize=address -fno-omit-frame-pointer"
+#QMAKE_LFLAGS+="-fsanitize=undefined"

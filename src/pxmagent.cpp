@@ -201,10 +201,10 @@ int PXMAgent::postInit()
         new PXMPeerWorker(nullptr, d_ptr->presets.username, d_ptr->presets.uuid, d_ptr->presets.multicast,
                           d_ptr->presets.tcpPort, d_ptr->presets.udpPort, globalChat);
     d_ptr->peerWorker->moveToThread(d_ptr->workerThread);
-    QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::init);
+    // QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::init);
     QObject::connect(d_ptr->workerThread, &QThread::finished, d_ptr->peerWorker, &PXMPeerWorker::deleteLater);
     d_ptr->window.reset(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize, d_ptr->presets.mute,
-                                      d_ptr->presets.preventFocus, globalChat));
+                                      d_ptr->presets.preventFocus, d_ptr->presets.uuid, globalChat));
 
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::msgRecieved, d_ptr->window.data(),
                      &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
@@ -214,8 +214,9 @@ int PXMAgent::postInit()
                      &PXMWindow::updateListWidget, Qt::QueuedConnection);
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox, d_ptr->window.data(), &PXMWindow::warnBox,
                      Qt::AutoConnection);
-    QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, bool, bool)), d_ptr->peerWorker,
-                     SLOT(addMessageToPeer(QString, QUuid, bool, bool)), Qt::QueuedConnection);
+    QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
+                     d_ptr->peerWorker, SLOT(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
+                     Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::sendMsg, d_ptr->peerWorker, &PXMPeerWorker::sendMsgAccessor,
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::sendUDP, d_ptr->peerWorker, &PXMPeerWorker::sendUDPAccessor,
@@ -296,6 +297,6 @@ int PXMAgentPrivate::setupHostname(const unsigned int uuidNum, QString& username
         username.append(QString::fromUtf8(temp));
     }
     username.append("@");
-    username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME));
+    username.append(QString::fromLocal8Bit(computerHostname).left(PXMConsts::MAX_COMPUTER_NAME_LENGTH));
     return 0;
 }

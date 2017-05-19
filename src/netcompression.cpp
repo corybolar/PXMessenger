@@ -8,6 +8,10 @@
 #error "include header that defines sockaddr_in"
 #endif
 
+static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
+static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
+static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
+
 size_t NetCompression::unpackUUID(const unsigned char* src, QUuid& uuid)
 {
     // Use QT implementation of converting to NBO, its better
@@ -25,9 +29,9 @@ size_t NetCompression::packUUID(unsigned char* buf, const QUuid& uuid)
 size_t NetCompression::packSockaddr_in(unsigned char* buf, const sockaddr_in& addr)
 {
     int index = 0;
-    memcpy(&buf[index], &(addr.sin_addr.s_addr), 4);
+    memcpy(&buf[index], &(addr.sin_addr.s_addr), sizeof(uint32_t));
     index += sizeof(uint32_t);
-    memcpy(&buf[index], &(addr.sin_port), 2);
+    memcpy(&buf[index], &(addr.sin_port), sizeof(uint16_t));
     index += sizeof(uint16_t);
     return index;
 }
@@ -35,9 +39,9 @@ size_t NetCompression::packSockaddr_in(unsigned char* buf, const sockaddr_in& ad
 size_t NetCompression::unpackSockaddr_in(const unsigned char* buf, sockaddr_in& addr)
 {
     int index = 0;
-    memcpy(&(addr.sin_addr.s_addr), &buf[index], 4);
+    memcpy(&(addr.sin_addr.s_addr), &buf[index], sizeof(uint32_t));
     index += sizeof(uint32_t);
-    memcpy(&(addr.sin_port), &buf[index], 2);
+    memcpy(&(addr.sin_port), &buf[index], sizeof(uint16_t));
     index += sizeof(uint16_t);
 
     return index;

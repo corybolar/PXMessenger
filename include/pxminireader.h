@@ -1,3 +1,11 @@
+/** @file pxminireader.h
+ * @brief Public header for pxminireader.cpp
+ *
+ * pxminireader reads our ini for initial values.  I bet you couldn't have
+ * guessed that.  The .ini should be located under ~/.config/PXMessenger on
+ * unix, c:/User/[username]/AppData/Roaming/PXMessenger on windows.
+ */
+
 #ifndef MESSINIREADER_H
 #define MESSINIREADER_H
 

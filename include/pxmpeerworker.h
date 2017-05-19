@@ -1,3 +1,10 @@
+/** @file pxmpeerworker.h
+ * @brief public header for pxmpeerworker.cpp
+ *
+ * This is the manager for pxmserver and pxmclient.  Meant to be used in it own
+ * thread but will spawn another thread for the server to work from.
+ */
+
 #ifndef PXMPEERWORKER_H
 #define PXMPEERWORKER_H
 
@@ -31,18 +38,18 @@ public:
     PXMPeerWorker& operator=(PXMPeerWorker&&) noexcept = delete;
     PXMPeerWorker(PXMPeerWorker&&) noexcept            = delete;
    public slots:
-    int addMessageToPeer(QString str, QUuid uuid, bool alert, bool);
+    int addMessageToPeer(QString str, QUuid ruuid, QUuid suuid, bool alert, bool fromServer);
 
     void sendMsgAccessor(QByteArray msg, PXMConsts::MESSAGE_TYPE type,
                          QUuid uuid = QUuid());
     void sendUDPAccessor(const char* msg);
 
-    void init();
+    //void setupTimers();
     void printInfoToDebug();
     void beginPeerSync();
     // void restartServer();
    signals:
-    void msgRecieved(QSharedPointer<QString>, QUuid, bool);
+    void msgRecieved(QSharedPointer<QString>, QString, QUuid, bool, bool, bool);
     void newAuthedPeer(QUuid, QString);
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, size_t,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());

@@ -1,3 +1,10 @@
+/*! @file pxmserver.h
+ * @brief public header for for pxmserver.cpp
+ *
+ * Manages the listener socket and all subsequent connections made to this
+ * device.
+ */
+
 #ifndef PXMSERVER_H
 #define PXMSERVER_H
 
@@ -9,6 +16,7 @@
 #include <sys/time.h>
 
 #include <event2/util.h>
+#include <pxmconsts.h>
 
 struct bufferevent;
 struct event_base;
@@ -16,8 +24,10 @@ class ServerThreadPrivate;
 
 namespace PXMServer
 {
-const timeval READ_TIMEOUT         = {1, 0};
-const timeval READ_TIMEOUT_RESET   = {3600, 0};
+const timeval READ_TIMEOUT         = {1, 0}; /*!< timeout if we receive partial
+                                               packets */
+const timeval READ_TIMEOUT_RESET   = {3600, 0}; /*!< workaround for libevent
+                                                  bug, fixed in 2.1 */
 const uint8_t PACKET_HEADER_LEN = 2;
 const size_t INTERNAL_MSG_LENGTH 	  = 200;
 enum INTERNAL_MSG : uint16_t {
@@ -53,15 +63,36 @@ class ServerThread : public QThread
 
     void run() Q_DECL_OVERRIDE;
    signals:
-    void msgHandler(QSharedPointer<QString>, QUuid, const bufferevent*, bool);
+    /*!
+     * \brief packetHandler
+     * Send a received packet to a handler to be dealt with
+     */
+    void packetHandler(const QSharedPointer<unsigned char>, const size_t, const PXMConsts::MESSAGE_TYPE, const QUuid, const bufferevent*);
+    /*!
+     * \brief newTCPConnection
+     * New connection has been received via accept().  No action has been taken
+     * with it yet.
+     */
     void newTCPConnection(bufferevent*);
+    /*!
+     * \brief authHandler
+     * Authentication packet has been received and needs to be dealt with.
+     */
     void authHandler(QString, unsigned short, QString,
                                 evutil_socket_t, QUuid, bufferevent*);
+    /*!
+     * \brief peerQuit
+     * A connection has been terminated
+     */
     void peerQuit(evutil_socket_t, bufferevent*);
+    /*!
+     * \brief attemptConnection
+     * Recieved a udp "name" packet, we probably want to connect to the address
+     * that came with it.  Pass this info along to see if we are already 
+     * connected to it.
+     */
     void attemptConnection(struct sockaddr_in, QUuid);
-    void syncRequestHandler(const bufferevent*, QUuid);
     void sendName(bufferevent*, QString, QString);
-    void syncHandler(QSharedPointer<unsigned char>, size_t, QUuid);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
     void setListenerPorts(unsigned short, unsigned short);
@@ -70,7 +101,6 @@ class ServerThread : public QThread
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
     void serverSetupFailure(QString);
-    void nameHandler(QString, QUuid);
     void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid);
 };
 }

@@ -69,6 +69,7 @@ class ServerThreadPrivate
     static void tcpAuth(bufferevent* bev, void* arg);
     static void connectCB(bufferevent* bev, short error, void* arg);
     void addDefaultBev(bufferevent* bev);
+    static void packetLenRecv(bufferevent* bev);
 };
 
 ServerThread::ServerThread(QObject* parent,
@@ -143,6 +144,7 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
     uint16_t bufLen;
     evutil_socket_t socket = bufferevent_getfd(bev);
 
+    // Test for if we have only gotten 1 byte of data so far, need 2
     if (evbuffer_get_length(bufferevent_get_input(bev)) == PACKET_HEADER_LEN) {
         evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, PACKET_HEADER_LEN);
         bufLen = ntohs(nboBufLen);
@@ -155,10 +157,12 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
         bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LEN, bufLen + PACKET_HEADER_LEN);
         return;
     }
+    // Read How many bytes are coming from the first 2 bytes
     bufferevent_read(bev, &nboBufLen, PACKET_HEADER_LEN);
 
     bufLen = ntohs(nboBufLen);
 
+    // Read the number of bytes that are supposed to be here
     unsigned char bufUUID[NetCompression::PACKED_UUID_LENGTH];
     if (bufferevent_read(bev, bufUUID, NetCompression::PACKED_UUID_LENGTH) < NetCompression::PACKED_UUID_LENGTH) {
         qWarning() << "Bad Auth packet length, closing socket...";
@@ -166,6 +170,7 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
         st->q_ptr->peerQuit(socket, bev);
         return;
     }
+    // Get the uuid which should be immediately after the length segment
     QUuid quuid = QUuid();
     bufLen -= NetCompression::unpackUUID(bufUUID, quuid);
     if (quuid.isNull()) {
@@ -175,13 +180,15 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
         return;
     }
 
-    QScopedArrayPointer<unsigned char> buf(new unsigned char[bufLen + 1]);
-    bufferevent_read(bev, buf.data(), bufLen);
+    // Get the rest of the packet
+    unsigned char buf[bufLen + 1];
+    bufferevent_read(bev, buf, bufLen);
     buf[bufLen] = 0;
 
+    // Process the full auth packet's information
+    // Auth packet format "Hostname:::12345:::001.001.001"
     MESSAGE_TYPE* type = reinterpret_cast<MESSAGE_TYPE*>(&buf[0]);
     if (*type == MSG_AUTH) {
-        // Auth packet format "Hostname:::12345:::001.001.001"
         bufLen -= sizeof(MESSAGE_TYPE);
         QStringList hpsplit = (QString::fromUtf8((char*)&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(AUTH_SEPERATOR);
         if (hpsplit.length() != 3) {
@@ -207,30 +214,40 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
         st->q_ptr->peerQuit(socket, bev);
     }
 }
-void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
+void ServerThreadPrivate::packetLenRecv(struct bufferevent* bev)
 {
-    ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
     uint16_t nboBufLen;
     uint16_t bufLen;
     evbuffer* input = bufferevent_get_input(bev);
+
+    qDebug().noquote() << "Recieved bufferlength value";
+    evbuffer_copyout(input, &nboBufLen, PACKET_HEADER_LEN);
+    bufLen = ntohs(nboBufLen);
+    if (bufLen == 0) {
+        qWarning().noquote() << "Bad buffer length, draining...";
+        evbuffer_drain(input, UINT16_MAX);
+        return;
+    }
+    bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LEN, bufLen + PACKET_HEADER_LEN);
+    bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
+    qDebug().noquote() << "Setting watermark to" << QString::number(bufLen) << "bytes";
+    qDebug().noquote() << "Setting timeout to"
+                       << QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) << "seconds";
+}
+
+void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
+{
+    ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
+    evbuffer* input         = bufferevent_get_input(bev);
+
     if (evbuffer_get_length(input) == 1) {
         qDebug().noquote() << "Setting timeout, 1 byte recieved";
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
     } else if (evbuffer_get_length(input) == PACKET_HEADER_LEN) {
-        qDebug().noquote() << "Recieved bufferlength value";
-        evbuffer_copyout(input, &nboBufLen, PACKET_HEADER_LEN);
-        bufLen = ntohs(nboBufLen);
-        if (bufLen == 0) {
-            qWarning().noquote() << "Bad buffer length, draining...";
-            evbuffer_drain(input, UINT16_MAX);
-            return;
-        }
-        bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LEN, bufLen + PACKET_HEADER_LEN);
-        bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
-        qDebug().noquote() << "Setting watermark to" << QString::number(bufLen) << "bytes";
-        qDebug().noquote() << "Setting timeout to"
-                           << QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) << "seconds";
+        packetLenRecv(bev);
     } else {
+        uint16_t nboBufLen;
+        uint16_t bufLen;
         qDebug() << "Full packet received";
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
 
@@ -257,25 +274,20 @@ void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
         }
 
         // Change length of msg with respect to uuid length
-        unsigned char* buf = new unsigned char[bufLen + 1];
-        // QScopedArrayPointer<char> buf(new char[bufLen +1]);
+        unsigned char buf[bufLen + 1];
 
         // Read rest of message
         bufferevent_read(bev, buf, bufLen);
-        buf[bufLen] = 0;
 
-        // Handle message type and send it along to peerworker for
-        // further
-        // processing
         st->singleMessageIterator(bev, buf, bufLen, uuid);
 
-        // reset timeout -- this is a bug with the libevent
+        // reset timeout -- this is a bug with libevent
         // timeout is set to 1 day, a value of null in the read
         // parameter does nothing.  Timeing out should not cause a
         // problem
         bufferevent_set_timeouts(bev, &READ_TIMEOUT_RESET, NULL);
 
-        delete[] buf;
+        // delete[] buf;
     }
 }
 
@@ -298,7 +310,7 @@ void ServerThreadPrivate::tcpErr(struct bufferevent* bev, short error, void* arg
         qDebug() << "BEV TIMEOUT";
         // Reset watermark for accepting a length arguement
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
-        // Reset timeout to 1 day
+        // Reset timeout to 1 day, bug in libevent; fixed in 2.1 -- maybe
         bufferevent_set_timeouts(bev, &READ_TIMEOUT_RESET, NULL);
         bufferevent_enable(bev, EV_READ | EV_WRITE);
         // Drain anything left in buffer
@@ -319,7 +331,7 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
                                                const QUuid quuid)
 {
     using namespace PXMConsts;
-    // Should always have something for in the buffer
+    // Should always have something in the buffer
     if (bufLen == 0) {
         qCritical() << "Blank message! -- Not Good!";
         return -1;
@@ -328,55 +340,12 @@ int ServerThreadPrivate::singleMessageIterator(const bufferevent* bev,
     type              = static_cast<MESSAGE_TYPE>(htonl(type));
     buf               = &buf[sizeof(MESSAGE_TYPE)];
     bufLen -= sizeof(MESSAGE_TYPE);
-    int result = 0;
-    switch (type) {
-        case MSG_TEXT: {
-            qDebug().noquote() << "Message from" << quuid.toString();
-            qDebug().noquote() << "MSG :" << QString::fromUtf8((char*)&buf[0], bufLen);
-            QSharedPointer<QString> msgPtr(new QString(QLatin1String((char*)&buf[0], bufLen)));
-            // emit q_ptr->msgHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid, bev, false);
-            emit q_ptr->msgHandler(msgPtr, quuid, bev, false);
-            break;
-        }
-        case MSG_SYNC: {
-            // QT data structures seem to mangle this packet (i suspect
-            // because it has null characters in it)
-            // Right now we send it a as a raw character array but wrapped
-            // in a smart pointer
-            QSharedPointer<unsigned char> syncPacket(new unsigned char[bufLen]);
-            memcpy(syncPacket.data(), &buf[0], bufLen);
-            qDebug().noquote() << "SYNC received from" << quuid.toString();
-            emit q_ptr->syncHandler(syncPacket, bufLen, quuid);
-            break;
-        }
-        case MSG_SYNC_REQUEST:
-            qDebug().noquote() << "SYNC_REQUEST received" << QString::fromUtf8((char*)&buf[0], bufLen) << "from"
-                               << quuid.toString();
-            emit q_ptr->syncRequestHandler(bev, quuid);
-            break;
-        case MSG_GLOBAL: {
-            qDebug().noquote() << "Global message from" << quuid.toString();
-            qDebug().noquote() << "GLOBAL :" << QString::fromUtf8((char*)&buf[0], bufLen);
-            QSharedPointer<QString> msgPtr(new QString(QLatin1String((char*)&buf[0], bufLen)));
-            emit q_ptr->msgHandler(msgPtr, quuid, bev, true);
-            break;
-        }
-        case MSG_NAME:
-            qDebug().noquote() << "NAME :" << QString::fromUtf8((char*)&buf[0], bufLen) << "from" << quuid.toString();
-            emit q_ptr->nameHandler(QString::fromUtf8((char*)&buf[0], bufLen), quuid);
-            break;
-        case MSG_AUTH:
-            qWarning().noquote() << "AUTH packet recieved after alread "
-                                    "authenticated, disregarding...";
-            result = -1;
-            break;
-        default:
-            qWarning().noquote() << "Bad message type in the packet, "
-                                    "discarding the rest";
-            result = -1;
-            break;
-    }
-    return result;
+    QSharedPointer<unsigned char> bufCopy = QSharedPointer<unsigned char>(new unsigned char[bufLen]);
+    memcpy(bufCopy.data(), buf, bufLen);
+
+    emit q_ptr->packetHandler(bufCopy, bufLen, type, quuid, bev);
+
+    return 0;
 }
 void ServerThreadPrivate::udpRecieve(evutil_socket_t socketfd, short int, void* args)
 {
@@ -413,7 +382,8 @@ void ServerThreadPrivate::udpRecieve(evutil_socket_t socketfd, short int, void* 
         // Set reply destination to the multicast port number
         si_other.sin_port = htons(st->udpPortNumber);
 
-        // Format reply message
+        // Format reply message, ct_strlen works around a compiler warning when
+        // making this a const.
         constexpr size_t len = sizeof(uint16_t) + NetCompression::PACKED_UUID_LENGTH + PXMConsts::ct_strlen("/name:");
 
         char name[len + 1];
