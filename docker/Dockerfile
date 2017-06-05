@@ -10,6 +10,10 @@ RUN apt-get update -q && apt-get install -y libqt5gui5 \
 	libevent-dev \
 	g++-5 \
 	make \
-	git 
+	git \
+	qt5-default \
+	g++
 
 RUN git clone https://github.com/cbpeckles/pxmessenger
+
+ENTRYPOINT /bin/bash
