@@ -110,7 +110,7 @@ public:
   PXMWindow(PXMWindow&&) noexcept = delete;
  public slots:
   void bloomActionsSlot();
-  int printToTextBrowser(QSharedPointer<QString> str, QString hostname, QUuid uuid, bool alert, bool fromServer, bool global);
+  int printToTextBrowser(QSharedPointer<QString> str, QString hostname, QUuid uuid, QUuid sender, bool alert, bool fromServer, bool global);
   void setItalicsOnItem(QUuid uuid, bool italics);
   void updateListWidget(QUuid uuid, QString hostname);
   void warnBox(QString title, QString msg);

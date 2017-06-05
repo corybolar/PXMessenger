@@ -696,7 +696,7 @@ int PXMPeerWorker::addMessageToPeer(QString str, QUuid ruuid, QUuid suuid, bool 
     }
 
     QSharedPointer<QString> pStr(new QString(str.toUtf8()));
-    emit msgRecieved(pStr, d_ptr->peersHash.value(suuid).hostname, ruuid, alert, fromServer, false);
+    emit msgRecieved(pStr, d_ptr->peersHash.value(suuid).hostname, ruuid, suuid, alert, fromServer, false);
     return 0;
 }
 int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uuid, bool alert, bool, bool global)
@@ -705,7 +705,7 @@ int PXMPeerWorkerPrivate::addMessageToPeer(QSharedPointer<QString> str, QUuid uu
         return -1;
     }
 
-    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, alert, false, global);
+    emit q_ptr->msgRecieved(str, peersHash.value(uuid).hostname, uuid, uuid, alert, false, global);
     return 0;
 }
 void PXMPeerWorkerPrivate::setSelfCommsBufferevent(bufferevent* bev)

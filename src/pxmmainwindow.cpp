@@ -458,6 +458,7 @@ int PXMWindow::focusWindow()
 int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
                                   QString hostname,
                                   QUuid uuid,
+                                  QUuid sender,
                                   bool alert,
                                   bool fromServer,
                                   bool global)
@@ -467,7 +468,7 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
     }
 
     QString color = peerColor;
-    if (uuid == localUuid && !fromServer) {
+    if (sender == localUuid && !fromServer) {
         color = selfColor;
     } else if (global) {
         for (int i = 0; i < ui->listWidget->count(); i++) {
