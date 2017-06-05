@@ -10,5 +10,5 @@ before_install:
 
 script:
     - docker ps -a
-    - docker exec build sh -c "cd pxmessenger && qmake -qt=qt5 QMAKE_CXX=g++-5 QMAKE_LINK=g++-5 && make"
+    - docker exec build sh -c "cd pxmessenger && qmake && make -j4"
     - docker stop build
