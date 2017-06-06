@@ -489,20 +489,15 @@ int PXMWindow::sendButtonClicked()
     if (!(ui->textEdit->toPlainText().isEmpty())) {
         QString fixedURLS = ui->textEdit->toHtml();
         QRegularExpression urls("(https?://([a-zA-Z0-9_-]+.)?[a-zA-Z0-9_-]+.[a-z]{2,3})");
-        qCritical() << fixedURLS;
         QString body = fixedURLS.right(fixedURLS.length() - fixedURLS.indexOf("<html>"));
         body.replace(urls, "<a href=\"\\1\">\\1</a>");
-        fixedURLS = fixedURLS.left(fixedURLS.indexOf("<html>")) % body;
-        // fixedURLS = fixedURLS.right(fixedURLS.indexOf("<body")).replace(urls, "<a href=\"\\1\">\\1</a>");
-        qCritical() << fixedURLS;
-        // QByteArray msg = ui->textEdit->toHtml().toUtf8();
+        fixedURLS      = fixedURLS.left(fixedURLS.indexOf("<html>")) % body;
         QByteArray msg = fixedURLS.toUtf8();
         if (removeBodyFormatting(msg)) {
             qWarning() << "Bad Html";
             qWarning() << msg;
             return -1;
         }
-        // msg                      = QString(msg).replace(urls, "<a href=\"\\1\">\\1</a>").toUtf8();
         int index                = ui->listWidget->currentRow();
         QUuid uuidOfSelectedItem = ui->listWidget->item(index)->data(Qt::UserRole).toString();
 
@@ -623,6 +618,7 @@ PXMAboutDialog::PXMAboutDialog(QWidget* parent, QIcon icon) : QDialog(parent), u
                        "</center>"
                        "<br><br><br><br>");
     ui->label->setOpenExternalLinks(true);
+    this->resize(ui->label->width(), this->height());
     this->setAttribute(Qt::WA_DeleteOnClose, true);
 }
 
