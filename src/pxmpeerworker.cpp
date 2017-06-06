@@ -383,15 +383,12 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
                                     "authenticated, disregarding...";
             break;
         case MSG_TYPING:
-            // qInfo().noquote() << "Typing from: " << peersHash.value(uuid).hostname;
             emit q_ptr->typingAlert(uuid);
             break;
         case MSG_TEXTENTERED:
-            // qInfo().noquote() << "Text Entered from: " << peersHash.value(uuid).hostname;
             emit q_ptr->textEnteredAlert(uuid);
             break;
         case MSG_ENDTEXTENTERED:
-            // qInfo().noquote() << "End of Text Entered from: " << peersHash.value(uuid).hostname;
             emit q_ptr->endOfTextEnteredAlert(uuid);
             break;
         default:
