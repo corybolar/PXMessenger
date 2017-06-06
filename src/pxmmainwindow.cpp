@@ -706,6 +706,7 @@ void PXMTextEdit::keyPressEvent(QKeyEvent* event)
     if (event->key() == Qt::Key_Return) {
         emit returnPressed();
     } else {
+        emit typing();
         QTextEdit::keyPressEvent(event);
     }
 }

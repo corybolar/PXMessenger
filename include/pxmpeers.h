@@ -82,6 +82,7 @@ class PeerData {
   QString progVersion;
   QSharedPointer<BevWrapper> bw;
   evutil_socket_t socket;
+  qint64 timeOfTyping;
   bool connectTo;
   bool isAuthed;
 

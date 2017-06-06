@@ -104,6 +104,28 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
     return 0;
 }
 
+void PXMClient::sendSingleType(QSharedPointer<Peers::BevWrapper> bw, PXMConsts::MESSAGE_TYPE type)
+{
+    int packetLen = d_ptr->localUUIDLen + sizeof(type);
+    unsigned char packet[packetLen];
+
+    memcpy(&packet[0], d_ptr->packedLocalUUID, d_ptr->localUUIDLen);
+    memcpy(&packet[d_ptr->localUUIDLen], &type, sizeof(type));
+
+    uint16_t packetLenNBO = htons(static_cast<uint16_t>(packetLen));
+    bw->lockBev();
+
+    if ((bw->getBev() != nullptr) && (bufferevent_get_enabled(bw->getBev()) & EV_WRITE)) {
+        if (bufferevent_write(bw->getBev(), &packetLenNBO, sizeof(packetLenNBO)) == 0) {
+            if (bufferevent_write(bw->getBev(), packet, packetLen) == 0) {
+                qDebug() << "Successful Type Send";
+            }
+        }
+    }
+
+    bw->unlockBev();
+}
+
 void PXMClientPrivate::sendMsg(const QSharedPointer<Peers::BevWrapper> bw,
                                const char* msg,
                                const size_t msgLen,

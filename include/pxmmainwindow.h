@@ -183,6 +183,7 @@ class PXMTextEdit : public QTextEdit
     void keyPressEvent(QKeyEvent* event) Q_DECL_OVERRIDE;
    signals:
     void returnPressed();
+    void typing();
 
    protected:
     void focusOutEvent(QFocusEvent* event) Q_DECL_OVERRIDE;

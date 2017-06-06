@@ -2,6 +2,7 @@
 
 #include <QMutex>
 #include <QStringBuilder>
+#include <QDateTime>
 
 #include <event2/bufferevent.h>
 
@@ -24,6 +25,7 @@ PeerData::PeerData()
       progVersion(QString()),
       bw(QSharedPointer<BevWrapper>(new BevWrapper)),
       socket(-1),
+      timeOfTyping(QDateTime::currentMSecsSinceEpoch()),
       connectTo(false),
       isAuthed(false)
 {

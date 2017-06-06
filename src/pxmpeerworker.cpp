@@ -132,6 +132,8 @@ class PXMPeerWorkerPrivate : public QObject
                      bufferevent* bev);
     void syncHandler(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid);
     void nameHandler(QString hname, const QUuid uuid);
+    void typingHandler(QUuid uuid);
+    void textEnteredHandler(QUuid uuid);
     void syncRequestHandlerBev(const bufferevent* bev, const QUuid uuid);
     void init();
     // Slots
@@ -318,6 +320,14 @@ void PXMPeerWorker::beginPeerSync()
     d_ptr->syncer->syncNext();
     d_ptr->nextSyncTimer->start();
 }
+
+void PXMPeerWorker::typing(QUuid uuid)
+{
+    if (d_ptr->peersHash.value(uuid).timeOfTyping - 500 < QDateTime::currentMSecsSinceEpoch()) {
+        emit sendTypingPacket(d_ptr->peersHash.value(uuid).bw);
+        d_ptr->peersHash[uuid].timeOfTyping = QDateTime::currentMSecsSinceEpoch();
+    }
+}
 void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> packet,
                                          const size_t len,
                                          const PXMConsts::MESSAGE_TYPE type,
@@ -358,6 +368,14 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
         case MSG_AUTH:
             qWarning().noquote() << "AUTH packet recieved after already "
                                     "authenticated, disregarding...";
+            break;
+        case MSG_TYPING:
+            qDebug().noquote() << "Typing from: " << peersHash.value(uuid).hostname;
+            typingHandler(uuid);
+            break;
+        case MSG_TEXTENTERED:
+            qDebug().noquote() << "Text Entered from: " << peersHash.value(uuid).hostname;
+            textEnteredHandler(uuid);
             break;
         default:
             qWarning().noquote() << "Bad message type in the packet, "
@@ -449,6 +467,14 @@ void PXMPeerWorkerPrivate::nameHandler(QString hname, const QUuid uuid)
         peersHash[uuid].hostname = hname.left(PXMConsts::MAX_HOSTNAME_LENGTH + PXMConsts::MAX_COMPUTER_NAME_LENGTH);
         emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
     }
+}
+
+void PXMPeerWorkerPrivate::typingHandler(QUuid uuid)
+{
+}
+
+void PXMPeerWorkerPrivate::textEnteredHandler(QUuid uuid)
+{
 }
 void PXMPeerWorkerPrivate::peerQuit(evutil_socket_t s, bufferevent* bev)
 {

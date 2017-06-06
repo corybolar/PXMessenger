@@ -57,6 +57,7 @@ class PXMClient : public QObject
      * \return 0 on success, -1 on error
      */
     int sendUDP(const char* msg, unsigned short port);
+    void sendSingleType(QSharedPointer<Peers::BevWrapper> bw, PXMConsts::MESSAGE_TYPE type);
    signals:
     /*!
      * \brief resultOfTCPSend
