@@ -110,7 +110,8 @@ void PXMClient::sendSingleType(QSharedPointer<Peers::BevWrapper> bw, PXMConsts::
     unsigned char packet[packetLen];
 
     memcpy(&packet[0], d_ptr->packedLocalUUID, d_ptr->localUUIDLen);
-    memcpy(&packet[d_ptr->localUUIDLen], &type, sizeof(type));
+    uint32_t typeNBO = htonl(type);
+    memcpy(&packet[d_ptr->localUUIDLen], &typeNBO, sizeof(typeNBO));
 
     uint16_t packetLenNBO = htons(static_cast<uint16_t>(packetLen));
     bw->lockBev();

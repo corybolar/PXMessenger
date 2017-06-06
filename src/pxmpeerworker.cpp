@@ -294,6 +294,7 @@ void PXMPeerWorkerPrivate::connectClient()
                      Qt::QueuedConnection);
     QObject::connect(q_ptr, &PXMPeerWorker::sendMsg, client, &PXMClient::sendMsgSlot, Qt::QueuedConnection);
     QObject::connect(q_ptr, &PXMPeerWorker::sendUDP, client, &PXMClient::sendUDP, Qt::QueuedConnection);
+    QObject::connect(q_ptr, &PXMPeerWorker::sendSingleType, client, &PXMClient::sendSingleType, Qt::QueuedConnection);
 }
 
 void PXMPeerWorkerPrivate::setListenerPorts(unsigned short tcpport, unsigned short udpport)
@@ -323,10 +324,22 @@ void PXMPeerWorker::beginPeerSync()
 
 void PXMPeerWorker::typing(QUuid uuid)
 {
-    if (d_ptr->peersHash.value(uuid).timeOfTyping - 500 < QDateTime::currentMSecsSinceEpoch()) {
-        emit sendTypingPacket(d_ptr->peersHash.value(uuid).bw);
+    // qint64 tot = d_ptr->peersHash.value(uuid).timeOfTyping;
+    // qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (d_ptr->peersHash.value(uuid).timeOfTyping + 500 < QDateTime::currentMSecsSinceEpoch()) {
+        emit sendSingleType(d_ptr->peersHash.value(uuid).bw, PXMConsts::MSG_TYPING);
         d_ptr->peersHash[uuid].timeOfTyping = QDateTime::currentMSecsSinceEpoch();
     }
+}
+
+void PXMPeerWorker::textEntered(QUuid uuid)
+{
+    emit sendSingleType(d_ptr->peersHash.value(uuid).bw, PXMConsts::MSG_TEXTENTERED);
+}
+
+void PXMPeerWorker::endOfTextEntered(QUuid uuid)
+{
+    emit sendSingleType(d_ptr->peersHash.value(uuid).bw, PXMConsts::MSG_ENDTEXTENTERED);
 }
 void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> packet,
                                          const size_t len,
@@ -370,12 +383,16 @@ void PXMPeerWorkerPrivate::packetHandler(const QSharedPointer<unsigned char> pac
                                     "authenticated, disregarding...";
             break;
         case MSG_TYPING:
-            qDebug().noquote() << "Typing from: " << peersHash.value(uuid).hostname;
-            typingHandler(uuid);
+            // qInfo().noquote() << "Typing from: " << peersHash.value(uuid).hostname;
+            emit q_ptr->typingAlert(uuid);
             break;
         case MSG_TEXTENTERED:
-            qDebug().noquote() << "Text Entered from: " << peersHash.value(uuid).hostname;
-            textEnteredHandler(uuid);
+            // qInfo().noquote() << "Text Entered from: " << peersHash.value(uuid).hostname;
+            emit q_ptr->textEnteredAlert(uuid);
+            break;
+        case MSG_ENDTEXTENTERED:
+            // qInfo().noquote() << "End of Text Entered from: " << peersHash.value(uuid).hostname;
+            emit q_ptr->endOfTextEnteredAlert(uuid);
             break;
         default:
             qWarning().noquote() << "Bad message type in the packet, "
@@ -469,13 +486,6 @@ void PXMPeerWorkerPrivate::nameHandler(QString hname, const QUuid uuid)
     }
 }
 
-void PXMPeerWorkerPrivate::typingHandler(QUuid uuid)
-{
-}
-
-void PXMPeerWorkerPrivate::textEnteredHandler(QUuid uuid)
-{
-}
 void PXMPeerWorkerPrivate::peerQuit(evutil_socket_t s, bufferevent* bev)
 {
     for (Peers::PeerData& itr : peersHash) {

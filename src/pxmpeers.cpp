@@ -41,6 +41,7 @@ PeerData::PeerData(const PeerData& pd)
       progVersion(pd.progVersion),
       bw(pd.bw),
       socket(pd.socket),
+      timeOfTyping(pd.timeOfTyping),
       connectTo(pd.connectTo),
       isAuthed(pd.isAuthed)
 {
@@ -54,6 +55,7 @@ PeerData::PeerData(PeerData&& pd) noexcept
       progVersion(pd.progVersion),
       bw(pd.bw),
       socket(pd.socket),
+      timeOfTyping(pd.timeOfTyping),
       connectTo(pd.connectTo),
       isAuthed(pd.isAuthed)
 {
@@ -69,10 +71,11 @@ PeerData& PeerData::operator=(PeerData&& p) noexcept
         addrRaw  = p.addrRaw;
         hostname = p.hostname;
         // textColor   = p.textColor;
-        progVersion = p.progVersion;
-        socket      = p.socket;
-        connectTo   = p.connectTo;
-        isAuthed    = p.isAuthed;
+        progVersion  = p.progVersion;
+        socket       = p.socket;
+        timeOfTyping = p.timeOfTyping;
+        connectTo    = p.connectTo;
+        isAuthed     = p.isAuthed;
     }
     return *this;
 }

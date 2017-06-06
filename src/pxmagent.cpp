@@ -225,6 +225,17 @@ int PXMAgent::postInit()
                      Qt::QueuedConnection);
     QObject::connect(d_ptr->window.data(), &PXMWindow::printInfoToDebug, d_ptr->peerWorker,
                      &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);
+    QObject::connect(d_ptr->window.data(), &PXMWindow::typing, d_ptr->peerWorker, &PXMPeerWorker::typing,
+                     Qt::QueuedConnection);
+    QObject::connect(d_ptr->window.data(), &PXMWindow::endOfTextEntered, d_ptr->peerWorker,
+                     &PXMPeerWorker::endOfTextEntered, Qt::QueuedConnection);
+    QObject::connect(d_ptr->window.data(), &PXMWindow::textEntered, d_ptr->peerWorker, &PXMPeerWorker::textEntered,
+                     Qt::QueuedConnection);
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::typingAlert, d_ptr->window.data(), &PXMWindow::typingAlert);
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::textEnteredAlert, d_ptr->window.data(),
+                     &PXMWindow::textEnteredAlert);
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::endOfTextEnteredAlert, d_ptr->window.data(),
+                     &PXMWindow::endOfTextEnteredAlert);
 
 #ifdef QT_DEBUG
     qInfo().noquote() << "Built in debug mode";

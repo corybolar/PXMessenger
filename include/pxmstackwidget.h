@@ -8,8 +8,16 @@
 #include <QLabel>
 #include <QHash>
 #include <QVector>
+#include <QDebug>
+#include <QLineEdit>
+#include <QTimer>
 
 namespace PXMMessageViewer {
+
+  const QString infoTyping = " is typing...";
+  const QString infoEntered = " has entered text.";
+  const int typeTimerInterval = 1500;
+  const QString infoBarStyle = "QLineEdit { background-color : rgb(255,255,128); color : black; }";
   class History {
     QUuid identifier;
     QString text;
@@ -37,9 +45,40 @@ class LabelWidget : public QLabel, public MVBase {
 
 class TextWidget : public QTextBrowser, public MVBase {
   Q_OBJECT
+  QLineEdit* info;
+  QTimer* typingTimer;
+  bool textEntered = false;
+  bool typing = false;
+  void resizeEvent(QResizeEvent *event)
+  {
+    rlabel();
+    QTextBrowser::resizeEvent(event);
+  }
+
+  void rlabel();
+
  public:
   explicit TextWidget(QWidget* parent, const QUuid& uuid)
-      : QTextBrowser(parent), MVBase(uuid) {}
+      : QTextBrowser(parent), MVBase(uuid) {
+    this->setOpenExternalLinks(true);
+    this->setOpenLinks(true);
+    this->setTextInteractionFlags(Qt::TextInteractionFlag::LinksAccessibleByMouse);
+    info = new QLineEdit(this);
+    info->setStyleSheet(infoBarStyle);
+    info->setVisible(false);
+    info->setReadOnly(true);
+    info->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+
+    typingTimer = new QTimer(this);
+    typingTimer->setInterval(typeTimerInterval);
+    typingTimer->setSingleShot(true);
+    QObject::connect(typingTimer, &QTimer::timeout, this, &TextWidget::timerCallback);
+    //info->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
+  }
+  void showTyping(QString hostname);
+  void showEntered(QString hostname);
+  void clearInfoLine();
+  void timerCallback();
 };
 
 class StackedWidget : public QStackedWidget {
@@ -52,7 +91,12 @@ public:
   int append(QString str, QUuid& uuid);
   int switchToUuid(QUuid& uuid);
   int newHistory(QUuid &uuid);
+  TextWidget *getItem(QUuid &uuid);
+  int showTyping(QUuid &uuid, QString hostname);
+  int showEntered(QUuid &uuid, QString hostname);
+  int clearInfoLine(QUuid &uuid);
 };
+
 }
 
 #endif  // PXMMESSAGEVIEWER_H

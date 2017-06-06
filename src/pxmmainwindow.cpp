@@ -64,8 +64,24 @@ PXMWindow::PXMWindow(QString hostname,
     ui->focusCheckBox->setChecked(focus);
     ui->muteCheckBox->setChecked(mute);
 
+    this->textEnteredTimer = new QTimer();
+    textEnteredTimer->setInterval(500);
+    QObject::connect(textEnteredTimer, &QTimer::timeout, this, &PXMWindow::textEnteredCallback);
     this->resize(windowSize);
+
+    this->labelTest = new QTimer();
+    labelTest->setInterval(2000);
+    labelTest->start();
+    QObject::connect(labelTest, &QTimer::timeout, this, &PXMWindow::ltTimeout);
 }
+void PXMWindow::ltTimeout()
+{
+    ltBool = !ltBool;
+    // QUuid uuid = QUuid("99662875-ac8b-4f8e-a948-0490626e9c9f");
+
+    // TextWidget* tw = ui->stackedWidget->getItem(uuid);
+}
+
 PXMWindow::~PXMWindow()
 {
     qDebug() << "Shutdown of PXMWindow Successful";
@@ -161,6 +177,10 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(sysTray, &QObject::destroyed, sysTrayMenu, &QObject::deleteLater);
     QObject::connect(ui->textEdit, &QTextEdit::textChanged, this, &PXMWindow::textEditChanged);
     QObject::connect(sysTrayMenu, &QMenu::aboutToHide, sysTrayMenu, &QObject::deleteLater);
+    QObject::connect(ui->textEdit, &PXMTextEdit::typing, this, &PXMWindow::typingHandler);
+    QObject::connect(ui->textEdit, &PXMTextEdit::endOfTyping, this, &PXMWindow::endOfTypingHandler);
+    // QObject::connect(ui->textEdit, &PXMTextEdit::endOfTextEntered, this, &PXMWindow::endOfTextEnteredHandler);
+    // QObject::connect(ui->textEdit, &PXMTextEdit::textEntered, this, &PXMWindow::textEnteredHandler);
 
     QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, this, &PXMWindow::printInfoToDebug);
 }
@@ -226,6 +246,41 @@ void PXMWindow::manualConnect()
 void PXMWindow::warnBox(QString title, QString msg)
 {
     QMessageBox::warning(this, title, msg);
+}
+
+void PXMWindow::typingAlert(QUuid uuid)
+{
+    QString hostname;
+    for (int i = 0; i < ui->listWidget->count(); i++) {
+        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
+            hostname = ui->listWidget->item(i)->text();
+            break;
+        }
+    }
+    if (hostname == QString()) {
+        return;
+    }
+    ui->stackedWidget->showTyping(uuid, hostname);
+}
+
+void PXMWindow::textEnteredAlert(QUuid uuid)
+{
+    QString hostname;
+    for (int i = 0; i < ui->listWidget->count(); i++) {
+        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
+            hostname = ui->listWidget->item(i)->text();
+            break;
+        }
+    }
+    if (hostname == QString()) {
+        return;
+    }
+    ui->stackedWidget->showEntered(uuid, hostname);
+}
+
+void PXMWindow::endOfTextEnteredAlert(QUuid uuid)
+{
+    ui->stackedWidget->clearInfoLine(uuid);
 }
 
 void PXMWindow::debugActionSlot()
@@ -369,6 +424,49 @@ void PXMWindow::aboutToClose()
     debugWindow->hide();
 }
 
+void PXMWindow::typingHandler()
+{
+    if (!ui->listWidget->currentItem()) {
+        return;
+    }
+
+    QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
+
+    emit typing(uuid);
+
+    if (!textEnteredTimer->isActive()) {
+        textEnteredTimer->start();
+        emit textEntered(uuid);
+    }
+}
+
+void PXMWindow::textEnteredCallback()
+{
+    if (!ui->listWidget->currentItem()) {
+        return;
+    }
+
+    QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
+
+    if (ui->textEdit->toPlainText() == QString()) {
+        this->textEnteredTimer->stop();
+        emit endOfTextEntered(uuid);
+    } else {
+        emit textEntered(uuid);
+    }
+}
+
+void PXMWindow::endOfTypingHandler()
+{
+    if (!ui->listWidget->currentItem()) {
+        return;
+    }
+
+    QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
+
+    emit endOfTyping(uuid);
+}
+
 int PXMWindow::removeBodyFormatting(QByteArray& str)
 {
     QRegularExpression qre("((?<=<body) style.*?\"(?=>))");
@@ -389,12 +487,22 @@ int PXMWindow::sendButtonClicked()
     }
 
     if (!(ui->textEdit->toPlainText().isEmpty())) {
-        QByteArray msg = ui->textEdit->toHtml().toUtf8();
+        QString fixedURLS = ui->textEdit->toHtml();
+        QRegularExpression urls("(https?://([a-zA-Z0-9_-]+.)?[a-zA-Z0-9_-]+.[a-z]{2,3})");
+        qCritical() << fixedURLS;
+        QString body = fixedURLS.right(fixedURLS.length() - fixedURLS.indexOf("<html>"));
+        body.replace(urls, "<a href=\"\\1\">\\1</a>");
+        fixedURLS = fixedURLS.left(fixedURLS.indexOf("<html>")) % body;
+        // fixedURLS = fixedURLS.right(fixedURLS.indexOf("<body")).replace(urls, "<a href=\"\\1\">\\1</a>");
+        qCritical() << fixedURLS;
+        // QByteArray msg = ui->textEdit->toHtml().toUtf8();
+        QByteArray msg = fixedURLS.toUtf8();
         if (removeBodyFormatting(msg)) {
             qWarning() << "Bad Html";
             qWarning() << msg;
             return -1;
         }
+        // msg                      = QString(msg).replace(urls, "<a href=\"\\1\">\\1</a>").toUtf8();
         int index                = ui->listWidget->currentRow();
         QUuid uuidOfSelectedItem = ui->listWidget->item(index)->data(Qt::UserRole).toString();
 
@@ -405,6 +513,7 @@ int PXMWindow::sendButtonClicked()
             emit sendMsg(msg, PXMConsts::MSG_GLOBAL, QUuid());
         } else {
             emit sendMsg(msg, PXMConsts::MSG_TEXT, uuidOfSelectedItem);
+            emit endOfTextEntered(uuidOfSelectedItem);
         }
         ui->textEdit->setHtml(QString());
         ui->textEdit->setStyleSheet(QString());
@@ -705,8 +814,12 @@ void PXMTextEdit::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Return) {
         emit returnPressed();
-    } else {
+        emit endOfTyping();
+        emit endOfTextEntered();
+    } else if (event->key() != Qt::Key_Backspace && event->key() != Qt::Key_Delete) {
         emit typing();
+        QTextEdit::keyPressEvent(event);
+    } else {
         QTextEdit::keyPressEvent(event);
     }
 }

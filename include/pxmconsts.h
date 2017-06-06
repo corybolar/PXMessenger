@@ -36,7 +36,8 @@ enum MESSAGE_TYPE : const uint32_t {
     MSG_DISOVER      = 0x77777777,
     MSG_ID           = 0x88888888,
     MSG_TYPING 	     = 0x99999999,
-    MSG_TEXTENTERED  = 0x21132398
+    MSG_TEXTENTERED  = 0x21132398,
+    MSG_ENDTEXTENTERED  = 0x29932398
 };
 //This works around a compiler warning in pxmserver when building a reply
 //message for udp discover packets.  See updReceive in pxmserver.cpp

@@ -48,6 +48,8 @@ public:
     void printInfoToDebug();
     void beginPeerSync();
     void typing(QUuid uuid);
+    void textEntered(QUuid uuid);
+    void endOfTextEntered(QUuid uuid);
     // void restartServer();
    signals:
     void msgRecieved(QSharedPointer<QString>, QString, QUuid, QUuid, bool, bool, bool);
@@ -55,10 +57,14 @@ public:
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, size_t,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
     void sendUDP(const char*, unsigned short);
-    void sendTypingPacket(QSharedPointer<Peers::BevWrapper>);
+    void sendSingleType(QSharedPointer<Peers::BevWrapper>, PXMConsts::MESSAGE_TYPE);
     void connectionStatusChange(QUuid, bool);
     void ipsReceivedFrom(QUuid);
     void warnBox(QString, QString);
+    void typingAlert(QUuid);
+    void textEnteredAlert(QUuid);
+    void endOfTextEnteredAlert(QUuid);
+
 };
 
 #endif

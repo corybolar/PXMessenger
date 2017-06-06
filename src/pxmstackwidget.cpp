@@ -3,6 +3,7 @@
 #include <QLabel>
 #include <QStringBuilder>
 #include <QDebug>
+#include <QScrollBar>
 
 using namespace PXMMessageViewer;
 
@@ -24,6 +25,17 @@ int StackedWidget::newHistory(QUuid& uuid)
         history.insert(uuid, newHist);
     }
     return 0;
+}
+
+TextWidget* StackedWidget::getItem(QUuid& uuid)
+{
+    for (int i = 0; i < this->count(); i++) {
+        TextWidget* mvb = dynamic_cast<TextWidget*>(this->widget(i));
+        if (mvb && mvb->getIdentifier() == uuid) {
+            return mvb;
+        }
+    }
+    return nullptr;
 }
 
 int StackedWidget::append(QString str, QUuid& uuid)
@@ -104,4 +116,113 @@ LabelWidget::LabelWidget(QWidget* parent, const QUuid& uuid) : QLabel(parent), M
 void History::append(const QString& str)
 {
     text.append(str);
+}
+
+void TextWidget::rlabel()
+{
+    int ax, ay, aw, ah;
+    this->frameRect().getRect(&ax, &ay, &aw, &ah);
+    info->setGeometry(this->lineWidth(), ah - info->height() - this->lineWidth(), aw - 2 * this->lineWidth(),
+                      info->height());
+    if (info->isVisible()) {
+        this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
+    } else {
+        this->setStyleSheet("QTextBrowser { }");
+    }
+}
+
+void TextWidget::showTyping(QString hostname)
+{
+    typing             = true;
+    QScrollBar* scroll = this->verticalScrollBar();
+    bool scrollMax     = false;
+    if (scroll->sliderPosition() == scroll->maximum()) {
+        scrollMax = true;
+    }
+    info->setText(hostname % infoTyping);
+    info->setVisible(true);
+    this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
+    if (scrollMax) {
+        scroll->setSliderPosition(scroll->maximum());
+    }
+    typingTimer->start();
+}
+
+void TextWidget::showEntered(QString hostname)
+{
+    this->textEntered = true;
+    if (typing) {
+        return;
+    }
+    QScrollBar* scroll = this->verticalScrollBar();
+    bool scrollMax     = false;
+    if (scroll->sliderPosition() == scroll->maximum()) {
+        scrollMax = true;
+    }
+    info->setText(hostname % infoEntered);
+    info->setVisible(true);
+    this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
+    if (scrollMax) {
+        scroll->setSliderPosition(scroll->maximum());
+    }
+}
+
+void TextWidget::clearInfoLine()
+{
+    typingTimer->stop();
+    typing      = false;
+    textEntered = false;
+    info->setVisible(false);
+    this->setStyleSheet("QTextBrowser { }");
+}
+
+void TextWidget::timerCallback()
+{
+    if (textEntered) {
+        typing       = false;
+        QString temp = info->text();
+        if (temp.endsWith(infoTyping)) {
+            this->showEntered(temp.left(temp.length() - infoTyping.length()));
+        } else {
+            clearInfoLine();
+            textEntered = false;
+        }
+    } else {
+        clearInfoLine();
+    }
+}
+
+int PXMMessageViewer::StackedWidget::showTyping(QUuid& uuid, QString hostname)
+{
+    for (int i = 0; i < this->count(); i++) {
+        TextWidget* tw = dynamic_cast<TextWidget*>(this->widget(i));
+        if (tw && tw->getIdentifier() == uuid) {
+            tw->showTyping(hostname);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int StackedWidget::showEntered(QUuid& uuid, QString hostname)
+{
+    for (int i = 0; i < this->count(); i++) {
+        TextWidget* tw = dynamic_cast<TextWidget*>(this->widget(i));
+        if (tw && tw->getIdentifier() == uuid) {
+            tw->showEntered(hostname);
+            return 0;
+        }
+    }
+    return 1;
+}
+int StackedWidget::clearInfoLine(QUuid& uuid)
+{
+    for (int i = 0; i < this->count(); i++) {
+        TextWidget* tw = dynamic_cast<TextWidget*>(this->widget(i));
+        if (tw && tw->getIdentifier() == uuid) {
+            tw->clearInfoLine();
+            return 0;
+        }
+    }
+    return 1;
 }

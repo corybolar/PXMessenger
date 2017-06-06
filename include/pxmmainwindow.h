@@ -6,6 +6,7 @@
 #include <QUuid>
 #include <QScopedPointer>
 #include <QTextEdit>
+#include <QTimer>
 
 #include "pxmconsts.h"
 //#include "ui_pxmmainwindow.h"
@@ -48,6 +49,9 @@ class PXMWindow : public QMainWindow {
   QUuid localUuid;
   QUuid globalChatUuid;
   QScopedPointer<PXMConsole::Window> debugWindow;
+  QTimer* textEnteredTimer;
+  QTimer* labelTest;
+  bool ltBool = false;
   /*!
    * \brief focusWindow
    *
@@ -114,8 +118,11 @@ public:
   void setItalicsOnItem(QUuid uuid, bool italics);
   void updateListWidget(QUuid uuid, QString hostname);
   void warnBox(QString title, QString msg);
+  void typingAlert(QUuid);
+  void textEnteredAlert(QUuid);
+  void endOfTextEnteredAlert(QUuid);
 
- protected:
+protected:
   void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE;
   void changeEvent(QEvent* event) Q_DECL_OVERRIDE;
  private slots:
@@ -131,6 +138,10 @@ public:
   void syncActionsSlot();
   void manualConnect();
   void aboutToClose();
+  void typingHandler();
+  void endOfTypingHandler();
+  void textEnteredCallback();
+  void ltTimeout();
 signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);
@@ -139,6 +150,10 @@ signals:
   void addMessageToPeer(QString, QUuid, QUuid, bool, bool);
   void printInfoToDebug();
   void manConnect(QString, int);
+  void typing(QUuid uuid);
+  void endOfTextEntered(QUuid uuid);
+  void endOfTyping(QUuid uuid);
+  void textEntered(QUuid uuid);
 };
 
 class PXMAboutDialog : public QDialog {
@@ -184,6 +199,8 @@ class PXMTextEdit : public QTextEdit
    signals:
     void returnPressed();
     void typing();
+    void endOfTyping();
+    void endOfTextEntered();
 
    protected:
     void focusOutEvent(QFocusEvent* event) Q_DECL_OVERRIDE;
