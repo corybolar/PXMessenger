@@ -303,9 +303,10 @@ void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
             mfont.setItalic(italics);
             ui->listWidget->item(i)->setFont(mfont);
             QString changeInConnection;
-            if (italics)
+            if (italics) {
                 changeInConnection = " disconnected";
-            else
+                this->endOfTextEnteredAlert(uuid);
+            } else
                 changeInConnection = " reconnected";
             emit addMessageToPeer(ui->listWidget->item(i)->text() % changeInConnection, uuid, uuid, false, true);
             return;

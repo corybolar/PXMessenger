@@ -17,7 +17,7 @@ namespace PXMMessageViewer {
   const QString infoTyping = " is typing...";
   const QString infoEntered = " has entered text.";
   const int typeTimerInterval = 1500;
-  const QString infoBarStyle = "QLineEdit { background-color : rgb(255,255,128); color : black; }";
+  const QString infoBarStyle = "QLineEdit { background-color : rgb(255,255,160); color : black; }";
   class History {
     QUuid identifier;
     QString text;

@@ -155,7 +155,7 @@ void TextWidget::rlabel()
 }
 
 TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
-    : QTextBrowser(parent), MVBase(uuid), textEntered(false), typing(false)
+    : QTextBrowser(parent), MVBase(uuid), typing(false), textEntered(false)
 {
     this->setOpenExternalLinks(true);
     this->setOpenLinks(true);
