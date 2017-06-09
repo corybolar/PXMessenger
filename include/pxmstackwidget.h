@@ -45,7 +45,6 @@ class LabelWidget : public QLabel, public MVBase {
 
 class TextWidget : public QTextBrowser, public MVBase {
   Q_OBJECT
-  //QTimer* typingTimer;
   bool typing;
   void resizeEvent(QResizeEvent *event)
   {
@@ -62,8 +61,8 @@ class TextWidget : public QTextBrowser, public MVBase {
   explicit TextWidget(QWidget* parent, const QUuid& uuid);
   //Copy
   TextWidget (const TextWidget& other) :
+    QTextBrowser(other.parentWidget()),
     MVBase(other.getIdentifier()),
-    //typingTimer(new QTimer(other.typingTimer)),
     typing(other.typing),
     info(new QLineEdit(other.info)),
     textEntered(other.textEntered)
@@ -73,17 +72,14 @@ class TextWidget : public QTextBrowser, public MVBase {
   //Move
   TextWidget (TextWidget&& other) noexcept :
     MVBase(other.getIdentifier()),
-    //typingTimer(other.typingTimer),
     typing(other.typing),
     info(other.info),
     textEntered(other.textEntered)
   {
     other.info = nullptr;
-    //other.typingTimer = nullptr;
   }
   ~TextWidget() noexcept
   {
-    //typingTimer->stop();
   }
   //Copy Assignment
   TextWidget& operator= (const TextWidget& other)
@@ -95,11 +91,8 @@ class TextWidget : public QTextBrowser, public MVBase {
   //Move Assignment
   TextWidget& operator= (TextWidget&& other) noexcept
   {
-    //typingTimer->deleteLater();
     info->deleteLater();
-    //typingTimer = other.typingTimer;
     info = other.info;
-    //other.typingTimer = nullptr;
     other.info = nullptr;
     textEntered = other.textEntered;
     typing = other.typing;
@@ -114,7 +107,6 @@ class TextWidget : public QTextBrowser, public MVBase {
 
 class StackedWidget : public QStackedWidget {
   Q_OBJECT
-  //QVector<History> history;
     QHash<QUuid, History> history;
     int removeLastWidget();
     QTimer *typingTimer;

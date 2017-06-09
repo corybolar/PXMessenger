@@ -141,7 +141,6 @@ protected:
   void typingHandler();
   void endOfTypingHandler();
   void textEnteredCallback();
-  void ltTimeout();
 signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);
@@ -201,6 +200,10 @@ class PXMTextEdit : public QTextEdit
     void typing();
     void endOfTyping();
     void endOfTextEntered();
+public slots:
+    void toggleItalics();
+    void toggleBold();
+    void toggleUnderline();
 
    protected:
     void focusOutEvent(QFocusEvent* event) Q_DECL_OVERRIDE;

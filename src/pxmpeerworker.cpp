@@ -8,6 +8,7 @@
 #include <QThread>
 #include <QTimer>
 #include <QSharedPointer>
+#include <QPointer>
 
 #include "pxmclient.h"
 #include "pxmserver.h"
@@ -107,7 +108,7 @@ class PXMPeerWorkerPrivate : public QObject
     QTimer* discoveryTimerSingle;
     QTimer* midnightTimer;
     PXMSync* syncer;
-    PXMServer::ServerThread* server;
+    QPointer<PXMServer::ServerThread> server;
     PXMClient* client;
     bufferevent* internalBev;
     QVector<QSharedPointer<Peers::BevWrapper>> extraBevs;
@@ -202,6 +203,7 @@ void PXMPeerWorkerPrivate::init()
     selfComms.connectTo   = true;
     selfComms.isAuthed    = false;
     selfComms.progVersion = qApp->applicationVersion();
+    selfComms.bw->setBev(nullptr);
     peersHash.insert(localUUID, selfComms);
 
     Peers::PeerData globalPeer;
@@ -706,21 +708,6 @@ void PXMPeerWorkerPrivate::addMessageToAllPeers(QString str, bool alert, bool fo
         q_ptr->addMessageToPeer(str, itr.uuid, itr.uuid, alert, formatAsMessage);
     }
 }
-
-/*
-int PXMPeerWorkerPrivate::formatMessage(QString& str, QUuid uuid, QString color)
-{
-    QRegularExpression qre("(<p.*?>)");
-    QRegularExpressionMatch qrem = qre.match(str);
-    int offset                   = qrem.capturedEnd(1);
-    QDateTime dt                 = QDateTime::currentDateTime();
-    QString date                 = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
-    str.insert(offset, QString("<span style=\"white-space: nowrap\" style=\"color: " % color % ";\">" % date %
-                               peersHash.value(uuid).hostname % ":&nbsp;</span>"));
-
-    return 0;
-}
-*/
 
 int PXMPeerWorker::addMessageToPeer(QString str, QUuid ruuid, QUuid suuid, bool alert, bool fromServer)
 {

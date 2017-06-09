@@ -25,7 +25,7 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="5" column="2">
+    <item row="6" column="6">
      <spacer name="horizontalSpacer_3">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -38,27 +38,14 @@
       </property>
      </spacer>
     </item>
-    <item row="7" column="0">
-     <spacer name="horizontalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="5" column="1">
+    <item row="6" column="4">
      <widget class="QPushButton" name="sendButton">
       <property name="text">
        <string>Send</string>
       </property>
      </widget>
     </item>
-    <item row="7" column="2">
+    <item row="8" column="6">
      <spacer name="horizontalSpacer_4">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -71,27 +58,14 @@
       </property>
      </spacer>
     </item>
-    <item row="7" column="1">
+    <item row="8" column="4">
      <widget class="QPushButton" name="quitButton">
       <property name="text">
        <string>Quit</string>
       </property>
      </widget>
     </item>
-    <item row="5" column="0">
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="1" column="0" colspan="4" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+    <item row="1" column="0" colspan="8" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
      <widget class="QLabel" name="imageLabel">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -110,7 +84,7 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="3">
+    <item row="2" column="7">
      <widget class="QLineEdit" name="lineEdit">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
@@ -132,7 +106,7 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="3" rowspan="2">
+    <item row="3" column="7" rowspan="3">
      <widget class="QListWidget" name="listWidget">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -154,7 +128,7 @@
       </property>
      </widget>
     </item>
-    <item row="5" column="3">
+    <item row="6" column="7">
      <widget class="QCheckBox" name="muteCheckBox">
       <property name="layoutDirection">
        <enum>Qt::RightToLeft</enum>
@@ -164,7 +138,7 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="3">
+    <item row="8" column="7">
      <widget class="QCheckBox" name="focusCheckBox">
       <property name="layoutDirection">
        <enum>Qt::RightToLeft</enum>
@@ -174,7 +148,7 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0" rowspan="2" colspan="3">
+    <item row="2" column="0" rowspan="2" colspan="7">
      <widget class="PXMMessageViewer::StackedWidget" name="stackedWidget">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
@@ -190,10 +164,146 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="0" colspan="3">
+    <item row="5" column="0" colspan="7">
      <widget class="PXMTextEdit" name="textEdit">
       <property name="placeholderText">
        <string>Enter a message to send!</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0" colspan="3">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="6" column="3">
+     <spacer name="horizontalSpacer_5">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="8" column="0" colspan="3">
+     <spacer name="horizontalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="8" column="3">
+     <spacer name="horizontalSpacer_6">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="6" column="5">
+     <spacer name="horizontalSpacer_7">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="8" column="5">
+     <spacer name="horizontalSpacer_8">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="4" column="0">
+     <widget class="QToolButton" name="toolButton">
+      <property name="maximumSize">
+       <size>
+        <width>35</width>
+        <height>50</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>B</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QToolButton" name="toolButton_4">
+      <property name="maximumSize">
+       <size>
+        <width>35</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>i</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="2">
+     <widget class="QToolButton" name="toolButton_5">
+      <property name="maximumSize">
+       <size>
+        <width>35</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>u</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="3">
+     <widget class="QGroupBox" name="groupBox">
+      <property name="title">
+       <string>GroupBox</string>
       </property>
      </widget>
     </item>
@@ -205,7 +315,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>27</height>
+     <height>30</height>
     </rect>
    </property>
   </widget>

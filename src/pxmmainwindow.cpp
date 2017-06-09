@@ -63,27 +63,24 @@ PXMWindow::PXMWindow(QString hostname,
 
     ui->focusCheckBox->setChecked(focus);
     ui->muteCheckBox->setChecked(mute);
+    QFont f = ui->toolButton->font();
+    f.setBold(true);
+    ui->toolButton->setFont(f);
+    f = ui->toolButton_4->font();
+    f.setItalic(true);
+    ui->toolButton_4->setFont(f);
+    f = ui->toolButton_5->font();
+    f.setUnderline(true);
+    ui->toolButton_5->setFont(f);
 
     this->textEnteredTimer = new QTimer();
     textEnteredTimer->setInterval(500);
     QObject::connect(textEnteredTimer, &QTimer::timeout, this, &PXMWindow::textEnteredCallback);
     this->resize(windowSize);
 
-    this->labelTest = new QTimer();
-    labelTest->setInterval(2000);
-    labelTest->start();
-    QObject::connect(labelTest, &QTimer::timeout, this, &PXMWindow::ltTimeout);
     // QObject::connect(ui->textEdit, &QTextEdit::textChanged, this, &PXMWindow::typing);
     // QObject::connect(ui->textEdit, &QTextEdit::textChanged, this, &PXMWindow::textEntered);
 }
-void PXMWindow::ltTimeout()
-{
-    ltBool = !ltBool;
-    // QUuid uuid = QUuid("99662875-ac8b-4f8e-a948-0490626e9c9f");
-
-    // TextWidget* tw = ui->stackedWidget->getItem(uuid);
-}
-
 PXMWindow::~PXMWindow()
 {
     qDebug() << "Shutdown of PXMWindow Successful";
@@ -181,6 +178,9 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(sysTrayMenu, &QMenu::aboutToHide, sysTrayMenu, &QObject::deleteLater);
     QObject::connect(ui->textEdit, &PXMTextEdit::typing, this, &PXMWindow::typingHandler);
     QObject::connect(ui->textEdit, &PXMTextEdit::endOfTyping, this, &PXMWindow::endOfTypingHandler);
+    QObject::connect(ui->toolButton, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleBold);
+    QObject::connect(ui->toolButton_4, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleItalics);
+    QObject::connect(ui->toolButton_5, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleUnderline);
     // QObject::connect(ui->textEdit, &PXMTextEdit::endOfTextEntered, this, &PXMWindow::endOfTextEnteredHandler);
     // QObject::connect(ui->textEdit, &PXMTextEdit::textEntered, this, &PXMWindow::textEnteredHandler);
 
@@ -833,6 +833,33 @@ void PXMTextEdit::keyPressEvent(QKeyEvent* event)
     } else {
         QTextEdit::keyPressEvent(event);
     }
+}
+
+void PXMTextEdit::toggleItalics()
+{
+    QTextCharFormat tcf = this->currentCharFormat();
+    QFont f             = tcf.font();
+    f.setItalic(!f.italic());
+    tcf.setFont(f);
+    this->setCurrentCharFormat(tcf);
+}
+
+void PXMTextEdit::toggleBold()
+{
+    QTextCharFormat tcf = this->currentCharFormat();
+    QFont f             = tcf.font();
+    f.setBold(!f.bold());
+    tcf.setFont(f);
+    this->setCurrentCharFormat(tcf);
+}
+
+void PXMTextEdit::toggleUnderline()
+{
+    QTextCharFormat tcf = this->currentCharFormat();
+    QFont f             = tcf.font();
+    f.setUnderline(!f.underline());
+    tcf.setFont(f);
+    this->setCurrentCharFormat(tcf);
 }
 void PXMTextEdit::focusInEvent(QFocusEvent* event)
 {

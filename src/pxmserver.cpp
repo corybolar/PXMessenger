@@ -672,7 +672,7 @@ void ServerThread::run()
     // TCP listener socket setup
     s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
     if (s_listen < 0) {
-        QString errorMsg = "FATAL:TCP socket setup has failed";
+        QString errorMsg = "FATAL:TCP Listening socket setup has failed";
         qCritical() << errorMsg;
         serverSetupFailure(errorMsg);
         return;
@@ -681,7 +681,7 @@ void ServerThread::run()
     // UDP multicast socket setup
     s_discover = d_ptr->newUDPSocket(d_ptr->udpPortNumber);
     if (s_discover < 0) {
-        QString errorMsg = "FATAL:UDP socket setup has failed";
+        QString errorMsg = "FATAL:UDP Multicast socket setup has failed";
         qCritical() << errorMsg;
         serverSetupFailure(errorMsg);
         return;

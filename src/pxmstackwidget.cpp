@@ -34,8 +34,6 @@ void StackedWidget::timerCallback()
             }
         }
     }
-    // int final = QDateTime::currentMSecsSinceEpoch();
-    // qCritical() << "Time: " << final - current;
 }
 
 int StackedWidget::newHistory(QUuid& uuid)
@@ -145,8 +143,9 @@ void TextWidget::rlabel()
 {
     int ax, ay, aw, ah;
     this->frameRect().getRect(&ax, &ay, &aw, &ah);
-    info->setGeometry(this->lineWidth(), ah - info->height() - this->lineWidth(), aw - 2 * this->lineWidth(),
-                      info->height());
+    info->setGeometry(this->lineWidth() + this->midLineWidth(),
+                      ah - info->height() - this->lineWidth() - this->midLineWidth(),
+                      aw - 2 * this->lineWidth() - 2 * this->midLineWidth(), info->height());
     if (info->isVisible()) {
         this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
     } else {
@@ -165,12 +164,6 @@ TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
     info->setVisible(false);
     info->setReadOnly(true);
     info->setFocusPolicy(Qt::FocusPolicy::NoFocus);
-
-    // typingTimer = new QTimer(this);
-    // typingTimer->setInterval(typeTimerInterval);
-    // typingTimer->setSingleShot(true);
-    // QObject::connect(typingTimer, &QTimer::timeout, this, &TextWidget::timerCallback);
-    // info->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
 }
 
 void TextWidget::showTyping(QString hostname)
