@@ -4,6 +4,7 @@
 #include <QStringBuilder>
 #include <QDebug>
 #include <QScrollBar>
+#include <QDateTime>
 
 using namespace PXMMessageViewer;
 
@@ -13,6 +14,28 @@ StackedWidget::StackedWidget(QWidget* parent) : QStackedWidget(parent)
     lw->setText("Select a friend on the right to begin chatting!");
     lw->setAlignment(Qt::AlignCenter);
     this->addWidget(lw);
+    typingTimer = new QTimer();
+    typingTimer->setInterval(500);
+    typingTimer->start();
+    QObject::connect(typingTimer, &QTimer::timeout, this, &StackedWidget::timerCallback);
+}
+
+void StackedWidget::timerCallback()
+{
+    qint64 current = QDateTime::currentMSecsSinceEpoch();
+    for (int i = 0; i < this->count(); i++) {
+        TextWidget* tw = dynamic_cast<TextWidget*>(this->widget(i));
+        if (tw) {
+            if (tw->typingTime + 500 < current) {
+                // QString temp = tw->info->text();
+                tw->timerCallback();
+            } else {
+                continue;
+            }
+        }
+    }
+    // int final = QDateTime::currentMSecsSinceEpoch();
+    // qCritical() << "Time: " << final - current;
 }
 
 int StackedWidget::newHistory(QUuid& uuid)
@@ -131,9 +154,27 @@ void TextWidget::rlabel()
     }
 }
 
+TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
+    : QTextBrowser(parent), MVBase(uuid), textEntered(false), typing(false)
+{
+    this->setOpenExternalLinks(true);
+    this->setOpenLinks(true);
+    this->setTextInteractionFlags(Qt::TextInteractionFlag::LinksAccessibleByMouse);
+    info = new QLineEdit(this);
+    info->setStyleSheet(infoBarStyle);
+    info->setVisible(false);
+    info->setReadOnly(true);
+    info->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+
+    // typingTimer = new QTimer(this);
+    // typingTimer->setInterval(typeTimerInterval);
+    // typingTimer->setSingleShot(true);
+    // QObject::connect(typingTimer, &QTimer::timeout, this, &TextWidget::timerCallback);
+    // info->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
+}
+
 void TextWidget::showTyping(QString hostname)
 {
-    typing             = true;
     QScrollBar* scroll = this->verticalScrollBar();
     bool scrollMax     = false;
     if (scroll->sliderPosition() == scroll->maximum()) {
@@ -145,7 +186,9 @@ void TextWidget::showTyping(QString hostname)
     if (scrollMax) {
         scroll->setSliderPosition(scroll->maximum());
     }
-    typingTimer->start();
+    // typingTimer->start();
+    typing     = true;
+    typingTime = QDateTime::currentMSecsSinceEpoch();
 }
 
 void TextWidget::showEntered(QString hostname)
@@ -169,7 +212,7 @@ void TextWidget::showEntered(QString hostname)
 
 void TextWidget::clearInfoLine()
 {
-    typingTimer->stop();
+    // typingTimer->stop();
     typing      = false;
     textEntered = false;
     info->setVisible(false);
@@ -183,9 +226,6 @@ void TextWidget::timerCallback()
         QString temp = info->text();
         if (temp.endsWith(infoTyping)) {
             this->showEntered(temp.left(temp.length() - infoTyping.length()));
-        } else {
-            clearInfoLine();
-            textEntered = false;
         }
     } else {
         clearInfoLine();

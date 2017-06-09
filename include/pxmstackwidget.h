@@ -45,10 +45,8 @@ class LabelWidget : public QLabel, public MVBase {
 
 class TextWidget : public QTextBrowser, public MVBase {
   Q_OBJECT
-  QLineEdit* info;
-  QTimer* typingTimer;
-  bool textEntered = false;
-  bool typing = false;
+  //QTimer* typingTimer;
+  bool typing;
   void resizeEvent(QResizeEvent *event)
   {
     rlabel();
@@ -58,23 +56,56 @@ class TextWidget : public QTextBrowser, public MVBase {
   void rlabel();
 
  public:
-  explicit TextWidget(QWidget* parent, const QUuid& uuid)
-      : QTextBrowser(parent), MVBase(uuid) {
-    this->setOpenExternalLinks(true);
-    this->setOpenLinks(true);
-    this->setTextInteractionFlags(Qt::TextInteractionFlag::LinksAccessibleByMouse);
-    info = new QLineEdit(this);
-    info->setStyleSheet(infoBarStyle);
-    info->setVisible(false);
-    info->setReadOnly(true);
-    info->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+  qint64 typingTime;
+  QLineEdit* info;
+  bool textEntered;
+  explicit TextWidget(QWidget* parent, const QUuid& uuid);
+  //Copy
+  TextWidget (const TextWidget& other) :
+    MVBase(other.getIdentifier()),
+    //typingTimer(new QTimer(other.typingTimer)),
+    typing(other.typing),
+    info(new QLineEdit(other.info)),
+    textEntered(other.textEntered)
+  {
 
-    typingTimer = new QTimer(this);
-    typingTimer->setInterval(typeTimerInterval);
-    typingTimer->setSingleShot(true);
-    QObject::connect(typingTimer, &QTimer::timeout, this, &TextWidget::timerCallback);
-    //info->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
   }
+  //Move
+  TextWidget (TextWidget&& other) noexcept :
+    MVBase(other.getIdentifier()),
+    //typingTimer(other.typingTimer),
+    typing(other.typing),
+    info(other.info),
+    textEntered(other.textEntered)
+  {
+    other.info = nullptr;
+    //other.typingTimer = nullptr;
+  }
+  ~TextWidget() noexcept
+  {
+    //typingTimer->stop();
+  }
+  //Copy Assignment
+  TextWidget& operator= (const TextWidget& other)
+  {
+    TextWidget tmp(other);
+    *this = std::move(tmp);
+    return *this;
+  }
+  //Move Assignment
+  TextWidget& operator= (TextWidget&& other) noexcept
+  {
+    //typingTimer->deleteLater();
+    info->deleteLater();
+    //typingTimer = other.typingTimer;
+    info = other.info;
+    //other.typingTimer = nullptr;
+    other.info = nullptr;
+    textEntered = other.textEntered;
+    typing = other.typing;
+    return *this;
+  }
+
   void showTyping(QString hostname);
   void showEntered(QString hostname);
   void clearInfoLine();
@@ -86,6 +117,7 @@ class StackedWidget : public QStackedWidget {
   //QVector<History> history;
     QHash<QUuid, History> history;
     int removeLastWidget();
+    QTimer *typingTimer;
 public:
   StackedWidget(QWidget* parent);
   int append(QString str, QUuid& uuid);
@@ -95,6 +127,8 @@ public:
   int showTyping(QUuid &uuid, QString hostname);
   int showEntered(QUuid &uuid, QString hostname);
   int clearInfoLine(QUuid &uuid);
+private slots:
+  void timerCallback();
 };
 
 }

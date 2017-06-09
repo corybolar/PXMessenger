@@ -6,27 +6,34 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>542</width>
-    <height>341</height>
+    <width>800</width>
+    <height>356</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
   <property name="maximumSize">
    <size>
-    <width>542</width>
-    <height>341</height>
+    <width>16777215</width>
+    <height>16777215</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="9" column="4">
+   <item row="1" column="1" colspan="2">
+    <widget class="QLabel" name="hostnameLabel">
+     <property name="text">
+      <string>Hostname</string>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="5">
     <widget class="QCheckBox" name="LogActiveCheckBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
@@ -42,35 +49,35 @@
      </property>
     </widget>
    </item>
-   <item row="9" column="0">
+   <item row="9" column="1">
     <widget class="QLabel" name="logStatusLabel">
      <property name="text">
       <string>Enable Logging to File</string>
      </property>
     </widget>
    </item>
-   <item row="2" column="0">
+   <item row="2" column="1">
     <widget class="QLabel" name="fontLabel">
      <property name="text">
       <string>Font</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="3" column="1">
     <widget class="QLabel" name="fontSizeLabel">
      <property name="text">
       <string>Font Size</string>
      </property>
     </widget>
    </item>
-   <item row="8" column="0" colspan="2">
+   <item row="8" column="1" colspan="2">
     <widget class="QLabel" name="verbosityLabel">
      <property name="text">
       <string>Logging Verbosity</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="4" alignment="Qt::AlignRight">
+   <item row="4" column="5" alignment="Qt::AlignRight">
     <widget class="QSpinBox" name="tcpPortSpinBox">
      <property name="enabled">
       <bool>true</bool>
@@ -101,37 +108,21 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="0" colspan="2">
+   <item row="5" column="1" colspan="2">
     <widget class="QLabel" name="udpPortLabel">
      <property name="text">
       <string>UDP Port number</string>
      </property>
     </widget>
    </item>
-   <item row="4" column="0" colspan="2">
+   <item row="4" column="1" colspan="2">
     <widget class="QLabel" name="tcpPortLabel">
      <property name="text">
       <string>TCP Port number</string>
      </property>
     </widget>
    </item>
-   <item row="11" column="0" colspan="5">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="focusPolicy">
-      <enum>Qt::StrongFocus</enum>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
-     </property>
-     <property name="centerButtons">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="4" alignment="Qt::AlignRight">
+   <item row="5" column="5" alignment="Qt::AlignRight">
     <widget class="QSpinBox" name="udpPortSpinBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
@@ -159,14 +150,7 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="2">
-    <widget class="QLabel" name="hostnameLabel">
-     <property name="text">
-      <string>Hostname</string>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="4" alignment="Qt::AlignRight">
+   <item row="8" column="5" alignment="Qt::AlignRight">
     <widget class="QSpinBox" name="verbositySpinBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
@@ -188,7 +172,7 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="4" alignment="Qt::AlignRight">
+   <item row="3" column="5" alignment="Qt::AlignRight">
     <widget class="QSpinBox" name="fontSizeSpinBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
@@ -213,7 +197,20 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="4">
+   <item row="2" column="5">
+    <widget class="QFontComboBox" name="fontComboBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="5">
     <widget class="QLineEdit" name="hostnameLineEdit">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -232,27 +229,14 @@
      </property>
     </widget>
    </item>
-   <item row="2" column="4">
-    <widget class="QFontComboBox" name="fontComboBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="layoutDirection">
-      <enum>Qt::LeftToRight</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="0">
+   <item row="6" column="1">
     <widget class="QLabel" name="multicastLabel">
      <property name="text">
       <string>Multicast Address</string>
      </property>
     </widget>
    </item>
-   <item row="6" column="4">
+   <item row="6" column="5">
     <widget class="QLineEdit" name="multicastLineEdit">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -268,14 +252,14 @@
      </property>
     </widget>
    </item>
-   <item row="10" column="0">
+   <item row="10" column="1">
     <widget class="QLabel" name="allowMultipleLabel">
      <property name="text">
       <string>Allow multiple instances</string>
      </property>
     </widget>
    </item>
-   <item row="10" column="4">
+   <item row="10" column="5">
     <widget class="QCheckBox" name="allowMultipleCheckBox">
      <property name="enabled">
       <bool>true</bool>
@@ -291,6 +275,47 @@
      </property>
      <property name="text">
       <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" rowspan="10">
+    <widget class="QListWidget" name="listWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <item>
+      <property name="text">
+       <string>General</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Network</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Advanced</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="11" column="0" colspan="6">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="focusPolicy">
+      <enum>Qt::StrongFocus</enum>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Help|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
+     </property>
+     <property name="centerButtons">
+      <bool>true</bool>
      </property>
     </widget>
    </item>

@@ -73,6 +73,8 @@ PXMWindow::PXMWindow(QString hostname,
     labelTest->setInterval(2000);
     labelTest->start();
     QObject::connect(labelTest, &QTimer::timeout, this, &PXMWindow::ltTimeout);
+    // QObject::connect(ui->textEdit, &QTextEdit::textChanged, this, &PXMWindow::typing);
+    // QObject::connect(ui->textEdit, &QTextEdit::textChanged, this, &PXMWindow::textEntered);
 }
 void PXMWindow::ltTimeout()
 {
@@ -345,9 +347,19 @@ void PXMWindow::changeEvent(QEvent* event)
     }
     QMainWindow::changeEvent(event);
 }
-void PXMWindow::currentItemChanged(QListWidgetItem* item1)
+void PXMWindow::currentItemChanged(QListWidgetItem* item1, QListWidgetItem* item2)
 {
-    QUuid uuid = item1->data(Qt::UserRole).toString();
+    // Deal with typing alerts
+    if (item2) {
+        this->endOfTyping(item2->data(Qt::UserRole).toUuid());
+        this->endOfTextEntered(item2->data(Qt::UserRole).toUuid());
+    }
+    if (this->ui->textEdit->toPlainText() != QString()) {
+        this->typing(item1->data(Qt::UserRole).toUuid());
+        this->textEntered(item1->data(Qt::UserRole).toUuid());
+    }
+
+    QUuid uuid = item1->data(Qt::UserRole).toUuid();
 
     if (item1->background() != QGuiApplication::palette().base()) {
         this->changeListItemColor(uuid, 0);
@@ -433,11 +445,12 @@ void PXMWindow::typingHandler()
     QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
 
     emit typing(uuid);
-
     if (!textEnteredTimer->isActive()) {
         textEnteredTimer->start();
         emit textEntered(uuid);
     }
+
+    // emit textEntered(uuid);
 }
 
 void PXMWindow::textEnteredCallback()
@@ -452,7 +465,7 @@ void PXMWindow::textEnteredCallback()
         this->textEnteredTimer->stop();
         emit endOfTextEntered(uuid);
     } else {
-        emit textEntered(uuid);
+        // emit textEntered(uuid);
     }
 }
 
@@ -805,6 +818,7 @@ PXMSettingsDialog::~PXMSettingsDialog()
 
 PXMTextEdit::PXMTextEdit(QWidget* parent) : QTextEdit(parent)
 {
+    QObject::connect(this, &PXMTextEdit::textChanged, this, &PXMTextEdit::typing);
 }
 void PXMTextEdit::keyPressEvent(QKeyEvent* event)
 {
@@ -813,7 +827,7 @@ void PXMTextEdit::keyPressEvent(QKeyEvent* event)
         emit endOfTyping();
         emit endOfTextEntered();
     } else if (event->key() != Qt::Key_Backspace && event->key() != Qt::Key_Delete) {
-        emit typing();
+        // emit typing();
         QTextEdit::keyPressEvent(event);
     } else {
         QTextEdit::keyPressEvent(event);

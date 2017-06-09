@@ -128,7 +128,7 @@ protected:
  private slots:
   int sendButtonClicked();
   void quitButtonClicked();
-  void currentItemChanged(QListWidgetItem* item1);
+  void currentItemChanged(QListWidgetItem* item1, QListWidgetItem *item2);
   void textEditChanged();
   void systemTrayAction(QSystemTrayIcon::ActivationReason reason);
   void aboutActionSlot();
