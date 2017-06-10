@@ -8,12 +8,12 @@
 #ifndef PXMSERVER_H
 #define PXMSERVER_H
 
+#include <sys/time.h>
+
 #include <QThread>
 #include <QUuid>
 #include <QScopedPointer>
 #include <QSharedPointer>
-
-#include <sys/time.h>
 
 #include <event2/util.h>
 #include <pxmconsts.h>

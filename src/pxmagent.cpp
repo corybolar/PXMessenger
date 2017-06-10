@@ -1,22 +1,4 @@
 #include <pxmagent.h>
-#include <pxmconsole.h>
-#include <pxminireader.h>
-#include <pxmmainwindow.h>
-#include <pxmpeerworker.h>
-#include <pxmconsole.h>
-
-#include <QAbstractButton>
-#include <QApplication>
-#include <QDebug>
-#include <QDir>
-#include <QElapsedTimer>
-#include <QLockFile>
-#include <QMessageBox>
-#include <QPixmap>
-#include <QScopedPointer>
-#include <QSharedPointer>
-#include <QSplashScreen>
-#include <QThread>
 
 #ifdef _WIN32
 #include <lmcons.h>
@@ -37,6 +19,25 @@ const char* arch    = "x86";
 #else
 #error "include headers for querying username"
 #endif
+
+#include <QAbstractButton>
+#include <QApplication>
+#include <QDebug>
+#include <QDir>
+#include <QElapsedTimer>
+#include <QLockFile>
+#include <QMessageBox>
+#include <QPixmap>
+#include <QScopedPointer>
+#include <QSharedPointer>
+#include <QSplashScreen>
+#include <QThread>
+
+#include <pxmconsole.h>
+#include <pxminireader.h>
+#include <pxmmainwindow.h>
+#include <pxmpeerworker.h>
+#include <pxmconsole.h>
 
 Q_DECLARE_METATYPE(QSharedPointer<QString>)
 

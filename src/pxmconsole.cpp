@@ -1,4 +1,5 @@
 #include "pxmconsole.h"
+
 #include <QGridLayout>
 #include <QLabel>
 #include <QPushButton>

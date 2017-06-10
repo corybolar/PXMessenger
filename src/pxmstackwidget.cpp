@@ -1,4 +1,5 @@
 #include "pxmstackwidget.h"
+
 #include <QFile>
 #include <QLabel>
 #include <QStringBuilder>

@@ -1,11 +1,5 @@
 #include "pxmpeers.h"
 
-#include <QMutex>
-#include <QStringBuilder>
-#include <QDateTime>
-
-#include <event2/bufferevent.h>
-
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -13,6 +7,12 @@ Q_DECLARE_METATYPE(intptr_t)
 #else
 #include <arpa/inet.h>
 #endif
+
+#include <QMutex>
+#include <QStringBuilder>
+#include <QDateTime>
+
+#include <event2/bufferevent.h>
 
 using namespace Peers;
 

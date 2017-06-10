@@ -1,5 +1,6 @@
 #ifndef TIMEDVECTOR_H
 #define TIMEDVECTOR_H
+
 #include <QUuid>
 #include <QVector>
 #include <QTimer>

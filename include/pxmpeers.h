@@ -18,6 +18,7 @@
 #include <QString>
 
 #include <event2/util.h>
+
 struct bufferevent;
 
 Q_DECLARE_METATYPE(struct sockaddr_in)

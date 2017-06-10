@@ -1,22 +1,5 @@
 #include <pxmpeerworker.h>
 
-#include <QApplication>
-#include <QDebug>
-#include <QRegularExpression>
-#include <QRegularExpressionMatch>
-#include <QStringBuilder>
-#include <QThread>
-#include <QTimer>
-#include <QSharedPointer>
-#include <QPointer>
-
-#include "pxmclient.h"
-#include "pxmserver.h"
-#include "pxmsync.h"
-#include "timedvector.h"
-
-#include <event2/event.h>
-
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -30,6 +13,23 @@
 #else
 #error "include headers for socket implementation"
 #endif
+
+#include <QApplication>
+#include <QDebug>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
+#include <QStringBuilder>
+#include <QThread>
+#include <QTimer>
+#include <QSharedPointer>
+#include <QPointer>
+
+#include <event2/event.h>
+
+#include "pxmclient.h"
+#include "pxmserver.h"
+#include "pxmsync.h"
+#include "timedvector.h"
 
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");

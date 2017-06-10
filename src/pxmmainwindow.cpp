@@ -1,10 +1,4 @@
 #include "pxmmainwindow.h"
-#include "pxmconsole.h"
-#include "pxminireader.h"
-#include "ui_pxmaboutdialog.h"
-#include "ui_pxmmainwindow.h"
-#include "ui_pxmsettingsdialog.h"
-#include "ui_manualconnect.h"
 
 #ifdef _WIN32
 #include <lmcons.h>
@@ -28,6 +22,13 @@
 #include <QDir>
 #include <QTextEdit>
 #include <QKeyEvent>
+
+#include "pxmconsole.h"
+#include "pxminireader.h"
+#include "ui_pxmaboutdialog.h"
+#include "ui_pxmmainwindow.h"
+#include "ui_pxmsettingsdialog.h"
+#include "ui_manualconnect.h"
 
 using namespace PXMMessageViewer;
 

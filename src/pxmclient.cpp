@@ -5,14 +5,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <event2/bufferevent.h>
-#include <event2/event.h>
-
-#include <QDebug>
-
-#include "pxmpeers.h"
-#include "netcompression.h"
-
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -24,6 +16,14 @@
 #else
 #error "include headers for socket implementation"
 #endif
+
+#include <QDebug>
+
+#include <event2/bufferevent.h>
+#include <event2/event.h>
+
+#include "pxmpeers.h"
+#include "netcompression.h"
 
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");

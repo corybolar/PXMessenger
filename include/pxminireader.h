@@ -10,6 +10,7 @@
 #define MESSINIREADER_H
 
 #include "pxmconsts.h"
+
 #include <QScopedPointer>
 
 class QSettings;

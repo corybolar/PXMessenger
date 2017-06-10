@@ -5,10 +5,12 @@
 #ifndef PXMCONSTS_H
 #define PXMCONSTS_H
 
-#include <QMetaType>
+#include "netcompression.h"
+
 #include <stdint.h>
 #include <string.h>
-#include "netcompression.h"
+
+#include <QMetaType>
 
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 

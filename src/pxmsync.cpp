@@ -1,6 +1,8 @@
 #include "pxmsync.h"
-#include "pxmpeers.h"
+
 #include <QUuid>
+
+#include "pxmpeers.h"
 
 PXMSync::PXMSync(QObject* parent, QHash<QUuid, Peers::PeerData>& hash) : QObject(parent), syncHash(hash)
 {

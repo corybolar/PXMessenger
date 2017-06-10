@@ -1,16 +1,8 @@
 #include <pxmserver.h>
-#include <QDebug>
-#include <QUuid>
 
 #include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/event.h>
-#include <event2/thread.h>
-#include <event2/util.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -25,6 +17,15 @@
 #else
 #error "include headers for BSD socket implementation"
 #endif
+
+#include <QDebug>
+#include <QUuid>
+
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/event.h>
+#include <event2/thread.h>
+#include <event2/util.h>
 
 #include "pxmconsts.h"
 #include "pxmpeers.h"

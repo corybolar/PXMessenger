@@ -5,6 +5,7 @@
 #include <QUuid>
 #include <QSharedPointer>
 #include <QObject>
+
 #include "pxmpeers.h"
 
 namespace Peers
