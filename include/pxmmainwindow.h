@@ -141,6 +141,7 @@ protected:
   void typingHandler();
   void endOfTypingHandler();
   void textEnteredCallback();
+  void buttonTest();
 signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);

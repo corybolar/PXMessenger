@@ -64,15 +64,6 @@ PXMWindow::PXMWindow(QString hostname,
 
     ui->focusCheckBox->setChecked(focus);
     ui->muteCheckBox->setChecked(mute);
-    QFont f = ui->toolButton->font();
-    f.setBold(true);
-    ui->toolButton->setFont(f);
-    f = ui->toolButton_4->font();
-    f.setItalic(true);
-    ui->toolButton_4->setFont(f);
-    f = ui->toolButton_5->font();
-    f.setUnderline(true);
-    ui->toolButton_5->setFont(f);
 
     this->textEnteredTimer = new QTimer();
     textEnteredTimer->setInterval(500);
@@ -165,6 +156,22 @@ void PXMWindow::setupGui()
 
     createSystemTray();
 
+    QFont f = ui->toolButton->font();
+    f.setBold(true);
+    ui->toolButton->setFont(f);
+    f = ui->toolButton_4->font();
+    f.setItalic(true);
+    ui->toolButton_4->setFont(f);
+    f = ui->toolButton_5->font();
+    f.setUnderline(true);
+    ui->toolButton_5->setFont(f);
+
+    QPixmap pm = QPixmap(ui->comboBox->height(), ui->comboBox->height());
+    pm.fill(QColor(Qt::GlobalColor::red));
+    ui->comboBox->addItem(QIcon(pm), "red");
+    // QIcon qi(pm);
+    // ui->comboBox->setItemIcon(0, qi);
+
     connectGuiSignalsAndSlots();
 }
 void PXMWindow::connectGuiSignalsAndSlots()
@@ -182,6 +189,7 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(ui->toolButton, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleBold);
     QObject::connect(ui->toolButton_4, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleItalics);
     QObject::connect(ui->toolButton_5, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleUnderline);
+    QObject::connect(ui->pushButton, &QPushButton::clicked, this, &PXMWindow::buttonTest);
     // QObject::connect(ui->textEdit, &PXMTextEdit::endOfTextEntered, this, &PXMWindow::endOfTextEnteredHandler);
     // QObject::connect(ui->textEdit, &PXMTextEdit::textEntered, this, &PXMWindow::textEnteredHandler);
 
@@ -471,6 +479,11 @@ void PXMWindow::textEnteredCallback()
     }
 }
 
+void PXMWindow::buttonTest()
+{
+    ui->textEdit->insertHtml("<span style=\" font-family: Noto Color Emoji\">😉</span>");
+}
+
 void PXMWindow::endOfTypingHandler()
 {
     if (!ui->listWidget->currentItem()) {
@@ -508,6 +521,7 @@ int PXMWindow::sendButtonClicked()
         body.replace(urls, "<a href=\"\\1\">\\1</a>");
         fixedURLS      = fixedURLS.left(fixedURLS.indexOf("<html>")) % body;
         QByteArray msg = fixedURLS.toUtf8();
+        qCritical() << msg;
         if (removeBodyFormatting(msg)) {
             qWarning() << "Bad Html";
             qWarning() << msg;

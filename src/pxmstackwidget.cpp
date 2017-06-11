@@ -16,7 +16,7 @@ StackedWidget::StackedWidget(QWidget* parent) : QStackedWidget(parent)
     lw->setAlignment(Qt::AlignCenter);
     this->addWidget(lw);
     typingTimer = new QTimer();
-    typingTimer->setInterval(500);
+    typingTimer->setInterval(typeTimerInterval);
     typingTimer->start();
     QObject::connect(typingTimer, &QTimer::timeout, this, &StackedWidget::timerCallback);
 }

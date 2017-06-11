@@ -300,10 +300,13 @@
       </property>
      </widget>
     </item>
-    <item row="4" column="3">
-     <widget class="QGroupBox" name="groupBox">
-      <property name="title">
-       <string>GroupBox</string>
+    <item row="4" column="3" colspan="2">
+     <widget class="QComboBox" name="comboBox"/>
+    </item>
+    <item row="4" column="5">
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>PushButton</string>
       </property>
      </widget>
     </item>
@@ -315,7 +318,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>30</height>
+     <height>29</height>
     </rect>
    </property>
   </widget>
