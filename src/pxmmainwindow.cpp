@@ -554,7 +554,7 @@ int PXMWindow::sendButtonClicked()
 
     if (!(ui->textEdit->toPlainText().isEmpty())) {
         QString fixedURLS = ui->textEdit->toHtml();
-        QRegularExpression urls("(https?://([a-zA-Z0-9_-]+.)?[a-zA-Z0-9_-]+.[a-z]{2,3})");
+        QRegularExpression urls("(https?://([a-zA-Z0-9_-]+.)?[a-zA-Z0-9_-]+[^< ]*)");
         QString body = fixedURLS.right(fixedURLS.length() - fixedURLS.indexOf("<html>"));
         body.replace(urls, "<a href=\"\\1\">\\1</a>");
         fixedURLS      = fixedURLS.left(fixedURLS.indexOf("<html>")) % body;

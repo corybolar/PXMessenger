@@ -187,4 +187,5 @@ bool PXMIniReader::getUpdates() const
 #ifdef _WIN32
     return iniFile->value("config/Autoupdate", true).toBool();
 #endif
+    return false;
 }
