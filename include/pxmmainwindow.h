@@ -188,6 +188,7 @@ class PXMSettingsDialog : public QDialog {
 signals:
   void nameChange(QString);
   void verbosityChanged();
+  void colorSchemeAlert();
 };
 
 class PXMTextEdit : public QTextEdit

@@ -132,8 +132,7 @@ int StackedWidget::switchToUuid(QUuid& uuid)
 void StackedWidget::invert(QUuid uuid)
 {
     TextWidget* tw = getItem(uuid);
-    if(tw)
-    {
+    if (tw) {
         tw->invert();
     }
 }
@@ -157,7 +156,7 @@ void TextWidget::rlabel()
     info->setGeometry(this->lineWidth() + this->midLineWidth(),
                       ah - info->height() - this->lineWidth() - this->midLineWidth(),
                       aw - 2 * this->lineWidth() - 2 * this->midLineWidth(), info->height());
-    QString sheet = this->styleSheet();
+    QString sheet          = this->styleSheet();
     QRegularExpression qre = QRegularExpression("(QTextBrowser { padding-bottom:)([0-9]*)(.*)");
     if (info->isVisible()) {
         sheet.replace(qre, "\\1" + QString::number(info->height()) + "\\3");
@@ -172,15 +171,16 @@ void TextWidget::rlabel()
 void TextWidget::invert()
 {
     QString sheet = this->styleSheet();
-    QPalette pal = this->palette();
-    QColor col = pal.base().color();
+    QPalette pal  = this->palette();
+    QColor col    = pal.base().color();
     int r, g, b;
     col.getRgb(&r, &g, &b);
     r = 255 - r;
     g = 255 - g;
     b = 255 - b;
-    QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(background-color: rgb\\()([0-9]*),([0-9]*),([0-9]*)(.*)");
-    sheet.replace(qre, "\\1\\2\\3" + QString::number(r) + "," + QString::number(r) + ","+ QString::number(r) + "\\7");
+    QRegularExpression qre =
+        QRegularExpression("(QTextBrowser {)(.*)(background-color: rgb\\()([0-9]*),([0-9]*),([0-9]*)(.*)");
+    sheet.replace(qre, "\\1\\2\\3" + QString::number(r) + "," + QString::number(g) + "," + QString::number(b) + "\\7");
     this->setStyleSheet(sheet);
     sheet = this->styleSheet();
 }
@@ -197,21 +197,19 @@ TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
     info->setReadOnly(true);
     info->setFocusPolicy(Qt::FocusPolicy::NoFocus);
     QPalette pal = this->palette();
-    QColor col = pal.base().color();
+    QColor col   = pal.base().color();
     int r, g, b;
     col.getRgb(&r, &g, &b);
-    if(r == 255 && g == 255 && b == 255)
-    {
+    if (r == 255 && g == 255 && b == 255) {
         pal.setColor(QPalette::Base, pal.alternateBase().color());
         this->setPalette(pal);
         col.getRgb(&r, &g, &b);
-        //r = 230;
-        //g = 230;
-        //b = 230;
-
+        // r = 230;
+        // g = 230;
+        // b = 230;
     }
-    setStyleSheet("QTextBrowser { padding-bottom:0; background-color: rgb(" + QString::number(r) + ","
-                  + QString::number(g) + "," + QString::number(b) + ") }");
+    setStyleSheet("QTextBrowser { padding-bottom:0; background-color: rgb(" + QString::number(r) + "," +
+                  QString::number(g) + "," + QString::number(b) + ") }");
 }
 
 void TextWidget::showTyping(QString hostname)
@@ -223,7 +221,7 @@ void TextWidget::showTyping(QString hostname)
     }
     info->setText(hostname % infoTyping);
     info->setVisible(true);
-    QString sheet = this->styleSheet();
+    QString sheet          = this->styleSheet();
     QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(padding-bottom:)([0-9]*)(.*)");
     sheet.replace(qre, "\\1\\2\\3" + QString::number(info->height()) + "\\5");
 
@@ -249,7 +247,7 @@ void TextWidget::showEntered(QString hostname)
     }
     info->setText(hostname % infoEntered);
     info->setVisible(true);
-    QString sheet = this->styleSheet();
+    QString sheet          = this->styleSheet();
     QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(padding-bottom:)([0-9]*)(.*)");
     sheet.replace(qre, "\\1\\2\\3" + QString::number(info->height()) + "\\5");
 
@@ -265,7 +263,7 @@ void TextWidget::clearInfoLine()
     typing      = false;
     textEntered = false;
     info->setVisible(false);
-    QString sheet = this->styleSheet();
+    QString sheet          = this->styleSheet();
     QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(padding-bottom:)([0-9]*)(.*)");
     sheet.replace(qre, "\\1\\2\\30\\5");
 
