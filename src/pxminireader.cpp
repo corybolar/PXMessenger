@@ -166,3 +166,12 @@ void PXMIniReader::setLogActive(bool status) const
 {
     iniFile->setValue("config/LogActive", status);
 }
+
+bool PXMIniReader::getDarkColorScheme() const
+{
+    return iniFile->value("config/DarkColorScheme", false).toBool();
+}
+void PXMIniReader::setDarkColorScheme(bool status) const
+{
+    iniFile->setValue("config/DarkColorScheme", status);
+}

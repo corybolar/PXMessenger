@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QScrollBar>
 #include <QDateTime>
+#include <QRegularExpression>
 
 using namespace PXMMessageViewer;
 
@@ -128,6 +129,15 @@ int StackedWidget::switchToUuid(QUuid& uuid)
     return -1;
 }
 
+void StackedWidget::invert(QUuid uuid)
+{
+    TextWidget* tw = getItem(uuid);
+    if(tw)
+    {
+        tw->invert();
+    }
+}
+
 LabelWidget::LabelWidget(QWidget* parent, const QUuid& uuid) : QLabel(parent), MVBase(uuid)
 {
     this->setBackgroundRole(QPalette::Base);
@@ -147,11 +157,32 @@ void TextWidget::rlabel()
     info->setGeometry(this->lineWidth() + this->midLineWidth(),
                       ah - info->height() - this->lineWidth() - this->midLineWidth(),
                       aw - 2 * this->lineWidth() - 2 * this->midLineWidth(), info->height());
+    QString sheet = this->styleSheet();
+    QRegularExpression qre = QRegularExpression("(QTextBrowser { padding-bottom:)([0-9]*)(.*)");
     if (info->isVisible()) {
-        this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
+        sheet.replace(qre, "\\1" + QString::number(info->height()) + "\\3");
+
+        this->setStyleSheet(sheet);
     } else {
-        this->setStyleSheet("QTextBrowser { }");
+        sheet.replace(qre, "\\10\\3");
+        this->setStyleSheet(sheet);
     }
+}
+
+void TextWidget::invert()
+{
+    QString sheet = this->styleSheet();
+    QPalette pal = this->palette();
+    QColor col = pal.base().color();
+    int r, g, b;
+    col.getRgb(&r, &g, &b);
+    r = 255 - r;
+    g = 255 - g;
+    b = 255 - b;
+    QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(background-color: rgb\\()([0-9]*),([0-9]*),([0-9]*)(.*)");
+    sheet.replace(qre, "\\1\\2\\3" + QString::number(r) + "," + QString::number(r) + ","+ QString::number(r) + "\\7");
+    this->setStyleSheet(sheet);
+    sheet = this->styleSheet();
 }
 
 TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
@@ -165,6 +196,22 @@ TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
     info->setVisible(false);
     info->setReadOnly(true);
     info->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+    QPalette pal = this->palette();
+    QColor col = pal.base().color();
+    int r, g, b;
+    col.getRgb(&r, &g, &b);
+    if(r == 255 && g == 255 && b == 255)
+    {
+        pal.setColor(QPalette::Base, pal.alternateBase().color());
+        this->setPalette(pal);
+        col.getRgb(&r, &g, &b);
+        //r = 230;
+        //g = 230;
+        //b = 230;
+
+    }
+    setStyleSheet("QTextBrowser { padding-bottom:0; background-color: rgb(" + QString::number(r) + ","
+                  + QString::number(g) + "," + QString::number(b) + ") }");
 }
 
 void TextWidget::showTyping(QString hostname)
@@ -176,7 +223,11 @@ void TextWidget::showTyping(QString hostname)
     }
     info->setText(hostname % infoTyping);
     info->setVisible(true);
-    this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
+    QString sheet = this->styleSheet();
+    QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(padding-bottom:)([0-9]*)(.*)");
+    sheet.replace(qre, "\\1\\2\\3" + QString::number(info->height()) + "\\5");
+
+    this->setStyleSheet(sheet);
     if (scrollMax) {
         scroll->setSliderPosition(scroll->maximum());
     }
@@ -198,7 +249,11 @@ void TextWidget::showEntered(QString hostname)
     }
     info->setText(hostname % infoEntered);
     info->setVisible(true);
-    this->setStyleSheet("QTextBrowser { padding-bottom:" + QString::number(info->height()) + "; }");
+    QString sheet = this->styleSheet();
+    QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(padding-bottom:)([0-9]*)(.*)");
+    sheet.replace(qre, "\\1\\2\\3" + QString::number(info->height()) + "\\5");
+
+    this->setStyleSheet(sheet);
     if (scrollMax) {
         scroll->setSliderPosition(scroll->maximum());
     }
@@ -210,7 +265,11 @@ void TextWidget::clearInfoLine()
     typing      = false;
     textEntered = false;
     info->setVisible(false);
-    this->setStyleSheet("QTextBrowser { }");
+    QString sheet = this->styleSheet();
+    QRegularExpression qre = QRegularExpression("(QTextBrowser {)(.*)(padding-bottom:)([0-9]*)(.*)");
+    sheet.replace(qre, "\\1\\2\\30\\5");
+
+    this->setStyleSheet(sheet);
 }
 
 void TextWidget::timerCallback()

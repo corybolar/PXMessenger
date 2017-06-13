@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QScopedPointer>
+#include <QPalette>
 
 #include <pxmmainwindow.h>
 #include <pxmpeerworker.h>
@@ -26,7 +27,10 @@ class PXMAgent : public QObject
     // Move Assignment
     PXMAgent& operator=(PXMAgent&& agent) noexcept = delete;
     // Destructor
-    ~PXMAgent();;
+    ~PXMAgent();
+
+    static QPalette defaultPalette;
+    static void changeToDark();
 
 public slots:
     void doneChkUpdt(const QString &);

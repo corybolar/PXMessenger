@@ -98,6 +98,7 @@ class PXMWindow : public QMainWindow {
   void setupMenuBar();
   void setupGui();
   int removeBodyFormatting(QByteArray& str);
+  void redoFontStyling();
 
   int formatMessage(QString &str, QString& hostname, QString color);
 public:
@@ -117,10 +118,10 @@ public:
   int printToTextBrowser(QSharedPointer<QString> str, QString hostname, QUuid uuid, QUuid sender, bool alert, bool fromServer, bool global);
   void setItalicsOnItem(QUuid uuid, bool italics);
   void updateListWidget(QUuid uuid, QString hostname);
-  void warnBox(QString title, QString msg);
   void typingAlert(QUuid);
   void textEnteredAlert(QUuid);
   void endOfTextEnteredAlert(QUuid);
+  void alertFontColor(int index);
 
 protected:
   void closeEvent(QCloseEvent* event) Q_DECL_OVERRIDE;
@@ -134,14 +135,12 @@ protected:
   void aboutActionSlot();
   void settingsActionsSlot();
   void debugActionSlot();
-  void nameChange(QString hname);
   void syncActionsSlot();
   void manualConnect();
   void aboutToClose();
   void typingHandler();
   void endOfTypingHandler();
   void textEnteredCallback();
-  void buttonTest();
 signals:
   void sendMsg(QByteArray, PXMConsts::MESSAGE_TYPE, QUuid);
   void sendUDP(const char*);
@@ -154,6 +153,7 @@ signals:
   void endOfTextEntered(QUuid uuid);
   void endOfTyping(QUuid uuid);
   void textEntered(QUuid uuid);
+  void fontColorChange(QColor color, bool system);
 };
 
 class PXMAboutDialog : public QDialog {
@@ -171,7 +171,6 @@ class PXMSettingsDialogPrivate;
 class PXMSettingsDialog : public QDialog {
   Q_OBJECT
 
-  //QScopedPointer<PXMSettingsDialogPrivate> d_ptr;
   PXMSettingsDialogPrivate *d_ptr;
   QScopedPointer<Ui::PXMSettingsDialog> ui;
 
@@ -185,6 +184,7 @@ class PXMSettingsDialog : public QDialog {
   void currentFontChanged(QFont font);
   void valueChanged(int size);
   void logStateChange(int state);
+  void colorSchemeChange(int index);
 signals:
   void nameChange(QString);
   void verbosityChanged();
@@ -202,11 +202,12 @@ class PXMTextEdit : public QTextEdit
     void endOfTyping();
     void endOfTextEntered();
 public slots:
-    void toggleItalics();
-    void toggleBold();
-    void toggleUnderline();
+    void toggleItalics(bool checked);
+    void toggleBold(bool checked);
+    void toggleUnderline(bool checked);
 
-   protected:
+    void fontColorChange(QColor color, bool system);
+protected:
     void focusOutEvent(QFocusEvent* event) Q_DECL_OVERRIDE;
     void focusInEvent(QFocusEvent* event) Q_DECL_OVERRIDE;
 };

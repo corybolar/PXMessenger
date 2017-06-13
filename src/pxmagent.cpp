@@ -32,6 +32,8 @@ const char* arch    = "x86";
 #include <QSharedPointer>
 #include <QSplashScreen>
 #include <QThread>
+#include <QStyle>
+#include <QStyleFactory>
 
 #include <pxmconsole.h>
 #include <pxminireader.h>
@@ -40,6 +42,8 @@ const char* arch    = "x86";
 #include <pxmconsole.h>
 
 Q_DECLARE_METATYPE(QSharedPointer<QString>)
+
+QPalette PXMAgent::defaultPalette;
 
 struct initialSettings {
     QUuid uuid;
@@ -51,6 +55,7 @@ struct initialSettings {
     unsigned short udpPort;
     bool mute;
     bool preventFocus;
+    bool darkColor;
     initialSettings()
         : uuid(QUuid()),
           windowSize(QSize(800, 600)),
@@ -60,7 +65,8 @@ struct initialSettings {
           tcpPort(0),
           udpPort(0),
           mute(false),
-          preventFocus(false)
+          preventFocus(false),
+        darkColor(false)
     {
     }
 };
@@ -100,10 +106,32 @@ class PXMAgentPrivate
 
 PXMAgent::PXMAgent(QObject* parent) : QObject(parent), d_ptr(new PXMAgentPrivate)
 {
+        PXMAgent::defaultPalette = QGuiApplication::palette();
 }
 
 PXMAgent::~PXMAgent()
 {
+}
+
+void PXMAgent::changeToDark()
+{
+    qApp->setStyle(QStyleFactory::create("Fusion"));
+
+    QPalette palette;
+    palette.setColor(QPalette::Window, QColor(53, 53, 53));
+    palette.setColor(QPalette::WindowText, Qt::white);
+    palette.setColor(QPalette::Base, QColor(35, 35, 35));
+    palette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+    palette.setColor(QPalette::ToolTipBase, Qt::white);
+    palette.setColor(QPalette::ToolTipText, Qt::white);
+    palette.setColor(QPalette::Text, Qt::white);
+    palette.setColor(QPalette::Button, QColor(53, 53, 53));
+    palette.setColor(QPalette::ButtonText, Qt::white);
+    palette.setColor(QPalette::BrightText, Qt::red);
+
+    palette.setColor(QPalette::Highlight, QColor(142, 45, 197).lighter());
+    palette.setColor(QPalette::HighlightedText, Qt::black);
+    qApp->setPalette(palette);
 }
 
 int PXMAgent::init()
@@ -189,6 +217,12 @@ int PXMAgent::postInit()
     d_ptr->presets.mute         = d_ptr->iniReader.getMute();
     d_ptr->presets.preventFocus = d_ptr->iniReader.getFocus();
     d_ptr->presets.multicast    = d_ptr->iniReader.getMulticastAddress();
+    d_ptr->presets.darkColor = d_ptr->iniReader.getDarkColorScheme();
+
+    if(d_ptr->presets.darkColor)
+    {
+        changeToDark();
+    }
     QUuid globalChat            = QUuid::createUuid();
     if (!(d_ptr->iniReader.getFont().isEmpty())) {
         QFont font;
@@ -213,8 +247,7 @@ int PXMAgent::postInit()
                      &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::newAuthedPeer, d_ptr->window.data(),
                      &PXMWindow::updateListWidget, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox, d_ptr->window.data(), &PXMWindow::warnBox,
-                     Qt::AutoConnection);
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox, [=](QString title, QString msg){QMessageBox::warning(d_ptr->window.data(), title, msg);});
     QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
                      d_ptr->peerWorker, SLOT(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
                      Qt::QueuedConnection);
@@ -276,7 +309,7 @@ void PXMAgent::doneChkUpdt(const QString&)
 QByteArray PXMAgentPrivate::getUsername()
 {
 #ifdef _WIN32
-    size_t len = UNLEN + 1;
+    const size_t len = UNLEN + 1;
     char localHostname[len];
     TCHAR t_user[len];
     DWORD user_size = len;

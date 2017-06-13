@@ -103,6 +103,7 @@ class TextWidget : public QTextBrowser, public MVBase {
   void showEntered(QString hostname);
   void clearInfoLine();
   void timerCallback();
+  void invert();
 };
 
 class StackedWidget : public QStackedWidget {
@@ -119,6 +120,7 @@ public:
   int showTyping(QUuid &uuid, QString hostname);
   int showEntered(QUuid &uuid, QString hostname);
   int clearInfoLine(QUuid &uuid);
+  void invert(QUuid uuid);
 private slots:
   void timerCallback();
 };

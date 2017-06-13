@@ -9,11 +9,12 @@
 #include "pxmconsole.h"
 
 #ifdef _WIN32
-QLatin1Char seperator = QLatin1Char('\\');
+static QLatin1Char seperator = QLatin1Char('\\');
 #define WIN32_LEAN_AND_MEAN
 #else
 QLatin1Char seperator = QLatin1Char('/');
 #endif
+
 
 #ifdef QT_DEBUG
 void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
@@ -57,7 +58,6 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString
         case QtFatalMsg:
             localMsg.append(QString("%1").arg(QStringLiteral("FATAL:"), -7, QChar(' ')));
             abort();
-            break;
         case QtInfoMsg:
             localMsg.append(QString("%1").arg(QStringLiteral("INFO:"), -7, QChar(' ')));
             msgColor = QGuiApplication::palette().foreground().color();
@@ -68,7 +68,7 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString
 #ifdef QT_DEBUG
     filename = QString::fromUtf8(context.file);
     filename = filename.right(filename.length() - filename.lastIndexOf(seperator) - 1);
-    filename = QString("%1").arg(filename.append(':' + QString::number(context.line)), -((int)PXMConsts::DEBUG_PADDING),
+    filename = QString("%1").arg(filename.append(':' + QString::number(context.line)), -(static_cast<int>(PXMConsts::DEBUG_PADDING)),
                                  QChar(' '));
 #endif /* end QT_DEBUG */
     localMsg.append(filename.toUtf8() % msg.toLatin1());
@@ -85,27 +85,6 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString
     }
 }
 
-void testPalette()
-{
-    qApp->setStyle(QStyleFactory::create("fusion"));
-
-    QPalette palette;
-    palette.setColor(QPalette::Window, QColor(53, 53, 53));
-    palette.setColor(QPalette::WindowText, Qt::white);
-    palette.setColor(QPalette::Base, QColor(15, 15, 15));
-    palette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
-    palette.setColor(QPalette::ToolTipBase, Qt::white);
-    palette.setColor(QPalette::ToolTipText, Qt::white);
-    palette.setColor(QPalette::Text, Qt::white);
-    palette.setColor(QPalette::Button, QColor(53, 53, 53));
-    palette.setColor(QPalette::ButtonText, Qt::white);
-    palette.setColor(QPalette::BrightText, Qt::red);
-
-    palette.setColor(QPalette::Highlight, QColor(142, 45, 197).lighter());
-    palette.setColor(QPalette::HighlightedText, Qt::black);
-    qApp->setPalette(palette);
-}
-
 int main(int argc, char** argv)
 {
     qInstallMessageHandler(debugMessageOutput);
@@ -118,6 +97,7 @@ int main(int argc, char** argv)
     app.setOrganizationDomain("PXMessenger");
     app.setApplicationVersion("1.6.0");
 
+    //QFontDatabase::addApplicationFont(":/resources/EmojiOneColor-SVGinOT.ttf");
     int result;
     {
         PXMAgent overlord;

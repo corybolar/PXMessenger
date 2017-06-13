@@ -106,7 +106,7 @@ int PXMClient::sendUDP(const char* msg, unsigned short port)
 
 void PXMClient::sendSingleType(QSharedPointer<Peers::BevWrapper> bw, PXMConsts::MESSAGE_TYPE type)
 {
-    int packetLen = d_ptr->localUUIDLen + sizeof(type);
+    const unsigned int packetLen = d_ptr->localUUIDLen + sizeof(type);
     unsigned char packet[packetLen];
 
     memcpy(&packet[0], d_ptr->packedLocalUUID, d_ptr->localUUIDLen);

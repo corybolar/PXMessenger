@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include <QMetaType>
+#include <QPalette>
 
 static_assert(sizeof(uint32_t) == 4, "uint32_t not defined as 4 bytes");
 
@@ -58,7 +59,6 @@ const size_t MAX_AUTH_PACKET_LEN =
     strlen("001.001.001") +
     1 /*null*/;
 }
-
 Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE)
 
 #endif  // PXMCONSTS_H
