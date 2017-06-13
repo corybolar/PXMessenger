@@ -65,6 +65,12 @@
      <height>250</height>
     </rect>
    </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="minimumSize">
     <size>
      <width>400</width>
@@ -73,8 +79,8 @@
    </property>
    <property name="maximumSize">
     <size>
-     <width>400</width>
-     <height>250</height>
+     <width>600</width>
+     <height>350</height>
     </size>
    </property>
    <property name="text">

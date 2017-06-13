@@ -49,6 +49,8 @@ class PXMIniReader {
   void setLogActive(bool status) const;
   bool getDarkColorScheme() const;
   void setDarkColorScheme(bool status) const;
+  bool getUpdates() const;
+  void setUpdates(bool status) const;
 };
 
 #endif  // MESSINIREADER_H

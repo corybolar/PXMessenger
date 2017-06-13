@@ -736,6 +736,8 @@ PXMSettingsDialog::PXMSettingsDialog(QWidget* parent)
 #ifndef _WIN32
     ui->comboBox->setVisible(false);
     ui->label->setVisible(false);
+    ui->label_2->setVisible(false);
+    ui->checkBox->setVisible(false);
 #endif
     readIni();
 
@@ -787,6 +789,7 @@ void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
 #endif
             ui->hostnameLineEdit->setText(QString::fromLatin1(&localHostname[0]).left(PXMConsts::MAX_HOSTNAME_LENGTH));
             ui->comboBox->setCurrentIndex(0);
+            ui->checkBox->setChecked(true);
         } else if (ui->listWidget->currentRow() == 1) {
             ui->tcpPortSpinBox->setValue(0);
             ui->udpPortSpinBox->setValue(0);
@@ -808,7 +811,9 @@ void PXMSettingsDialog::resetDefaults(QAbstractButton* button)
                 "computer name will remain.\n(Default:Your "
                 "Username)<br><br>"
                 "Changes to default font and size affect your client"
-                "only, they will have no impact on what other users see";
+                "only, they will have no impact on what other users see<br><br>"
+                "Automatic updates will query if there are new releases for PXMessenger"
+                "available and will offer to download them for you<br><br>";
         } else if (ui->listWidget->currentRow() == 1) {
             helpMessage =
                 "Changes to these settings should not be needed under "
@@ -884,6 +889,7 @@ void PXMSettingsDialog::accept()
     iniReader.setDarkColorScheme(ui->comboBox->currentIndex());
     logger->setLogStatus(ui->LogActiveCheckBox->isChecked());
     iniReader.setMulticastAddress(ui->multicastLineEdit->text());
+    iniReader.setUpdates(ui->checkBox->isChecked());
     if (d_ptr->tcpPort != ui->tcpPortSpinBox->value() || d_ptr->udpPort != ui->udpPortSpinBox->value() ||
         d_ptr->AllowMoreThanOneInstance != ui->allowMultipleCheckBox->isChecked() ||
         d_ptr->multicastAddress != ui->multicastLineEdit->text()) {

@@ -175,3 +175,16 @@ void PXMIniReader::setDarkColorScheme(bool status) const
 {
     iniFile->setValue("config/DarkColorScheme", status);
 }
+void PXMIniReader::setUpdates(bool status) const
+{
+#ifdef _WIN32
+    iniFile->setValue("config/Autoupdate", status);
+#endif
+    (void)status;
+}
+bool PXMIniReader::getUpdates() const
+{
+#ifdef _WIN32
+    return iniFile->value("config/Autoupdate", true).toBool();
+#endif
+}

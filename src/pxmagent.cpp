@@ -138,6 +138,8 @@ int PXMAgent::init()
 {
     QThread::currentThread()->setObjectName("MainThread");
 #ifdef __WIN32
+    if(d_ptr->iniReader.getUpdates())
+    {
     d_ptr->qupdater = QSimpleUpdater::getInstance();
     connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(doneChkUpdt(QString)));
     connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
@@ -146,6 +148,11 @@ int PXMAgent::init()
     d_ptr->qupdater->setModuleName(d_ptr->address, modName);
     d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
     d_ptr->qupdater->checkForUpdates(d_ptr->address);
+    }
+    else
+    {
+        postInit();
+    }
 #else
     this->postInit();
 #endif
