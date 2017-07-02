@@ -56,7 +56,7 @@ const size_t MAX_AUTH_PACKET_LEN =
     strlen(AUTH_SEPERATOR) +
     5 /*port number*/ +
     strlen(AUTH_SEPERATOR) +
-    strlen("001.001.001") +
+    strlen("001.001.001") + /*App Version*/
     1 /*null*/;
 }
 Q_DECLARE_METATYPE(PXMConsts::MESSAGE_TYPE)

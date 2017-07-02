@@ -18,7 +18,7 @@ CONFIG += DEBUG \
           RELEASE
 win32: CONFIG += windows
 
-unix: LIBS += -levent -levent_pthreads
+unix: LIBS += -levent -levent_pthreads -levent_openssl -lssl -lcrypto
 
 win32 {
 LIBS += -L$$PWD/../libevent/build/lib -levent -levent_core
