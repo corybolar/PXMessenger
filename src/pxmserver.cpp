@@ -23,9 +23,14 @@
 
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
+#include <event2/bufferevent_ssl.h>
 #include <event2/event.h>
 #include <event2/thread.h>
 #include <event2/util.h>
+
+#include <openssl/ssl3.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 
 #include "pxmconsts.h"
 #include "pxmpeers.h"
@@ -52,10 +57,12 @@ class ServerThreadPrivate
     QUuid localUUID;
     struct event *eventAccept, *eventDiscover;
     QSharedPointer<struct event_base> base;
+    SSL_CTX* ctx;
     in_addr multicastAddress;
     unsigned short tcpPortNumber;
     unsigned short udpPortNumber;
     bool gotDiscover;
+    bool sslReady = true;
 
     // Functions
     evutil_socket_t newUDPSocket(unsigned short portNumber = 0);
@@ -71,6 +78,9 @@ class ServerThreadPrivate
     static void connectCB(bufferevent* bev, short error, void* arg);
     void addDefaultBev(bufferevent* bev);
     static void packetLenRecv(bufferevent* bev);
+    void acceptSSL(int s, short, void* arg);
+    SSL_CTX* ssl_init();
+    int newSSLListenerSocket(unsigned short portNumber, SSL_CTX* ctx);
 };
 
 ServerThread::ServerThread(QObject* parent,
@@ -121,10 +131,15 @@ void ServerThreadPrivate::accept_new(evutil_socket_t s, short, void* arg)
         qCritical() << "accept: " << QString::fromUtf8(strerror(errno));
     } else {
         struct bufferevent* bev;
-        bev = bufferevent_socket_new(st->base.data(), result, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+        SSL* c_ctx;
+        c_ctx = SSL_new(st->ctx);
+        bev   = bufferevent_openssl_socket_new(st->base.data(), result, c_ctx, BUFFEREVENT_SSL_ACCEPTING,
+                                             BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
 
         st->addDefaultBev(bev);
         st->q_ptr->newTCPConnection(bev);
+
+        qCritical() << bufferevent_get_openssl_error(bev) << " SSL";
     }
 }
 
@@ -136,7 +151,29 @@ void ServerThreadPrivate::addDefaultBev(bufferevent* bev)
     bufferevent_setwatermark(bev, EV_READ, PXMServer::PACKET_HEADER_LEN, PXMServer::PACKET_HEADER_LEN);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
+void ServerThreadPrivate::acceptSSL(evutil_socket_t s, short, void* arg)
+{
+    evutil_socket_t result;
 
+    ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
+
+    struct sockaddr_in ss;
+    socklen_t addr_size = sizeof(ss);
+
+    result = accept(s, reinterpret_cast<struct sockaddr*>(&ss), &addr_size);
+    if (result < 0) {
+        qCritical() << "accept: " << QString::fromUtf8(strerror(errno));
+    } else {
+        struct bufferevent* bev;
+        SSL* c_ctx;
+        c_ctx = SSL_new(st->ctx);
+        bev   = bufferevent_openssl_socket_new(st->base.data(), result, c_ctx, BUFFEREVENT_SSL_ACCEPTING,
+                                             BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+
+        st->addDefaultBev(bev);
+        st->q_ptr->newTCPConnection(bev);
+    }
+}
 void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
 {
     using namespace PXMConsts;
@@ -471,6 +508,29 @@ evutil_socket_t ServerThreadPrivate::newUDPSocket(unsigned short portNumber)
 
     return socketUDP;
 }
+
+SSL_CTX* ServerThreadPrivate::ssl_init()
+{
+    SSL_CTX* server_ctx = nullptr;
+
+    SSL_load_error_strings();
+    SSL_library_init();
+    RAND_poll();
+
+    server_ctx = SSL_CTX_new(SSLv23_server_method());
+
+    if (!SSL_CTX_use_certificate_chain_file(server_ctx, "/home/cory/pxm_test.crt")) {
+        qCritical() << "SSL cert Error";
+    }
+    if (!SSL_CTX_use_PrivateKey_file(server_ctx, "/home/cory/pxm_test.key", SSL_FILETYPE_PEM)) {
+        qCritical() << "SSL key Error";
+    }
+
+    SSL_CTX_set_options(server_ctx, SSL_OP_NO_SSLv2);
+
+    return server_ctx;
+}
+
 evutil_socket_t ServerThreadPrivate::newListenerSocket(unsigned short portNumber)
 {
     struct addrinfo hints, *res;
@@ -643,7 +703,6 @@ void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* 
 
 void ServerThread::run()
 {
-    evutil_socket_t s_discover, s_listen;
     int failureCodes;
 
     // error if pointer is null
@@ -652,6 +711,12 @@ void ServerThread::run()
         qCritical() << errorMsg;
         serverSetupFailure(errorMsg);
         return;
+    }
+
+    d_ptr->ctx = d_ptr->ssl_init();
+    if (!d_ptr->ctx) {
+        d_ptr->sslReady = false;
+        qWarning() << "SSL init has failed";
     }
 
     // Communicate backend to peerworker
@@ -671,7 +736,12 @@ void ServerThread::run()
     emit setSelfCommsBufferevent(selfCommsPair[1]);
 
     // TCP listener socket setup
-    s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
+    evutil_socket_t s_listen;
+    if (d_ptr->sslReady) {
+        s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
+    } else {
+        s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
+    }
     if (s_listen < 0) {
         QString errorMsg = "FATAL:TCP Listening socket setup has failed";
         qCritical() << errorMsg;
@@ -680,6 +750,7 @@ void ServerThread::run()
     }
 
     // UDP multicast socket setup
+    evutil_socket_t s_discover;
     s_discover = d_ptr->newUDPSocket(d_ptr->udpPortNumber);
     if (s_discover < 0) {
         QString errorMsg = "FATAL:UDP Multicast socket setup has failed";

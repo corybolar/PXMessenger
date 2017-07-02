@@ -66,7 +66,7 @@ struct initialSettings {
           udpPort(0),
           mute(false),
           preventFocus(false),
-        darkColor(false)
+          darkColor(false)
     {
     }
 };
@@ -80,7 +80,7 @@ class PXMAgentPrivate
         if (workerThread) {
             workerThread->quit();
             workerThread->wait(3000);
-            qInfo() << "Shutdown of WorkerThread";
+            qInfo() << "Shutdown of WorkerThread Successful";
         }
 
         iniReader.resetUUID(presets.uuidNum, presets.uuid);
@@ -106,7 +106,7 @@ class PXMAgentPrivate
 
 PXMAgent::PXMAgent(QObject* parent) : QObject(parent), d_ptr(new PXMAgentPrivate)
 {
-        PXMAgent::defaultPalette = QGuiApplication::palette();
+    PXMAgent::defaultPalette = QGuiApplication::palette();
 }
 
 PXMAgent::~PXMAgent()
@@ -138,19 +138,16 @@ int PXMAgent::init()
 {
     QThread::currentThread()->setObjectName("MainThread");
 #ifdef __WIN32
-    if(d_ptr->iniReader.getUpdates())
-    {
-    d_ptr->qupdater = QSimpleUpdater::getInstance();
-    connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(doneChkUpdt(QString)));
-    connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
-    connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::postInit);
-    d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
-    d_ptr->qupdater->setModuleName(d_ptr->address, modName);
-    d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
-    d_ptr->qupdater->checkForUpdates(d_ptr->address);
-    }
-    else
-    {
+    if (d_ptr->iniReader.getUpdates()) {
+        d_ptr->qupdater = QSimpleUpdater::getInstance();
+        connect(d_ptr->qupdater, SIGNAL(checkingFinished(QString)), this, SLOT(doneChkUpdt(QString)));
+        connect(d_ptr->qupdater, &QSimpleUpdater::installerOpened, qApp, &QApplication::quit);
+        connect(d_ptr->qupdater, &QSimpleUpdater::updateDeclined, this, &PXMAgent::postInit);
+        d_ptr->qupdater->setModuleVersion(d_ptr->address, qApp->applicationVersion());
+        d_ptr->qupdater->setModuleName(d_ptr->address, modName);
+        d_ptr->qupdater->setNotifyOnUpdate(d_ptr->address, true);
+        d_ptr->qupdater->checkForUpdates(d_ptr->address);
+    } else {
         postInit();
     }
 #else
@@ -224,13 +221,12 @@ int PXMAgent::postInit()
     d_ptr->presets.mute         = d_ptr->iniReader.getMute();
     d_ptr->presets.preventFocus = d_ptr->iniReader.getFocus();
     d_ptr->presets.multicast    = d_ptr->iniReader.getMulticastAddress();
-    d_ptr->presets.darkColor = d_ptr->iniReader.getDarkColorScheme();
+    d_ptr->presets.darkColor    = d_ptr->iniReader.getDarkColorScheme();
 
-    if(d_ptr->presets.darkColor)
-    {
+    if (d_ptr->presets.darkColor) {
         changeToDark();
     }
-    QUuid globalChat            = QUuid::createUuid();
+    QUuid globalChat = QUuid::createUuid();
     if (!(d_ptr->iniReader.getFont().isEmpty())) {
         QFont font;
         font.fromString(d_ptr->iniReader.getFont());
@@ -254,7 +250,8 @@ int PXMAgent::postInit()
                      &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
     QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::newAuthedPeer, d_ptr->window.data(),
                      &PXMWindow::updateListWidget, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox, [=](QString title, QString msg){QMessageBox::warning(d_ptr->window.data(), title, msg);});
+    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox,
+                     [=](QString title, QString msg) { QMessageBox::warning(d_ptr->window.data(), title, msg); });
     QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
                      d_ptr->peerWorker, SLOT(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
                      Qt::QueuedConnection);
