@@ -57,7 +57,8 @@ class ServerThreadPrivate
     QUuid localUUID;
     struct event *eventAccept, *eventDiscover;
     QSharedPointer<struct event_base> base;
-    SSL_CTX* ctx;
+    SSL_CTX* server_ctx;
+    SSL_CTX* client_ctx;
     in_addr multicastAddress;
     unsigned short tcpPortNumber;
     unsigned short udpPortNumber;
@@ -80,7 +81,8 @@ class ServerThreadPrivate
     static void packetLenRecv(bufferevent* bev);
     void acceptSSL(int s, short, void* arg);
     SSL_CTX* ssl_init();
-    int newSSLListenerSocket(unsigned short portNumber, SSL_CTX* ctx);
+    int newSSLListenerSocket(unsigned short portNumber, SSL_CTX* server_ctx);
+    static void waitforHandshake(bufferevent* bev, short event, void* arg);
 };
 
 ServerThread::ServerThread(QObject* parent,
@@ -132,12 +134,16 @@ void ServerThreadPrivate::accept_new(evutil_socket_t s, short, void* arg)
     } else {
         struct bufferevent* bev;
         SSL* c_ctx;
-        c_ctx = SSL_new(st->ctx);
+        c_ctx = SSL_new(st->server_ctx);
         bev   = bufferevent_openssl_socket_new(st->base.data(), result, c_ctx, BUFFEREVENT_SSL_ACCEPTING,
                                              BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
 
+        // bev = bufferevent_socket_new(st->base.data(), result, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+        if (!bev)
+            qCritical() << "bufferevent_openssl_socket_new failuer";
+        // bufferevent_setcb(bev, NULL, NULL, waitforHandshake, arg);
         st->addDefaultBev(bev);
-        st->q_ptr->newTCPConnection(bev);
+        st->q_ptr->newTCPConnection(bev, false);
 
         qCritical() << bufferevent_get_openssl_error(bev) << " SSL";
     }
@@ -148,32 +154,47 @@ void ServerThreadPrivate::addDefaultBev(bufferevent* bev)
     evutil_make_socket_nonblocking(bufferevent_getfd(bev));
 
     bufferevent_setcb(bev, ServerThreadPrivate::tcpAuth, NULL, ServerThreadPrivate::tcpErr, this);
+    /*
+    int s1 = evbuffer_get_length(bufferevent_get_input(bev));
+    qDebug() << "Post SSL error evbuf length" << s1;
+    int d1 = evbuffer_drain(bufferevent_get_input(bev), UINT16_MAX);
+    qDebug() << "Post SSL error drain" << d1;
+    */
     bufferevent_setwatermark(bev, EV_READ, PXMServer::PACKET_HEADER_LEN, PXMServer::PACKET_HEADER_LEN);
     bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
-void ServerThreadPrivate::acceptSSL(evutil_socket_t s, short, void* arg)
+void ServerThreadPrivate::waitforHandshake(struct bufferevent* bev, short event, void* arg)
 {
-    evutil_socket_t result;
-
     ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
 
-    struct sockaddr_in ss;
-    socklen_t addr_size = sizeof(ss);
-
-    result = accept(s, reinterpret_cast<struct sockaddr*>(&ss), &addr_size);
-    if (result < 0) {
-        qCritical() << "accept: " << QString::fromUtf8(strerror(errno));
-    } else {
-        struct bufferevent* bev;
-        SSL* c_ctx;
-        c_ctx = SSL_new(st->ctx);
-        bev   = bufferevent_openssl_socket_new(st->base.data(), result, c_ctx, BUFFEREVENT_SSL_ACCEPTING,
-                                             BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
-
+    qCritical() << QString("%1").arg(event, 0, 16);
+    if (event & BEV_EVENT_CONNECTED) {
         st->addDefaultBev(bev);
-        st->q_ptr->newTCPConnection(bev);
+        st->q_ptr->newTCPConnection(bev, false);
+    } else if (event & BEV_EVENT_ERROR) {
+        unsigned long sslerr = bufferevent_get_openssl_error(bev);
+        if (sslerr == 0) {
+            st->q_ptr->peerQuit(bufferevent_getfd(bev), bev);
+        } else {
+            char* buf = new char[1024];
+            ERR_error_string(sslerr, buf);
+            qCritical() << "SSL handshake" << buf;
+            delete[] buf;
+            bufferevent* bev2 = bufferevent_socket_new(st->base.data(), bufferevent_getfd(bev),
+                                                       BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+            bufferevent_free(bev);
+            int s1 = evbuffer_get_length(bufferevent_get_input(bev2));
+            qDebug() << "Post SSL error evbuf length" << s1;
+            int d1 = evbuffer_drain(bufferevent_get_input(bev2), UINT16_MAX);
+            qDebug() << "Post SSL error drain" << d1;
+            st->addDefaultBev(bev2);
+            st->q_ptr->newTCPConnection(bev2, false);
+        }
+    } else {
+        st->q_ptr->peerQuit(bufferevent_getfd(bev), bev);
     }
 }
+
 void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
 {
     using namespace PXMConsts;
@@ -183,11 +204,12 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
     evutil_socket_t socket = bufferevent_getfd(bev);
 
     // Test for if we have only gotten 1 byte of data so far, need 2
+    int t1 = evbuffer_get_length(bufferevent_get_input(bev));
     if (evbuffer_get_length(bufferevent_get_input(bev)) == PACKET_HEADER_LEN) {
         evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, PACKET_HEADER_LEN);
         bufLen = ntohs(nboBufLen);
         if (bufLen == 0 || bufLen > MAX_AUTH_PACKET_LEN) {
-            qWarning().noquote() << "Bad buffer length, disconnecting";
+            qWarning().noquote() << "Bad buffer length, disconnecting - " + QString::number(bufLen);
             bufferevent_disable(bev, EV_READ | EV_WRITE);
             st->q_ptr->peerQuit(socket, bev);
             return;
@@ -513,8 +535,10 @@ SSL_CTX* ServerThreadPrivate::ssl_init()
 {
     SSL_CTX* server_ctx = nullptr;
 
-    SSL_load_error_strings();
     SSL_library_init();
+    ERR_load_ERR_strings();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
     RAND_poll();
 
     server_ctx = SSL_CTX_new(SSLv23_server_method());
@@ -612,8 +636,14 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
 
             evutil_socket_t socketfd = socket(AF_INET, SOCK_STREAM, 0);
             evutil_make_socket_nonblocking(socketfd);
+            SSL* client_ssl = SSL_new(st->client_ctx);
             struct bufferevent* bev =
-                bufferevent_socket_new(st->base.data(), socketfd, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+                bufferevent_openssl_socket_new(st->base.data(), socketfd, client_ssl, BUFFEREVENT_SSL_CONNECTING,
+                                               BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+            // struct bufferevent* bev =
+            //    bufferevent_socket_new(st->base.data(), socketfd, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+            if (!bev)
+                qCritical() << "Could not create bufferevent socket";
 
             UUIDStruct* uuidStruct = new UUIDStruct{uuid, st};
             bufferevent_setcb(bev, NULL, NULL, ServerThreadPrivate::connectCB, uuidStruct);
@@ -695,7 +725,10 @@ void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* 
         qDebug() << "succ connect";
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev, st->uuid);
     } else {
-        qDebug() << "bad connect";
+        qDebug() << "bad connect" << event;
+        unsigned long sslerr = bufferevent_get_openssl_error(bev);
+        QString errhex       = QString("%1").arg(sslerr, 0, 16);
+        qCritical() << errhex;
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev, st->uuid);
     }
     delete st;
@@ -713,11 +746,13 @@ void ServerThread::run()
         return;
     }
 
-    d_ptr->ctx = d_ptr->ssl_init();
-    if (!d_ptr->ctx) {
+    d_ptr->server_ctx = d_ptr->ssl_init();
+    if (!d_ptr->server_ctx) {
         d_ptr->sslReady = false;
         qWarning() << "SSL init has failed";
     }
+
+    d_ptr->client_ctx = SSL_CTX_new(SSLv23_client_method());
 
     // Communicate backend to peerworker
     qDebug().noquote() << "Using " + QString::fromUtf8(event_base_get_method(d_ptr->base.data())) +

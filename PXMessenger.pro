@@ -14,6 +14,7 @@ icon.files 	+= $$PWD/resources/PXMessenger.png
 INSTALLS += target desktop icon
 
 QT = core gui widgets multimedia
+QT -= network
 CONFIG += DEBUG \
           RELEASE
 win32: CONFIG += windows
@@ -108,9 +109,9 @@ UI_DIR = $$PWD/build-unix/ui
 
 INCLUDEPATH += MOC_DIR
 
-win32 {
-include($$PWD/include/QSimpleUpdater/QSimpleUpdater.pri)
-}
+#win32 {
+#include($$PWD/include/QSimpleUpdater/QSimpleUpdater.pri)
+#}
 #QMAKE_CXXFLAGS+="-fsanitize=undefined -fno-omit-frame-pointer"
 #QMAKE_CFLAGS+="-fsanitize=address -fno-omit-frame-pointer"
 #QMAKE_LFLAGS+="-fsanitize=undefined"

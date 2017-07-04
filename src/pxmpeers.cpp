@@ -91,6 +91,7 @@ QString PeerData::toInfoString()
 {
     return QString(
         QStringLiteral("Hostname: ") % hostname % QStringLiteral("\nUUID: ") % uuid.toString() %
+        QStringLiteral("\nSSL connection: ") % QString::fromLocal8Bit((bw->isSSL ? "true" : "false")) %
         QStringLiteral("\nProgram Version: ") % progVersion % QStringLiteral("\nIP Address: ") %
         QString::fromLocal8Bit(inet_ntoa(addrRaw.sin_addr)) % QStringLiteral(":") %
         QString::number(ntohs(addrRaw.sin_port)) % QStringLiteral("\nIsAuthenticated: ") %
@@ -108,7 +109,9 @@ BevWrapper::BevWrapper() : bev(nullptr), locker(new QMutex)
 BevWrapper::BevWrapper(bufferevent* buf) : bev(buf), locker(new QMutex)
 {
 }
-
+BevWrapper::BevWrapper(bufferevent* buf, bool ssl) : bev(buf), locker(new QMutex), isSSL(ssl)
+{
+}
 BevWrapper::~BevWrapper()
 {
     if (locker) {
@@ -126,10 +129,11 @@ BevWrapper::~BevWrapper()
     }
 }
 
-BevWrapper::BevWrapper(BevWrapper&& b) noexcept : bev(b.bev), locker(b.locker)
+BevWrapper::BevWrapper(BevWrapper&& b) noexcept : bev(b.bev), locker(b.locker), isSSL(b.isSSL)
 {
     b.bev    = nullptr;
     b.locker = nullptr;
+    b.isSSL  = false;
 }
 
 BevWrapper& BevWrapper::operator=(BevWrapper&& b) noexcept
@@ -137,8 +141,10 @@ BevWrapper& BevWrapper::operator=(BevWrapper&& b) noexcept
     if (this != &b) {
         bev      = b.bev;
         locker   = b.locker;
+        isSSL    = b.isSSL;
         b.bev    = nullptr;
         b.locker = nullptr;
+        b.isSSL  = false;
     }
     return *this;
 }

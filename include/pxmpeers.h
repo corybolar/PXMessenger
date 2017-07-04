@@ -54,10 +54,11 @@ class BevWrapper {
   BevWrapper();
   // Constructor with a bufferevent
   BevWrapper(bufferevent* buf);
+  BevWrapper(bufferevent *buf, bool ssl);
   // Destructor
   ~BevWrapper();
   // Copy Constructor
-  BevWrapper(const BevWrapper& b) : bev(b.bev), locker(b.locker) {}
+  BevWrapper(const BevWrapper& b) : bev(b.bev), locker(b.locker), isSSL(b.isSSL) {}
   // Move Constructor
   BevWrapper(BevWrapper&& b) noexcept;
   // Move Assignment
@@ -72,6 +73,8 @@ class BevWrapper {
   void lockBev();
   void unlockBev();
   int freeBev();
+
+  bool isSSL = false;
 };
 
 class PeerData {

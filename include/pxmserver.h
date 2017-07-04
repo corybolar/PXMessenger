@@ -73,7 +73,7 @@ class ServerThread : public QThread
      * New connection has been received via accept().  No action has been taken
      * with it yet.
      */
-    void newTCPConnection(bufferevent*);
+    void newTCPConnection(bufferevent*, bool);
     /*!
      * \brief authHandler
      * Authentication packet has been received and needs to be dealt with.

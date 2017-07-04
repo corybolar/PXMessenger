@@ -145,7 +145,7 @@ class PXMPeerWorkerPrivate : public QObject
                        const QUuid uuid,
                        const bufferevent* bev);
 
-    void newAcceptedConnection(bufferevent* bev);
+    void newAcceptedConnection(bufferevent* bev, bool ssl_conn);
     void attemptConnection(struct sockaddr_in addr, QUuid uuid);
     void resultOfConnectionAttempt(evutil_socket_t socket, const bool result, bufferevent* bev, const QUuid uuid);
 
@@ -308,7 +308,7 @@ void PXMPeerWorkerPrivate::donePeerSync()
 {
     areWeSyncing = false;
     nextSyncTimer->stop();
-    qInfo() << "Finished Syncing peers";
+    qDebug() << "Finished Syncing peers";
 }
 void PXMPeerWorker::beginPeerSync()
 {
@@ -316,7 +316,7 @@ void PXMPeerWorker::beginPeerSync()
         return;
     }
 
-    qInfo() << "Beginning Sync of connected peers";
+    qDebug() << "Beginning Sync of connected peers";
     d_ptr->areWeSyncing = true;
     d_ptr->syncer->setsyncHash(d_ptr->peersHash);
     d_ptr->syncer->setIteratorToStart();
@@ -431,9 +431,10 @@ void PXMPeerWorkerPrivate::syncHandler(QSharedPointer<unsigned char> syncPacket,
         syncer->syncNext();
     }
 }
-void PXMPeerWorkerPrivate::newAcceptedConnection(bufferevent* bev)
+void PXMPeerWorkerPrivate::newAcceptedConnection(bufferevent* bev, bool ssl_conn)
 {
     QSharedPointer<Peers::BevWrapper> bw(new Peers::BevWrapper);
+    bw->isSSL = ssl_conn;
     bw->setBev(bev);
     extraBevs.push_back(bw);
     sendAuthPacket(bw);
