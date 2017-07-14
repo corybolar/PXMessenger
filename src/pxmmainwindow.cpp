@@ -376,6 +376,9 @@ void PXMWindow::changeEvent(QEvent* event)
                 this->hide();
             }
             break;
+        case QEvent::FocusOut:
+            this->setWindowState(Qt::WindowNoState);
+            break;
         default:
             break;
     }
