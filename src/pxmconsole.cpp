@@ -118,14 +118,16 @@ void Logger::customEvent(QEvent* event)
     AppendTextEvent* text = dynamic_cast<AppendTextEvent*>(event);
     if (text) {
         logTextEdit->setTextColor(text->getColor());
-        /*
         QTextCursor curs   = logTextEdit->textCursor();
         QTextCursor insert = curs;
+        QScrollBar* qsb    = logTextEdit->verticalScrollBar();
+        int val            = qsb->value();
         insert.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
         logTextEdit->setTextCursor(insert);
-        */
         logTextEdit->insertPlainText(text->getText());
-        // logTextEdit->setTextCursor(curs);
+        if (curs != insert) {
+            qsb->setValue(val);
+        }
         event->accept();
     } else {
         QObject::customEvent(event);

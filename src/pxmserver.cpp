@@ -251,7 +251,7 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
     if (*type == MSG_AUTH) {
         bufLen -= sizeof(MESSAGE_TYPE);
         QStringList hpsplit = (QString::fromUtf8((char*)&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(AUTH_SEPERATOR);
-        if (hpsplit.length() != 3) {
+        if (hpsplit.length() < 3) {
             qWarning() << "Bad Auth packet, closing socket...";
             bufferevent_disable(bev, EV_READ | EV_WRITE);
             st->q_ptr->peerQuit(socket, bev);
@@ -264,8 +264,16 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
             st->q_ptr->peerQuit(socket, bev);
             return;
         }
+
+        unsigned short sslport = hpsplit[3].toUShort();
+        if (sslport == 0) {
+            qWarning() << "Bad port in Auth packet, closing socket...";
+            bufferevent_disable(bev, EV_READ | EV_WRITE);
+            st->q_ptr->peerQuit(socket, bev);
+            return;
+        }
         qDebug() << "Successful Auth" << hpsplit[0];
-        st->q_ptr->authHandler(hpsplit[0], port, hpsplit[2], socket, quuid, bev);
+        st->q_ptr->authHandler(hpsplit[0], port, hpsplit[2], sslport, socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
         bufferevent_setcb(bev, ServerThreadPrivate::tcpRead, NULL, ServerThreadPrivate::tcpErr, st);
     } else {
@@ -308,7 +316,6 @@ void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
     } else {
         uint16_t nboBufLen;
         uint16_t bufLen;
-        qDebug() << "Full packet received";
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
 
         bufferevent_read(bev, &nboBufLen, PACKET_HEADER_LEN);
