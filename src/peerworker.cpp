@@ -1,4 +1,4 @@
-#include <pxmpeerworker.h>
+#include <peerworker.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -26,9 +26,9 @@
 
 #include <event2/event.h>
 
-#include "pxmclient.h"
-#include "pxmserver.h"
-#include "pxmsync.h"
+#include "client.h"
+#include "server.h"
+#include "sync.h"
 #include "timedvector.h"
 
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");

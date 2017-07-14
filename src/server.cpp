@@ -1,4 +1,4 @@
-#include <pxmserver.h>
+#include <server.h>
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -32,8 +32,8 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
-#include "pxmconsts.h"
-#include "pxmpeers.h"
+#include "consts.h"
+#include "peers.h"
 
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
 static_assert(sizeof(uint16_t) == 2, "uint16_t not defined as 2 bytes");

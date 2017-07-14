@@ -16,7 +16,7 @@
 #include <QSharedPointer>
 
 #include <event2/util.h>
-#include <pxmconsts.h>
+#include <consts.h>
 
 struct bufferevent;
 struct event_base;

@@ -13,8 +13,8 @@
 
 #include <event2/bufferevent.h>
 
-#include "pxmpeers.h"
-#include "pxmconsts.h"
+#include "peers.h"
+#include "consts.h"
 
 class PXMPeerWorkerPrivate;
 

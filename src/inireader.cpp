@@ -1,4 +1,4 @@
-#include "pxminireader.h"
+#include "inireader.h"
 
 #ifdef _WIN32
 #include <ws2tcpip.h>
@@ -12,7 +12,7 @@
 #include <QUuid>
 #include <QDebug>
 
-#include "pxmconsts.h"
+#include "consts.h"
 
 PXMIniReader::PXMIniReader()
     : iniFile(new QSettings(QSettings::IniFormat, QSettings::UserScope, "PXMessenger", "PXMessenger", NULL))

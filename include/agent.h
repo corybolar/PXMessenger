@@ -5,8 +5,8 @@
 #include <QScopedPointer>
 #include <QPalette>
 
-#include <pxmmainwindow.h>
-#include <pxmpeerworker.h>
+#include <mainwindow.h>
+#include <peerworker.h>
 
 class PXMAgentPrivate;
 class PXMAgent : public QObject

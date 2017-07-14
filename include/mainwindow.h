@@ -8,10 +8,10 @@
 #include <QTextEdit>
 #include <QTimer>
 
-#include "pxmconsts.h"
+#include "consts.h"
 //#include "ui_pxmmainwindow.h"
-#include "ui_pxmaboutdialog.h"
-#include "ui_pxmsettingsdialog.h"
+#include "ui_aboutdialog.h"
+#include "ui_settingsdialog.h"
 
 namespace PXMConsole {
 class Window;

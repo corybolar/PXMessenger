@@ -5,8 +5,8 @@
 #include <QTimer>
 #include <QStyleFactory>
 
-#include "pxmagent.h"
-#include "pxmconsole.h"
+#include "agent.h"
+#include "console.h"
 
 #ifdef _WIN32
 static QLatin1Char seperator = QLatin1Char('\\');
@@ -14,7 +14,6 @@ static QLatin1Char seperator = QLatin1Char('\\');
 #else
 QLatin1Char seperator = QLatin1Char('/');
 #endif
-
 
 #ifdef QT_DEBUG
 void debugMessageOutput(QtMsgType type, const QMessageLogContext& context, const QString& msg)
@@ -68,8 +67,8 @@ void debugMessageOutput(QtMsgType type, const QMessageLogContext&, const QString
 #ifdef QT_DEBUG
     filename = QString::fromUtf8(context.file);
     filename = filename.right(filename.length() - filename.lastIndexOf(seperator) - 1);
-    filename = QString("%1").arg(filename.append(':' + QString::number(context.line)), -(static_cast<int>(PXMConsts::DEBUG_PADDING)),
-                                 QChar(' '));
+    filename = QString("%1").arg(filename.append(':' + QString::number(context.line)),
+                                 -(static_cast<int>(PXMConsts::DEBUG_PADDING)), QChar(' '));
 #endif /* end QT_DEBUG */
     localMsg.append(filename.toUtf8() % msg.toLatin1());
 
@@ -97,7 +96,7 @@ int main(int argc, char** argv)
     app.setOrganizationDomain("PXMessenger");
     app.setApplicationVersion("1.6.0");
 
-    //QFontDatabase::addApplicationFont(":/resources/EmojiOneColor-SVGinOT.ttf");
+    // QFontDatabase::addApplicationFont(":/resources/EmojiOneColor-SVGinOT.ttf");
     int result;
     {
         PXMAgent overlord;

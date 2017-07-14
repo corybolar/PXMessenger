@@ -7,7 +7,7 @@
 #ifndef PXMCLIENT_H
 #define PXMCLIENT_H
 
-#include "pxmconsts.h"
+#include "consts.h"
 #include <QObject>
 #include <QUuid>
 

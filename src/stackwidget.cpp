@@ -1,4 +1,4 @@
-#include "pxmstackwidget.h"
+#include "stackwidget.h"
 
 #include <QFile>
 #include <QLabel>

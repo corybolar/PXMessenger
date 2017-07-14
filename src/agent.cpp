@@ -1,4 +1,4 @@
-#include <pxmagent.h>
+#include <agent.h>
 
 #ifdef _WIN32
 #include <lmcons.h>
@@ -35,11 +35,11 @@ const char* arch    = "x86";
 #include <QStyle>
 #include <QStyleFactory>
 
-#include <pxmconsole.h>
-#include <pxminireader.h>
-#include <pxmmainwindow.h>
-#include <pxmpeerworker.h>
-#include <pxmconsole.h>
+#include <console.h>
+#include <inireader.h>
+#include <mainwindow.h>
+#include <peerworker.h>
+#include <console.h>
 
 Q_DECLARE_METATYPE(QSharedPointer<QString>)
 

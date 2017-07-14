@@ -9,7 +9,7 @@
 #ifndef MESSINIREADER_H
 #define MESSINIREADER_H
 
-#include "pxmconsts.h"
+#include "consts.h"
 
 #include <QScopedPointer>
 

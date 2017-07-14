@@ -1,4 +1,4 @@
-#include "pxmconsole.h"
+#include "console.h"
 
 #include <QGridLayout>
 #include <QLabel>

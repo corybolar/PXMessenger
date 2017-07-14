@@ -49,38 +49,38 @@ QMAKE_CXXFLAGS += -Wall \
                 -std=c++14
 
 SOURCES += \
-    $$PWD/src/pxmclient.cpp \
-    $$PWD/src/pxmpeerworker.cpp \
-    $$PWD/src/pxmsync.cpp \
-    $$PWD/src/pxminireader.cpp \
-    $$PWD/src/pxmserver.cpp \
-    $$PWD/src/pxmmainwindow.cpp \
+    $$PWD/src/client.cpp \
+    $$PWD/src/peerworker.cpp \
+    $$PWD/src/sync.cpp \
+    $$PWD/src/inireader.cpp \
+    $$PWD/src/server.cpp \
+    $$PWD/src/mainwindow.cpp \
     $$PWD/src/pxmessenger.cpp \
     $$PWD/src/netcompression.cpp \
-    $$PWD/src/pxmstackwidget.cpp \
-    $$PWD/src/pxmconsole.cpp \
-    $$PWD/src/pxmpeers.cpp \
-    $$PWD/src/pxmagent.cpp
+    $$PWD/src/stackwidget.cpp \
+    $$PWD/src/console.cpp \
+    $$PWD/src/peers.cpp \
+    $$PWD/src/agent.cpp
 
 HEADERS += \
-    $$PWD/include/pxmpeerworker.h \
-    $$PWD/include/pxmmainwindow.h \
-    $$PWD/include/pxmsync.h \
-    $$PWD/include/pxminireader.h \
-    $$PWD/include/pxmserver.h \
-    $$PWD/include/pxmclient.h \
+    $$PWD/include/peerworker.h \
+    $$PWD/include/mainwindow.h \
+    $$PWD/include/sync.h \
+    $$PWD/include/inireader.h \
+    $$PWD/include/server.h \
+    $$PWD/include/client.h \
     $$PWD/include/netcompression.h \
     $$PWD/include/timedvector.h \
-    $$PWD/include/pxmstackwidget.h \
-    $$PWD/include/pxmconsole.h \
-    $$PWD/include/pxmconsts.h \
-    $$PWD/include/pxmpeers.h \
-    $$PWD/include/pxmagent.h
+    $$PWD/include/stackwidget.h \
+    $$PWD/include/console.h \
+    $$PWD/include/consts.h \
+    $$PWD/include/peers.h \
+    $$PWD/include/agent.h
 
 FORMS += \
-    $$PWD/ui/pxmmainwindow.ui \
-    $$PWD/ui/pxmaboutdialog.ui \
-    $$PWD/ui/pxmsettingsdialog.ui \
+    $$PWD/ui/mainwindow.ui \
+    $$PWD/ui/aboutdialog.ui \
+    $$PWD/ui/settingsdialog.ui \
     ui/manualconnect.ui
 
 DISTFILES += \

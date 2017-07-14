@@ -1,4 +1,4 @@
-#include <pxmclient.h>
+#include <client.h>
 
 #include <errno.h>
 #include <stdint.h>
@@ -22,7 +22,7 @@
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 
-#include "pxmpeers.h"
+#include "peers.h"
 #include "netcompression.h"
 
 static_assert(sizeof(uint8_t) == 1, "uint8_t not defined as 1 byte");
