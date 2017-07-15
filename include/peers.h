@@ -30,21 +30,7 @@ Q_DECLARE_METATYPE(const bufferevent*)
 
 class QMutex;
 namespace Peers {
-  /*
-const QString selfColor = "#6495ED";  // Cornflower Blue
-const QString peerColor = "#FF0000";  // Red
-const QVector<QString> textColors = {
-    "#808000",  // Olive
-    "#FFA500",  // Orange
-    "#FF00FF",  // Fuschia
-    "#DC143C",  // Crimson
-    "#FF69B4",  // HotPink
-    "#708090",  // SlateGrey
-    "#008000",  // Green
-    "#00FF00"   // Lime
-};
-extern int textColorsNext;
-*/
+
 class BevWrapper {
   bufferevent* bev;
   QMutex* locker;
@@ -82,7 +68,6 @@ class PeerData {
   QUuid uuid;
   struct sockaddr_in addrRaw;
   QString hostname;
-  //QString textColor;
   QString progVersion;
   QSharedPointer<BevWrapper> bw;
   evutil_socket_t socket;

@@ -114,6 +114,7 @@ class PXMPeerWorkerPrivate : public QObject
     QVector<QSharedPointer<Peers::BevWrapper>> extraBevs;
     QScopedPointer<TimedVector<QUuid>> syncablePeers;
     unsigned short serverTCPPort;
+    unsigned short serverTCPSSLPort;
     unsigned short serverUDPPort;
     bool areWeSyncing;
     bool multicastIsFunctioning;
@@ -141,7 +142,7 @@ class PXMPeerWorkerPrivate : public QObject
                        const bufferevent* bev);
 
     void newAcceptedConnection(bufferevent* bev, bool ssl_conn);
-    void attemptConnection(struct sockaddr_in addr, QUuid uuid);
+    void attemptConnection(struct sockaddr_in addr, QUuid uuid, bool ssl);
     void resultOfConnectionAttempt(evutil_socket_t socket, const bool result, bufferevent* bev, const QUuid uuid);
 
     void peerQuit(evutil_socket_t s, bufferevent* bev);
@@ -150,7 +151,7 @@ class PXMPeerWorkerPrivate : public QObject
     void setSelfCommsBufferevent(bufferevent* bev);
     void setLocalHostname(QString);
     void setInternalBufferevent(bufferevent* bev);
-    void setListenerPorts(unsigned short tcpport, unsigned short udpport);
+    void setListenerPorts(unsigned short tcpport, unsigned short udpport, unsigned tcpsslport);
     void setLibeventBackend(QString back, QString vers);
 
     void serverSetupFailure(QString error);
@@ -294,10 +295,12 @@ void PXMPeerWorkerPrivate::connectClient()
     QObject::connect(q_ptr, &PXMPeerWorker::sendSingleType, client, &PXMClient::sendSingleType, Qt::QueuedConnection);
 }
 
-void PXMPeerWorkerPrivate::setListenerPorts(unsigned short tcpport, unsigned short udpport)
+void PXMPeerWorkerPrivate::setListenerPorts(unsigned short tcpport, unsigned short udpport, unsigned tcpsslport)
 {
-    serverTCPPort = tcpport;
-    serverUDPPort = udpport;
+    serverTCPPort    = tcpport;
+    serverUDPPort    = udpport;
+    serverTCPSSLPort = tcpsslport;
+    qDebug() << "SSL PORT" << tcpsslport;
 }
 void PXMPeerWorkerPrivate::donePeerSync()
 {
@@ -414,7 +417,7 @@ void PXMPeerWorkerPrivate::syncHandler(QSharedPointer<unsigned char> syncPacket,
         index += NetCompression::unpackUUID(&syncPacket.data()[index], uuid);
 
         qDebug().noquote() << inet_ntoa(addr.sin_addr) << ":" << ntohs(addr.sin_port) << ":" << uuid.toString();
-        attemptConnection(addr, uuid);
+        attemptConnection(addr, uuid, false);
     }
     qDebug().noquote() << "End of sync packet";
 
@@ -438,9 +441,10 @@ void PXMPeerWorkerPrivate::newAcceptedConnection(bufferevent* bev, bool ssl_conn
 void PXMPeerWorkerPrivate::sendAuthPacket(QSharedPointer<Peers::BevWrapper> bw)
 {
     using namespace PXMConsts;
-    // Auth packet format "Hostname:::12345:::001.001.001
+    // Auth packet format Hostname:::12345:::001.001.001:::12345
     QByteArray authPacket((localHostname % QString::fromLatin1(AUTH_SEPERATOR) % QString::number(serverTCPPort) %
-                           QString::fromLatin1(AUTH_SEPERATOR) % qApp->applicationVersion())
+                           QString::fromLatin1(AUTH_SEPERATOR) % qApp->applicationVersion() %
+                           QString::fromLatin1(AUTH_SEPERATOR) % QString::number(serverTCPSSLPort))
                               .toUtf8());
     emit q_ptr->sendMsg(bw, authPacket, authPacket.size(), MSG_AUTH);
 }
@@ -450,19 +454,26 @@ void PXMPeerWorkerPrivate::requestSyncPacket(QSharedPointer<Peers::BevWrapper> b
     qDebug() << "Requesting sync from" << peersHash.value(uuid).hostname;
     emit q_ptr->sendMsg(bw, QByteArray(), 0, PXMConsts::MSG_SYNC_REQUEST);
 }
-void PXMPeerWorkerPrivate::attemptConnection(struct sockaddr_in addr, QUuid uuid)
+void PXMPeerWorkerPrivate::attemptConnection(struct sockaddr_in addr, QUuid uuid, bool ssl)
 {
-    if (peersHash.value(uuid).connectTo || uuid.isNull()) {
+    if ((!ssl && peersHash.value(uuid).connectTo) || uuid.isNull()) {
         return;
     }
 
     peersHash[uuid].uuid      = uuid;
     peersHash[uuid].connectTo = true;
-    peersHash[uuid].addrRaw   = addr;
+    if (!ssl) {
+        peersHash[uuid].addrRaw = addr;
+    }
 
     // Tell Server to connect
-    size_t index                                         = 0;
-    PXMServer::INTERNAL_MSG addBev                       = PXMServer::INTERNAL_MSG::CONNECT_TO_ADDR;
+    size_t index = 0;
+    PXMServer::INTERNAL_MSG addBev;
+    if (ssl) {
+        addBev = PXMServer::INTERNAL_MSG::SSL_CONNECT_TO_ADDR;
+    } else {
+        addBev = PXMServer::INTERNAL_MSG::CONNECT_TO_ADDR;
+    }
     unsigned char bevPtr[PXMServer::INTERNAL_MSG_LENGTH] = {};
     memcpy(&bevPtr[index], &addBev, sizeof(addBev));
     index += sizeof(addBev);
@@ -593,12 +604,6 @@ void PXMPeerWorkerPrivate::resultOfTCPSend(const int levelOfSuccess,
         }
         q_ptr->addMessageToPeer(msg, ruuid, suuid, false, false);
     }
-    /*
-    if(bwShortLife.contains(bw))
-    {
-    delete bw;
-    }
-    */
 }
 void PXMPeerWorkerPrivate::authHandler(const QStringList authInfo,
                                        const evutil_socket_t socket,
@@ -622,20 +627,31 @@ void PXMPeerWorkerPrivate::authHandler(const QStringList authInfo,
         return;
     }
 
-    unsigned short sslport = authInfo[3].toUShort();
-    if (sslport == 0) {
-        qWarning() << "Bad port in Auth packet, closing socket...";
-        peerQuit(socket, bev);
-        return;
+    bool sslReady          = false;
+    unsigned short sslport = 0;
+    if (authInfo.length() >= 4) {
+        sslport = authInfo[3].toUShort();
+        if (sslport != 0) {
+            sslReady = true;
+        }
     }
-    bufferevent_enable(bev, EV_READ | EV_WRITE);
-    qDebug() << "Successful Auth" << authInfo[0];
     struct sockaddr_in addr;
     socklen_t socklen = sizeof(addr);
     memset(&addr, 0, socklen);
 
     getpeername(socket, reinterpret_cast<struct sockaddr*>(&addr), &socklen);
     addr.sin_port = htons(port);
+
+    if (peersHash.contains(uuid) && peersHash.value(uuid).connectTo == true) {
+        evutil_closesocket(bufferevent_getfd(bev));
+        qDebug() << "Reconnecting to SSL Port" << sslport;
+        addr.sin_port = htons(sslport);
+        this->attemptConnection(addr, uuid, true);
+        return;
+    }
+
+    bufferevent_enable(bev, EV_READ | EV_WRITE);
+    qDebug() << "Successful Auth" << authInfo[0];
 
     qInfo().noquote() << authInfo[0] << "on port" << QString::number(port) << "authenticated!";
 

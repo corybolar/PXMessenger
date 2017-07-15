@@ -55,23 +55,25 @@ class ServerThreadPrivate
     ServerThread* q_ptr;
     // Data Members
     QUuid localUUID;
-    struct event *eventAccept, *eventDiscover;
+    struct event *eventAccept, *eventDiscover, *eventAcceptSSL;
     QSharedPointer<struct event_base> base;
     SSL_CTX* server_ctx;
     SSL_CTX* client_ctx;
     in_addr multicastAddress;
     unsigned short tcpPortNumber;
+    unsigned short tcpSSLPortNumber;
     unsigned short udpPortNumber;
     bool gotDiscover;
     bool sslReady = true;
 
     // Functions
     evutil_socket_t newUDPSocket(unsigned short portNumber = 0);
-    evutil_socket_t newListenerSocket(unsigned short portNumber = 0);
+    evutil_socket_t newListenerSocket(unsigned short portNumber);
     unsigned short getPortNumber(evutil_socket_t socket);
     int singleMessageIterator(const bufferevent* bev, const unsigned char* buf, uint16_t len, const QUuid quuid);
     static void internalCommsRead(bufferevent* bev, void*);
     static void accept_new(evutil_socket_t socketfd, short, void* arg);
+    static void accept_new_ssl(evutil_socket_t s, short, void* arg);
     static void udpRecieve(evutil_socket_t socketfd, short, void* args);
     static void tcpRead(bufferevent* bev, void* arg);
     static void tcpErr(bufferevent* bev, short error, void* arg);
@@ -119,7 +121,7 @@ ServerThread::~ServerThread()
 {
     qDebug() << "Shutdown of PXMServer Successful";
 }
-void ServerThreadPrivate::accept_new(evutil_socket_t s, short, void* arg)
+void ServerThreadPrivate::accept_new_ssl(evutil_socket_t s, short, void* arg)
 {
     evutil_socket_t result;
 
@@ -138,14 +140,36 @@ void ServerThreadPrivate::accept_new(evutil_socket_t s, short, void* arg)
         bev   = bufferevent_openssl_socket_new(st->base.data(), result, c_ctx, BUFFEREVENT_SSL_ACCEPTING,
                                              BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
 
-        // bev = bufferevent_socket_new(st->base.data(), result, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
         if (!bev)
-            qCritical() << "bufferevent_openssl_socket_new failuer";
+            qCritical() << "bufferevent_openssl_socket_new failure";
+        qCritical() << "SSL ACCEPT";
         // bufferevent_setcb(bev, NULL, NULL, waitforHandshake, arg);
         st->addDefaultBev(bev);
         st->q_ptr->newTCPConnection(bev, false);
+    }
+    qCritical() << "SSL ACCEPT";
+}
+void ServerThreadPrivate::accept_new(evutil_socket_t s, short, void* arg)
+{
+    evutil_socket_t result;
 
-        qCritical() << bufferevent_get_openssl_error(bev) << " SSL";
+    ServerThreadPrivate* st = static_cast<ServerThreadPrivate*>(arg);
+
+    struct sockaddr_in ss;
+    socklen_t addr_size = sizeof(ss);
+
+    result = accept(s, reinterpret_cast<struct sockaddr*>(&ss), &addr_size);
+    if (result < 0) {
+        qCritical() << "accept: " << QString::fromUtf8(strerror(errno));
+    } else {
+        struct bufferevent* bev;
+
+        bev = bufferevent_socket_new(st->base.data(), result, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+        if (!bev)
+            qCritical() << "bufferevent_openssl_socket_new failure";
+        bufferevent_setcb(bev, NULL, NULL, waitforHandshake, arg);
+        st->addDefaultBev(bev);
+        st->q_ptr->newTCPConnection(bev, false);
     }
 }
 
@@ -204,7 +228,7 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
     evutil_socket_t socket = bufferevent_getfd(bev);
 
     // Test for if we have only gotten 1 byte of data so far, need 2
-    int t1 = evbuffer_get_length(bufferevent_get_input(bev));
+    // int t1 = evbuffer_get_length(bufferevent_get_input(bev));
     if (evbuffer_get_length(bufferevent_get_input(bev)) == PACKET_HEADER_LEN) {
         evbuffer_copyout(bufferevent_get_input(bev), &nboBufLen, PACKET_HEADER_LEN);
         bufLen = ntohs(nboBufLen);
@@ -460,7 +484,7 @@ void ServerThreadPrivate::udpRecieve(evutil_socket_t socketfd, short int, void* 
         qDebug() << "Name Packet:" << inet_ntoa(si_other.sin_addr) << ":" << ntohs(si_other.sin_port)
                  << "with id:" << uuid.toString();
         /* Send this info along to peerworker */
-        st->q_ptr->attemptConnection(si_other, uuid);
+        st->q_ptr->attemptConnection(si_other, uuid, false);
     } else {
         qWarning() << "Bad udp packet!";
     }
@@ -622,12 +646,8 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
 
             evutil_socket_t socketfd = socket(AF_INET, SOCK_STREAM, 0);
             evutil_make_socket_nonblocking(socketfd);
-            SSL* client_ssl = SSL_new(st->client_ctx);
             struct bufferevent* bev =
-                bufferevent_openssl_socket_new(st->base.data(), socketfd, client_ssl, BUFFEREVENT_SSL_CONNECTING,
-                                               BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
-            // struct bufferevent* bev =
-            //    bufferevent_socket_new(st->base.data(), socketfd, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+                bufferevent_socket_new(st->base.data(), socketfd, BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
             if (!bev)
                 qCritical() << "Could not create bufferevent socket";
 
@@ -637,37 +657,59 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
             bufferevent_set_timeouts(bev, &timeout, &timeout);
             bufferevent_socket_connect(bev, reinterpret_cast<struct sockaddr*>(&addr), sizeof(sockaddr_in));
         } break;
-        /*
-        case TCP_PORT_CHANGE:
-                if (st->eventAccept) {
-                evutil_closesocket(event_get_fd(st->eventAccept));
-                event_free(st->eventAccept);
-                st->eventAccept = 0;
-                }
-                try {
-                unsigned short newPortNumber =
-               *(reinterpret_cast<unsigned
-               short*>(&readBev[sizeof(INTERNAL_MSG)]));
-                evutil_socket_t s_listen     =
-               st->newListenerSocket(newPortNumber);
-                st->eventAccept =
-                    event_new(st->q_ptr->base.data(), s_listen, EV_READ
-               | EV_PERSIST, st->accept_new,
-               st->q_ptr);
-                if (!st->eventAccept) {
-                    throw("FATAL:event_new returned NULL");
-                }
-                } catch (const char* errorMsg) {
-                qCritical() << errorMsg;
-                st->q_ptr->serverSetupFailure(errorMsg);
-                return;
-                } catch (QString errorMsg) {
-                qCritical() << errorMsg;
-                st->q_ptr->serverSetupFailure(errorMsg);
-                return;
-                }
-            break;
-                */
+        case SSL_CONNECT_TO_ADDR: {
+            struct sockaddr_in addr;
+            QUuid uuid = QUuid();
+
+            index += NetCompression::unpackSockaddr_in(&readBev[index], addr);
+            index += NetCompression::unpackUUID(&readBev[index], uuid);
+            addr.sin_family = AF_INET;
+
+            evutil_socket_t socketfd = socket(AF_INET, SOCK_STREAM, 0);
+            evutil_make_socket_nonblocking(socketfd);
+            SSL* client_ssl = SSL_new(st->client_ctx);
+            struct bufferevent* bev =
+                bufferevent_openssl_socket_new(st->base.data(), socketfd, client_ssl, BUFFEREVENT_SSL_CONNECTING,
+                                               BEV_OPT_THREADSAFE | BEV_OPT_DEFER_CALLBACKS);
+            if (!bev)
+                qCritical() << "Could not create bufferevent socket";
+
+            UUIDStruct* uuidStruct = new UUIDStruct{uuid, st};
+            bufferevent_setcb(bev, NULL, NULL, ServerThreadPrivate::connectCB, uuidStruct);
+            timeval timeout = {5, 0};
+            bufferevent_set_timeouts(bev, &timeout, &timeout);
+            bufferevent_socket_connect(bev, reinterpret_cast<struct sockaddr*>(&addr), sizeof(sockaddr_in));
+        } break; /*
+         case TCP_PORT_CHANGE:
+                 if (st->eventAccept) {
+                 evutil_closesocket(event_get_fd(st->eventAccept));
+                 event_free(st->eventAccept);
+                 st->eventAccept = 0;
+                 }
+                 try {
+                 unsigned short newPortNumber =
+                *(reinterpret_cast<unsigned
+                short*>(&readBev[sizeof(INTERNAL_MSG)]));
+                 evutil_socket_t s_listen     =
+                st->newListenerSocket(newPortNumber);
+                 st->eventAccept =
+                     event_new(st->q_ptr->base.data(), s_listen, EV_READ
+                | EV_PERSIST, st->accept_new,
+                st->q_ptr);
+                 if (!st->eventAccept) {
+                     throw("FATAL:event_new returned NULL");
+                 }
+                 } catch (const char* errorMsg) {
+                 qCritical() << errorMsg;
+                 st->q_ptr->serverSetupFailure(errorMsg);
+                 return;
+                 } catch (QString errorMsg) {
+                 qCritical() << errorMsg;
+                 st->q_ptr->serverSetupFailure(errorMsg);
+                 return;
+                 }
+             break;
+                 */
         /*
         case UDP_PORT_CHANGE:
                 if (st->eventDiscover) {
@@ -700,7 +742,7 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
                 */
         default:
             bufferevent_flush(bev, EV_READ, BEV_FLUSH);
-            qCritical() << "Bad Internal comms";
+            qDebug() << "Bad Internal comms";
             break;
     }
 }
@@ -714,7 +756,9 @@ void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* 
         qDebug() << "bad connect" << event;
         unsigned long sslerr = bufferevent_get_openssl_error(bev);
         QString errhex       = QString("%1").arg(sslerr, 0, 16);
-        qCritical() << errhex;
+        char sslerr_c[1024];
+        ERR_error_string(sslerr, sslerr_c);
+        qCritical() << errhex << sslerr_c;
         st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev, st->uuid);
     }
     delete st;
@@ -757,12 +801,12 @@ void ServerThread::run()
     emit setSelfCommsBufferevent(selfCommsPair[1]);
 
     // TCP listener socket setup
-    evutil_socket_t s_listen;
+    evutil_socket_t s_listen, ssl_listen;
     if (d_ptr->sslReady) {
-        s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
-    } else {
-        s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
+        // ssl_listen = d_ptr->newListenerSocket(d_ptr->tcpSSLPortNumber);
+        ssl_listen = d_ptr->newListenerSocket(0);
     }
+    s_listen = d_ptr->newListenerSocket(d_ptr->tcpPortNumber);
     if (s_listen < 0) {
         QString errorMsg = "FATAL:TCP Listening socket setup has failed";
         qCritical() << errorMsg;
@@ -785,7 +829,9 @@ void ServerThread::run()
 
     d_ptr->udpPortNumber = d_ptr->getPortNumber(s_discover);
 
-    emit setListenerPorts(d_ptr->tcpPortNumber, d_ptr->udpPortNumber);
+    d_ptr->tcpSSLPortNumber = d_ptr->getPortNumber(ssl_listen);
+
+    emit setListenerPorts(d_ptr->tcpPortNumber, d_ptr->udpPortNumber, d_ptr->tcpSSLPortNumber);
 
     qInfo().noquote() << "Port number for Multicast: " + QString::number(d_ptr->udpPortNumber);
 
@@ -803,11 +849,17 @@ void ServerThread::run()
 
         d_ptr->eventAccept =
             event_new(d_ptr->base.data(), s_listen, EV_READ | EV_PERSIST, d_ptr->accept_new, d_ptr.data());
+        d_ptr->eventAcceptSSL =
+            event_new(d_ptr->base.data(), ssl_listen, EV_READ | EV_PERSIST, d_ptr->accept_new_ssl, d_ptr.data());
         if (!d_ptr->eventAccept) {
             throw("FATAL:event_new returned NULL");
         }
 
         failureCodes = event_add(d_ptr->eventAccept, NULL);
+        if (failureCodes < 0) {
+            throw("FATAL:event_add returned -1");
+        }
+        failureCodes = event_add(d_ptr->eventAcceptSSL, NULL);
         if (failureCodes < 0) {
             throw("FATAL:event_add returned -1");
         }
@@ -844,6 +896,7 @@ void ServerThread::run()
     // Free libevent data structures before exiting the thread
     qDebug() << "Freeing events...";
     event_free(d_ptr->eventAccept);
+    event_free(d_ptr->eventAcceptSSL);
     event_free(d_ptr->eventDiscover);
 
     bufferevent_free(internalCommsPair[1]);

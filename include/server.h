@@ -34,6 +34,7 @@ enum INTERNAL_MSG : uint16_t {
     ADD_DEFAULT_BEV = 0x1111,
     EXIT            = 0x2222,
     CONNECT_TO_ADDR = 0x3333,
+    SSL_CONNECT_TO_ADDR = 0x4444,
     TCP_PORT_CHANGE = 0x8888,  // Under Construction
     UDP_PORT_CHANGE = 0x9999   // Under Construction
 };
@@ -90,11 +91,11 @@ class ServerThread : public QThread
      * that came with it.  Pass this info along to see if we are already 
      * connected to it.
      */
-    void attemptConnection(struct sockaddr_in, QUuid);
+    void attemptConnection(struct sockaddr_in, QUuid, bool);
     void sendName(bufferevent*, QString, QString);
     void setPeerHostname(QString, QUuid);
     void sendUDP(const char*, unsigned short);
-    void setListenerPorts(unsigned short, unsigned short);
+    void setListenerPorts(unsigned short, unsigned short, unsigned short);
     void libeventBackend(QString, QString);
     void setInternalBufferevent(bufferevent*);
     void setSelfCommsBufferevent(bufferevent*);

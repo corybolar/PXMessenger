@@ -61,10 +61,9 @@ PeerData& PeerData::operator=(PeerData&& p) noexcept
     if (this != &p) {
         bw = p.bw;
         p.bw.clear();
-        uuid     = p.uuid;
-        addrRaw  = p.addrRaw;
-        hostname = p.hostname;
-        // textColor   = p.textColor;
+        uuid         = p.uuid;
+        addrRaw      = p.addrRaw;
+        hostname     = p.hostname;
         progVersion  = p.progVersion;
         socket       = p.socket;
         timeOfTyping = p.timeOfTyping;
