@@ -247,38 +247,17 @@ void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
 
     // Process the full auth packet's information
     // Auth packet format "Hostname:::12345:::001.001.001"
+    bufferevent_disable(bev, EV_READ | EV_WRITE);
     MESSAGE_TYPE* type = reinterpret_cast<MESSAGE_TYPE*>(&buf[0]);
     if (*type == MSG_AUTH) {
         bufLen -= sizeof(MESSAGE_TYPE);
         QStringList hpsplit = (QString::fromUtf8((char*)&buf[sizeof(MESSAGE_TYPE)], bufLen)).split(AUTH_SEPERATOR);
-        if (hpsplit.length() < 3) {
-            qWarning() << "Bad Auth packet, closing socket...";
-            bufferevent_disable(bev, EV_READ | EV_WRITE);
-            st->q_ptr->peerQuit(socket, bev);
-            return;
-        }
-        unsigned short port = hpsplit[1].toUShort();
-        if (port == 0) {
-            qWarning() << "Bad port in Auth packet, closing socket...";
-            bufferevent_disable(bev, EV_READ | EV_WRITE);
-            st->q_ptr->peerQuit(socket, bev);
-            return;
-        }
 
-        unsigned short sslport = hpsplit[3].toUShort();
-        if (sslport == 0) {
-            qWarning() << "Bad port in Auth packet, closing socket...";
-            bufferevent_disable(bev, EV_READ | EV_WRITE);
-            st->q_ptr->peerQuit(socket, bev);
-            return;
-        }
-        qDebug() << "Successful Auth" << hpsplit[0];
-        st->q_ptr->authHandler(hpsplit[0], port, hpsplit[2], sslport, socket, quuid, bev);
+        st->q_ptr->authHandler(hpsplit, socket, quuid, bev);
         bufferevent_setwatermark(bev, EV_READ, PACKET_HEADER_LEN, PACKET_HEADER_LEN);
         bufferevent_setcb(bev, ServerThreadPrivate::tcpRead, NULL, ServerThreadPrivate::tcpErr, st);
     } else {
         qWarning() << "Non-Auth packet, closing socket...";
-        bufferevent_disable(bev, EV_READ | EV_WRITE);
         st->q_ptr->peerQuit(socket, bev);
     }
 }

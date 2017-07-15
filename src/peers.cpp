@@ -16,8 +16,6 @@ Q_DECLARE_METATYPE(intptr_t)
 
 using namespace Peers;
 
-// int Peers::textColorsNext = 0;
-
 PeerData::PeerData()
     : uuid(QUuid()),
       addrRaw(sockaddr_in()),
@@ -29,15 +27,12 @@ PeerData::PeerData()
       connectTo(false),
       isAuthed(false)
 {
-    //   textColor = textColors.at(textColorsNext % textColors.length());
-    //   textColorsNext++;
 }
 
 PeerData::PeerData(const PeerData& pd)
     : uuid(pd.uuid),
       addrRaw(pd.addrRaw),
       hostname(pd.hostname),
-      // textColor(pd.textColor),
       progVersion(pd.progVersion),
       bw(pd.bw),
       socket(pd.socket),
@@ -51,7 +46,6 @@ PeerData::PeerData(PeerData&& pd) noexcept
     : uuid(pd.uuid),
       addrRaw(pd.addrRaw),
       hostname(pd.hostname),
-      // textColor(pd.textColor),
       progVersion(pd.progVersion),
       bw(pd.bw),
       socket(pd.socket),

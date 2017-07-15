@@ -125,12 +125,7 @@ class PXMPeerWorkerPrivate : public QObject
     void startServer();
     void connectClient();
     int msgHandler(QByteArray msg, QUuid uuid, const bufferevent* bev, bool global);
-    void authHandler(const QString hostname,
-                     const unsigned short port,
-                     const QString version,
-                     const evutil_socket_t socket,
-                     const QUuid uuid,
-                     bufferevent* bev);
+    void authHandler(const QStringList authInfo, const evutil_socket_t socket, const QUuid uuid, bufferevent* bev);
     void syncHandler(QSharedPointer<unsigned char> syncPacket, size_t len, QUuid senderUuid);
     void nameHandler(QString hname, const QUuid uuid);
     void typingHandler(QUuid uuid);
@@ -605,9 +600,7 @@ void PXMPeerWorkerPrivate::resultOfTCPSend(const int levelOfSuccess,
     }
     */
 }
-void PXMPeerWorkerPrivate::authHandler(const QString hostname,
-                                       const unsigned short port,
-                                       const QString version,
+void PXMPeerWorkerPrivate::authHandler(const QStringList authInfo,
                                        const evutil_socket_t socket,
                                        const QUuid uuid,
                                        bufferevent* bev)
@@ -617,6 +610,26 @@ void PXMPeerWorkerPrivate::authHandler(const QString hostname,
         bufferevent_free(bev);
         return;
     }
+    if (authInfo.length() < 3) {
+        qWarning() << "Bad Auth packet, closing socket...";
+        peerQuit(socket, bev);
+        return;
+    }
+    unsigned short port = authInfo[1].toUShort();
+    if (port == 0) {
+        qWarning() << "Bad port in Auth packet, closing socket...";
+        peerQuit(socket, bev);
+        return;
+    }
+
+    unsigned short sslport = authInfo[3].toUShort();
+    if (sslport == 0) {
+        qWarning() << "Bad port in Auth packet, closing socket...";
+        peerQuit(socket, bev);
+        return;
+    }
+    bufferevent_enable(bev, EV_READ | EV_WRITE);
+    qDebug() << "Successful Auth" << authInfo[0];
     struct sockaddr_in addr;
     socklen_t socklen = sizeof(addr);
     memset(&addr, 0, socklen);
@@ -624,7 +637,7 @@ void PXMPeerWorkerPrivate::authHandler(const QString hostname,
     getpeername(socket, reinterpret_cast<struct sockaddr*>(&addr), &socklen);
     addr.sin_port = htons(port);
 
-    qInfo().noquote() << hostname << "on port" << QString::number(port) << "authenticated!";
+    qInfo().noquote() << authInfo[0] << "on port" << QString::number(port) << "authenticated!";
 
     if (peersHash[uuid].bw->getBev() != nullptr && peersHash[uuid].bw->getBev() != bev) {
         peerQuit(-1, peersHash.value(uuid).bw->getBev());
@@ -639,8 +652,8 @@ void PXMPeerWorkerPrivate::authHandler(const QString hostname,
     }
     peersHash[uuid].uuid        = uuid;
     peersHash[uuid].addrRaw     = addr;
-    peersHash[uuid].hostname    = hostname;
-    peersHash[uuid].progVersion = version;
+    peersHash[uuid].hostname    = authInfo[0];
+    peersHash[uuid].progVersion = authInfo[2];
     peersHash[uuid].bw->lockBev();
     peersHash[uuid].bw->setBev(bev);
     peersHash[uuid].bw->unlockBev();
@@ -905,4 +918,4 @@ QString multicast)
 }
 */
 
-#include "moc_pxmpeerworker.cpp"
+#include "moc_peerworker.cpp"

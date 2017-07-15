@@ -78,8 +78,7 @@ class ServerThread : public QThread
      * \brief authHandler
      * Authentication packet has been received and needs to be dealt with.
      */
-    void authHandler(QString, unsigned short, QString,
-                                evutil_socket_t, QUuid, bufferevent*);
+    void authHandler(QStringList, evutil_socket_t, QUuid, bufferevent*);
     /*!
      * \brief peerQuit
      * A connection has been terminated
