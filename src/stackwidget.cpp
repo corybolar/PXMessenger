@@ -190,7 +190,7 @@ TextWidget::TextWidget(QWidget* parent, const QUuid& uuid)
 {
     this->setOpenExternalLinks(true);
     this->setOpenLinks(true);
-    this->setTextInteractionFlags(Qt::TextInteractionFlag::LinksAccessibleByMouse);
+    this->setTextInteractionFlags(this->textInteractionFlags() | Qt::TextInteractionFlag::LinksAccessibleByMouse);
     info = new QLineEdit(this);
     info->setStyleSheet(infoBarStyle);
     info->setVisible(false);
