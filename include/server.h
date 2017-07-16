@@ -101,7 +101,7 @@ class ServerThread : public QThread
     void setSelfCommsBufferevent(bufferevent*);
     void multicastIsFunctional();
     void serverSetupFailure(QString);
-    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid);
+    void resultOfConnectionAttempt(evutil_socket_t, bool, bufferevent*, QUuid, bool);
 };
 }
 

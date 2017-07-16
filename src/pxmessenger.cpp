@@ -96,7 +96,6 @@ int main(int argc, char** argv)
     app.setOrganizationDomain("PXMessenger");
     app.setApplicationVersion("1.6.0");
 
-    // QFontDatabase::addApplicationFont(":/resources/EmojiOneColor-SVGinOT.ttf");
     int result;
     {
         PXMAgent overlord;

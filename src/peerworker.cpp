@@ -143,7 +143,11 @@ class PXMPeerWorkerPrivate : public QObject
 
     void newAcceptedConnection(bufferevent* bev, bool ssl_conn);
     void attemptConnection(struct sockaddr_in addr, QUuid uuid, bool ssl);
-    void resultOfConnectionAttempt(evutil_socket_t socket, const bool result, bufferevent* bev, const QUuid uuid);
+    void resultOfConnectionAttempt(evutil_socket_t socket,
+                                   const bool result,
+                                   bufferevent* bev,
+                                   const QUuid uuid,
+                                   bool isSSL);
 
     void peerQuit(evutil_socket_t s, bufferevent* bev);
     void addMessageToAllPeers(QString str, bool alert, bool formatAsMessage);
@@ -554,7 +558,8 @@ QByteArray PXMPeerWorkerPrivate::createSyncPacket(size_t& index)
 void PXMPeerWorkerPrivate::resultOfConnectionAttempt(evutil_socket_t socket,
                                                      const bool result,
                                                      bufferevent* bev,
-                                                     const QUuid uuid)
+                                                     const QUuid uuid,
+                                                     bool isSSL)
 {
     if (uuid.isNull()) {
         return;
@@ -575,6 +580,7 @@ void PXMPeerWorkerPrivate::resultOfConnectionAttempt(evutil_socket_t socket,
         }
 
         peersHash.value(uuid).bw->setBev(bev);
+        peersHash.value(uuid).bw->isSSL = isSSL;
         peersHash.value(uuid).bw->unlockBev();
 
         sendAuthPacket(peersHash.value(uuid).bw);
@@ -642,9 +648,9 @@ void PXMPeerWorkerPrivate::authHandler(const QStringList authInfo,
     getpeername(socket, reinterpret_cast<struct sockaddr*>(&addr), &socklen);
     addr.sin_port = htons(port);
 
-    if (peersHash.contains(uuid) && peersHash.value(uuid).connectTo == true) {
-        evutil_closesocket(bufferevent_getfd(bev));
-        qDebug() << "Reconnecting to SSL Port" << sslport;
+    // only client will enter this if statement
+    if (peersHash.contains(uuid) && !peersHash.value(uuid).bw->isSSL) {
+        qDebug() << "Reconnecting to SSL Port" << sslport << "for" << uuid;
         addr.sin_port = htons(sslport);
         this->attemptConnection(addr, uuid, true);
         return;

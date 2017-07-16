@@ -46,6 +46,7 @@ using namespace PXMServer;
 struct UUIDStruct {
     QUuid uuid;
     ServerThreadPrivate* st;
+    bool isSSL = false;
 };
 
 class ServerThreadPrivate
@@ -59,6 +60,8 @@ class ServerThreadPrivate
     QSharedPointer<struct event_base> base;
     SSL_CTX* server_ctx;
     SSL_CTX* client_ctx;
+    EVP_PKEY* session_key;
+    X509* session_cert;
     in_addr multicastAddress;
     unsigned short tcpPortNumber;
     unsigned short tcpSSLPortNumber;
@@ -85,6 +88,8 @@ class ServerThreadPrivate
     SSL_CTX* ssl_init();
     int newSSLListenerSocket(unsigned short portNumber, SSL_CTX* server_ctx);
     static void waitforHandshake(bufferevent* bev, short event, void* arg);
+    EVP_PKEY* createSSLPKey();
+    X509* createSSLCert(EVP_PKEY* pkey);
 };
 
 ServerThread::ServerThread(QObject* parent,
@@ -217,6 +222,40 @@ void ServerThreadPrivate::waitforHandshake(struct bufferevent* bev, short event,
     } else {
         st->q_ptr->peerQuit(bufferevent_getfd(bev), bev);
     }
+}
+
+EVP_PKEY* ServerThreadPrivate::createSSLPKey()
+{
+    EVP_PKEY* key = EVP_PKEY_new();
+    RSA* rsa      = RSA_new();
+    BIGNUM* bne   = BN_new();
+    BN_set_word(bne, RSA_F4);
+    RSA_generate_key_ex(rsa, 2048, bne, NULL);
+    EVP_PKEY_assign_RSA(key, rsa);
+
+    return key;
+}
+
+X509* ServerThreadPrivate::createSSLCert(EVP_PKEY* pkey)
+{
+    X509* cert = X509_new();
+
+    ASN1_INTEGER_set(X509_get_serialNumber(cert), 1);
+    X509_gmtime_adj(X509_getm_notBefore(cert), 0);
+    X509_gmtime_adj(X509_getm_notAfter(cert), 60 * 60 * 24 * 365);  // One Year
+
+    X509_set_pubkey(cert, pkey);
+    X509_NAME* name = X509_get_subject_name(cert);
+
+    X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char*)"US", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, (unsigned char*)"PXMessenger", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char*)"PXMessenger", -1, -1, 0);
+
+    X509_set_issuer_name(cert, name);
+
+    X509_sign(cert, pkey, EVP_sha512());
+
+    return cert;
 }
 
 void ServerThreadPrivate::tcpAuth(struct bufferevent* bev, void* arg)
@@ -553,10 +592,13 @@ SSL_CTX* ServerThreadPrivate::ssl_init()
 
     server_ctx = SSL_CTX_new(SSLv23_server_method());
 
-    if (!SSL_CTX_use_certificate_chain_file(server_ctx, "/home/cory/pxm_test.crt")) {
+    session_key  = createSSLPKey();
+    session_cert = createSSLCert(session_key);
+
+    if (!SSL_CTX_use_certificate(server_ctx, session_cert)) {
         qCritical() << "SSL cert Error";
     }
-    if (!SSL_CTX_use_PrivateKey_file(server_ctx, "/home/cory/pxm_test.key", SSL_FILETYPE_PEM)) {
+    if (!SSL_CTX_use_PrivateKey(server_ctx, session_key)) {
         qCritical() << "SSL key Error";
     }
 
@@ -651,7 +693,7 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
             if (!bev)
                 qCritical() << "Could not create bufferevent socket";
 
-            UUIDStruct* uuidStruct = new UUIDStruct{uuid, st};
+            UUIDStruct* uuidStruct = new UUIDStruct{uuid, st, false};
             bufferevent_setcb(bev, NULL, NULL, ServerThreadPrivate::connectCB, uuidStruct);
             timeval timeout = {5, 0};
             bufferevent_set_timeouts(bev, &timeout, &timeout);
@@ -674,7 +716,7 @@ void ServerThreadPrivate::internalCommsRead(bufferevent* bev, void* args)
             if (!bev)
                 qCritical() << "Could not create bufferevent socket";
 
-            UUIDStruct* uuidStruct = new UUIDStruct{uuid, st};
+            UUIDStruct* uuidStruct = new UUIDStruct{uuid, st, true};
             bufferevent_setcb(bev, NULL, NULL, ServerThreadPrivate::connectCB, uuidStruct);
             timeval timeout = {5, 0};
             bufferevent_set_timeouts(bev, &timeout, &timeout);
@@ -751,7 +793,7 @@ void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* 
     UUIDStruct* st = static_cast<UUIDStruct*>(arg);
     if (event & BEV_EVENT_CONNECTED) {
         qDebug() << "succ connect";
-        st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev, st->uuid);
+        st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), true, bev, st->uuid, st->isSSL);
     } else {
         qDebug() << "bad connect" << event;
         unsigned long sslerr = bufferevent_get_openssl_error(bev);
@@ -759,7 +801,7 @@ void ServerThreadPrivate::connectCB(struct bufferevent* bev, short event, void* 
         char sslerr_c[1024];
         ERR_error_string(sslerr, sslerr_c);
         qCritical() << errhex << sslerr_c;
-        st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev, st->uuid);
+        st->st->q_ptr->resultOfConnectionAttempt(bufferevent_getfd(bev), false, bev, st->uuid, false);
     }
     delete st;
 }
@@ -904,6 +946,9 @@ void ServerThread::run()
 
     bufferevent_free(selfCommsPair[1]);
     bufferevent_free(selfCommsPair[0]);
+
+    EVP_PKEY_free(d_ptr->session_key);
+    X509_free(d_ptr->session_cert);
 
     qDebug() << "Events free, returning from PXMServer::run()";
 }

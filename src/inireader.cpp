@@ -11,6 +11,8 @@
 #include <QString>
 #include <QUuid>
 #include <QDebug>
+#include <QLockFile>
+#include <QDir>
 
 #include "consts.h"
 
@@ -37,13 +39,32 @@ unsigned int PXMIniReader::getUUIDNumber() const
 {
     unsigned int i  = 0;
     QString uuidStr = "uuid/";
-    while (iniFile->value(uuidStr + QString::number(i), QString()) == "INUSE") {
+    QLockFile* lockFile;
+    QUuid uuid = getUUID(i, false);
+    lockFile   = new QLockFile(QDir::tempPath() + "/pxmessenger_" +
+                             iniFile->value(uuidStr + QString::number(i), uuid).toString() + ".lock");
+
+    while (!lockFile->tryLock(100)) {
+        delete lockFile;
         i++;
+        uuid     = getUUID(i, false);
+        lockFile = new QLockFile(QDir::tempPath() + "/pxmessenger_" +
+                                 iniFile->value(uuidStr + QString::number(i), uuid).toString() + ".lock");
     }
-    if (iniFile->value(uuidStr + QString::number(i), QString()) == "") {
-        iniFile->setValue(uuidStr + QString::number(i), QUuid::createUuid().toString());
-    }
+
+    iniFile->setValue(uuidStr + QString::number(i), uuid.toString());
+
+    delete lockFile;
+
     return i;
+
+    /*    while (iniFile->value(uuidStr + QString::number(i), QString()) == "INUSE") {
+            i++;
+        }
+        if (iniFile->value(uuidStr + QString::number(i), QString()) == "") {
+            iniFile->setValue(uuidStr + QString::number(i), QUuid::createUuid().toString());
+        }
+        */
 }
 QUuid PXMIniReader::getUUID(unsigned int num, bool takeIt) const
 {
@@ -51,9 +72,6 @@ QUuid PXMIniReader::getUUID(unsigned int num, bool takeIt) const
     if (uuid.isNull()) {
         uuid = QUuid::createUuid();
         iniFile->setValue("uuid/" + QString::number(num), uuid);
-    }
-    if (takeIt) {
-        iniFile->setValue("uuid/" + QString::number(num), "INUSE");
     }
     return uuid;
 }

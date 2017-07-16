@@ -194,8 +194,14 @@ int PXMAgent::postInit()
     QString localHostname = d_ptr->iniReader.getHostname(username);
 
     bool allowMoreThanOne = d_ptr->iniReader.checkAllowMoreThanOne();
-    QString tmpDir        = QDir::tempPath();
-    d_ptr->lockFile.reset(new QLockFile(tmpDir + "/pxmessenger_" + username + ".lock"));
+    if (allowMoreThanOne) {
+        d_ptr->presets.uuidNum = d_ptr->iniReader.getUUIDNumber();
+        d_ptr->presets.uuid    = d_ptr->iniReader.getUUID(d_ptr->presets.uuidNum, allowMoreThanOne);
+    } else {
+        d_ptr->presets.uuid = d_ptr->iniReader.getUUID(0, allowMoreThanOne);
+    }
+    QString tmpDir = QDir::tempPath();
+    d_ptr->lockFile.reset(new QLockFile(tmpDir + "/pxmessenger_" + d_ptr->presets.uuid.toString() + ".lock"));
     if (!allowMoreThanOne) {
         if (!d_ptr->lockFile->tryLock(100)) {
             QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(), QString("PXMessenger is already "
@@ -205,14 +211,14 @@ int PXMAgent::postInit()
             emit alreadyRunning();
             return -1;
         }
+    } else {
+        d_ptr->lockFile->lock();
     }
 
     d_ptr->logger = PXMConsole::Logger::getInstance();
     d_ptr->logger->setVerbosityLevel(d_ptr->iniReader.getVerbosity());
     d_ptr->logger->setLogStatus(d_ptr->iniReader.getLogActive());
 
-    d_ptr->presets.uuidNum  = d_ptr->iniReader.getUUIDNumber();
-    d_ptr->presets.uuid     = d_ptr->iniReader.getUUID(d_ptr->presets.uuidNum, allowMoreThanOne);
     d_ptr->presets.username = localHostname.left(PXMConsts::MAX_HOSTNAME_LENGTH);
     d_ptr->setupHostname(d_ptr->presets.uuidNum, d_ptr->presets.username);
     d_ptr->presets.tcpPort      = d_ptr->iniReader.getPort("TCP");
