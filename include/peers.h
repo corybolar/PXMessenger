@@ -98,5 +98,6 @@ class PeerData {
 };
 }
 Q_DECLARE_METATYPE(QSharedPointer<Peers::BevWrapper>)
+Q_DECLARE_METATYPE(Peers::PeerData)
 
 #endif

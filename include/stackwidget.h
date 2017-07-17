@@ -113,14 +113,15 @@ class StackedWidget : public QStackedWidget {
     QTimer *typingTimer;
 public:
   StackedWidget(QWidget* parent);
-  int append(QString str, QUuid& uuid);
   int switchToUuid(QUuid& uuid);
-  int newHistory(QUuid &uuid);
   TextWidget *getItem(QUuid &uuid);
   int showTyping(QUuid &uuid, QString hostname);
   int showEntered(QUuid &uuid, QString hostname);
   int clearInfoLine(QUuid &uuid);
   void invert(QUuid uuid);
+public slots:
+  int append(QString str, QUuid& uuid);
+  int newHistory(QUuid uuid);
 private slots:
   void timerCallback();
 };

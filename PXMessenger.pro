@@ -49,38 +49,40 @@ QMAKE_CXXFLAGS += -Wall \
                 -std=c++14
 
 SOURCES += \
-    $$PWD/src/client.cpp \
-    $$PWD/src/peerworker.cpp \
-    $$PWD/src/sync.cpp \
-    $$PWD/src/inireader.cpp \
-    $$PWD/src/server.cpp \
-    $$PWD/src/mainwindow.cpp \
-    $$PWD/src/pxmessenger.cpp \
-    $$PWD/src/netcompression.cpp \
-    $$PWD/src/stackwidget.cpp \
-    $$PWD/src/console.cpp \
-    $$PWD/src/peers.cpp \
-    $$PWD/src/agent.cpp
+    src/client.cpp \
+    src/peerworker.cpp \
+    src/sync.cpp \
+    src/inireader.cpp \
+    src/server.cpp \
+    src/mainwindow.cpp \
+    src/pxmessenger.cpp \
+    src/netcompression.cpp \
+    src/stackwidget.cpp \
+    src/console.cpp \
+    src/peers.cpp \
+    src/agent.cpp \
+    src/listwidget.cpp
 
 HEADERS += \
-    $$PWD/include/peerworker.h \
-    $$PWD/include/mainwindow.h \
-    $$PWD/include/sync.h \
-    $$PWD/include/inireader.h \
-    $$PWD/include/server.h \
-    $$PWD/include/client.h \
-    $$PWD/include/netcompression.h \
-    $$PWD/include/timedvector.h \
-    $$PWD/include/stackwidget.h \
-    $$PWD/include/console.h \
-    $$PWD/include/consts.h \
-    $$PWD/include/peers.h \
-    $$PWD/include/agent.h
+    include/peerworker.h \
+    include/mainwindow.h \
+    include/sync.h \
+    include/inireader.h \
+    include/server.h \
+    include/client.h \
+    include/netcompression.h \
+    include/timedvector.h \
+    include/stackwidget.h \
+    include/console.h \
+    include/consts.h \
+    include/peers.h \
+    include/agent.h \
+    include/listwidget.h
 
 FORMS += \
-    $$PWD/ui/mainwindow.ui \
-    $$PWD/ui/aboutdialog.ui \
-    $$PWD/ui/settingsdialog.ui \
+    ui/mainwindow.ui \
+    ui/aboutdialog.ui \
+    ui/settingsdialog.ui \
     ui/manualconnect.ui
 
 DISTFILES += \

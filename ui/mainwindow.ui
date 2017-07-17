@@ -242,7 +242,7 @@
      </widget>
     </item>
     <item row="3" column="13" rowspan="3">
-     <widget class="QListWidget" name="listWidget">
+     <widget class="PXMListWidget" name="listWidget">
       <property name="sizePolicy">
        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -452,6 +452,11 @@ p, li { white-space: pre-wrap; }
    <class>PXMTextEdit</class>
    <extends>QTextEdit</extends>
    <header>mainwindow.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PXMListWidget</class>
+   <extends>QListWidget</extends>
+   <header>listwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

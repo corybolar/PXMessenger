@@ -24,7 +24,7 @@ class PXMIniReader {
   ~PXMIniReader();
   bool checkAllowMoreThanOne();
   unsigned int getUUIDNumber() const;
-  QUuid getUUID(unsigned int num, bool takeIt) const;
+  QUuid getUUID(unsigned int num) const;
   int resetUUID(unsigned int num, QUuid uuid);
   unsigned short getPort(QString protocol);
   QString getHostname(QString defaultHostname);

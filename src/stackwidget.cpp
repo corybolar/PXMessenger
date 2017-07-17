@@ -38,7 +38,7 @@ void StackedWidget::timerCallback()
     }
 }
 
-int StackedWidget::newHistory(QUuid& uuid)
+int StackedWidget::newHistory(QUuid uuid)
 {
     if (this->count() < 10) {
         TextWidget* tw = new TextWidget(this, uuid);

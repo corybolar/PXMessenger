@@ -62,11 +62,12 @@ PXMWindow::PXMWindow(QString hostname,
       debugWindow(new PXMConsole::Window())
 {
     srand(static_cast<unsigned int>(time(NULL)));
-    textColorsNext = rand() % textColors.length();
     setupGui();
 
     ui->focusCheckBox->setChecked(focus);
     ui->muteCheckBox->setChecked(mute);
+
+    ui->listWidget->setGlobalUUID(globalChatUuid);
 
     this->textEnteredTimer = new QTimer();
     textEnteredTimer->setInterval(500);
@@ -117,17 +118,6 @@ void PXMWindow::setupMenuBar()
 void PXMWindow::initListWidget()
 {
     ui->listWidget->setSortingEnabled(false);
-    ui->listWidget->insertItem(0, QStringLiteral("Global Chat"));
-    QListWidgetItem* seperator = new QListWidgetItem(ui->listWidget);
-    seperator->setSizeHint(QSize(200, 10));
-    seperator->setFlags(Qt::NoItemFlags);
-    ui->listWidget->insertItem(1, seperator);
-    fsep = new QFrame(ui->listWidget);
-    fsep->setFrameStyle(QFrame::HLine | QFrame::Plain);
-    fsep->setLineWidth(2);
-    ui->listWidget->setItemWidget(seperator, fsep);
-    ui->listWidget->item(0)->setData(Qt::UserRole, globalChatUuid);
-    ui->stackedWidget->addWidget(new TextWidget(ui->stackedWidget, globalChatUuid));
 }
 void PXMWindow::createSystemTray()
 {
@@ -198,18 +188,18 @@ void PXMWindow::connectGuiSignalsAndSlots()
     QObject::connect(ui->toolButton, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleBold);
     QObject::connect(ui->toolButton_4, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleItalics);
     QObject::connect(ui->toolButton_5, &QToolButton::toggled, ui->textEdit, &PXMTextEdit::toggleUnderline);
-    // QObject::connect(ui->comboBox, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-    //    [=](int index){emit fontColorChange(ui->comboBox->itemData(index).value<QColor>());});
     QObject::connect(ui->comboBox, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
                      &PXMWindow::alertFontColor);
     QObject::connect(this, &PXMWindow::fontColorChange, ui->textEdit, &PXMTextEdit::fontColorChange);
 
     QObject::connect(debugWindow->pushButton, &QAbstractButton::clicked, this, &PXMWindow::printInfoToDebug);
+    QObject::connect(ui->listWidget, &PXMListWidget::append, ui->stackedWidget, &StackedWidget::append);
+    QObject::connect(ui->listWidget, &PXMListWidget::newPeer, ui->stackedWidget, &StackedWidget::newHistory);
     QObject::connect(ui->pushButton, &QAbstractButton::clicked, [=]() {
         if (ui->listWidget->currentItem() == nullptr) {
             return;
         }
-        ui->stackedWidget->invert(ui->listWidget->currentItem()->data(Qt::UserRole).toUuid());
+        ui->stackedWidget->invert(ui->listWidget->currentItem()->getUuid());
     });
 }
 void PXMWindow::aboutActionSlot()
@@ -276,12 +266,9 @@ void PXMWindow::manualConnect()
 
 void PXMWindow::typingAlert(QUuid uuid)
 {
-    QString hostname;
-    for (int i = 0; i < ui->listWidget->count(); i++) {
-        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
-            hostname = ui->listWidget->item(i)->text();
-            break;
-        }
+    QString hostname = QString();
+    if (ui->listWidget->itemAtUuid(uuid)) {
+        hostname = ui->listWidget->itemAtUuid(uuid)->getHostname();
     }
     if (hostname == QString()) {
         return;
@@ -291,12 +278,9 @@ void PXMWindow::typingAlert(QUuid uuid)
 
 void PXMWindow::textEnteredAlert(QUuid uuid)
 {
-    QString hostname;
-    for (int i = 0; i < ui->listWidget->count(); i++) {
-        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
-            hostname = ui->listWidget->item(i)->text();
-            break;
-        }
+    QString hostname = QString();
+    if (ui->listWidget->itemAtUuid(uuid)) {
+        hostname = ui->listWidget->itemAtUuid(uuid)->getHostname();
     }
     if (hostname == QString()) {
         return;
@@ -328,23 +312,18 @@ void PXMWindow::debugActionSlot()
 
 void PXMWindow::setItalicsOnItem(QUuid uuid, bool italics)
 {
-    for (int i = 0; i < ui->listWidget->count(); i++) {
-        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
-            QFont mfont = ui->listWidget->item(i)->font();
-            if (mfont.italic() == italics)
-                return;
-            mfont.setItalic(italics);
-            ui->listWidget->item(i)->setFont(mfont);
-            QString changeInConnection;
-            if (italics) {
-                changeInConnection = " disconnected";
-                this->endOfTextEnteredAlert(uuid);
-            } else
-                changeInConnection = " reconnected";
-            emit addMessageToPeer(ui->listWidget->item(i)->text() % changeInConnection, uuid, uuid, false, true);
-            return;
-        }
+    PXMListWidgetItem* lwi = ui->listWidget->itemAtUuid(uuid);
+    QString changeInConnection;
+    if (italics) {
+        lwi->setItalics();
+        changeInConnection = " disconnected";
+        this->endOfTextEnteredAlert(uuid);
+    } else {
+        lwi->removeItalics();
+        changeInConnection = " reconnected";
     }
+    emit addMessageToPeer(lwi->getHostname() % changeInConnection, uuid, uuid, false, true);
+    return;
 }
 void PXMWindow::textEditChanged()
 {
@@ -386,23 +365,24 @@ void PXMWindow::changeEvent(QEvent* event)
 }
 void PXMWindow::currentItemChanged(QListWidgetItem* item1, QListWidgetItem* item2)
 {
+    PXMListWidgetItem* lwi1 = dynamic_cast<PXMListWidgetItem*>(item1);
+    PXMListWidgetItem* lwi2 = dynamic_cast<PXMListWidgetItem*>(item2);
     // Deal with typing alerts
     if (item2) {
-        this->endOfTyping(item2->data(Qt::UserRole).toUuid());
-        this->endOfTextEntered(item2->data(Qt::UserRole).toUuid());
+        this->endOfTyping(lwi2->getUuid());
+        this->endOfTextEntered(lwi2->getUuid());
     }
     if (this->ui->textEdit->toPlainText() != QString()) {
-        this->typing(item1->data(Qt::UserRole).toUuid());
-        this->textEntered(item1->data(Qt::UserRole).toUuid());
+        this->typing(lwi1->getUuid());
+        this->textEntered(lwi1->getUuid());
     }
 
-    QUuid uuid = item1->data(Qt::UserRole).toUuid();
+    QUuid uuid = lwi1->getUuid();
 
-    if (item1->background() != QGuiApplication::palette().base()) {
-        this->changeListItemColor(uuid, 0);
-    }
+    ui->listWidget->unalertItem(uuid);
+
     if (ui->stackedWidget->switchToUuid(uuid)) {
-        // TODO: Some Exception here
+        qCritical() << "Uuid not found in stackwidget" << uuid;
     }
     return;
 }
@@ -410,8 +390,12 @@ void PXMWindow::quitButtonClicked()
 {
     this->close();
 }
-void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
+void PXMWindow::updateListWidget(Peers::PeerData peer)
 {
+    PXMListWidgetItem* lwi =
+        new PXMListWidgetItem(peer.hostname, peer.uuid, peer.addrRaw, peer.isAuthed, peer.bw->isSSL, nullptr);
+    ui->listWidget->updateItem(lwi);
+    /*
     ui->listWidget->setUpdatesEnabled(false);
     for (int i = 2; i < ui->listWidget->count(); i++) {
         if (ui->listWidget->item(i)->data(Qt::UserRole).toUuid() == uuid) {
@@ -442,6 +426,7 @@ void PXMWindow::updateListWidget(QUuid uuid, QString hostname)
     ui->listWidget->insertItem(0, global);
 
     ui->listWidget->setUpdatesEnabled(true);
+    */
 }
 
 void PXMWindow::closeEvent(QCloseEvent* event)
@@ -479,7 +464,7 @@ void PXMWindow::typingHandler()
         return;
     }
 
-    QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
+    QUuid uuid = ui->listWidget->currentItem()->getUuid();
 
     emit typing(uuid);
     if (!textEnteredTimer->isActive()) {
@@ -496,7 +481,7 @@ void PXMWindow::textEnteredCallback()
         return;
     }
 
-    QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
+    QUuid uuid = ui->listWidget->currentItem()->getUuid();
 
     if (ui->textEdit->toPlainText() == QString()) {
         this->textEnteredTimer->stop();
@@ -512,7 +497,7 @@ void PXMWindow::endOfTypingHandler()
         return;
     }
 
-    QUuid uuid = ui->listWidget->currentItem()->data(Qt::UserRole).toUuid();
+    QUuid uuid = ui->listWidget->currentItem()->getUuid();
 
     emit endOfTyping(uuid);
 }
@@ -568,7 +553,8 @@ int PXMWindow::sendButtonClicked()
             return -1;
         }
         int index                = ui->listWidget->currentRow();
-        QUuid uuidOfSelectedItem = ui->listWidget->item(index)->data(Qt::UserRole).toString();
+        PXMListWidgetItem* wli   = dynamic_cast<PXMListWidgetItem*>(ui->listWidget->item(index));
+        QUuid uuidOfSelectedItem = wli->getUuid();
 
         if (uuidOfSelectedItem.isNull())
             return -1;
@@ -591,16 +577,12 @@ int PXMWindow::sendButtonClicked()
 }
 int PXMWindow::changeListItemColor(QUuid uuid, int style)
 {
-    for (int i = 0; i < ui->listWidget->count(); i++) {
-        if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
-            if (!style)
-                ui->listWidget->item(i)->setBackground(QGuiApplication::palette().base());
-            else {
-                ui->listWidget->item(i)->setBackground(QBrush(QColor(0xFFCD5C5C)));
-            }
-            break;
-        }
+    if (style) {
+        ui->listWidget->alertItem(uuid);
+    } else {
+        ui->listWidget->unalertItem(uuid);
     }
+
     return 0;
 }
 int PXMWindow::formatMessage(QString& str, QString& hostname, QString color)
@@ -610,6 +592,7 @@ int PXMWindow::formatMessage(QString& str, QString& hostname, QString color)
     int offset                   = qrem.capturedEnd(1);
     QDateTime dt                 = QDateTime::currentDateTime();
     QString date                 = QStringLiteral("(") % dt.time().toString("hh:mm:ss") % QStringLiteral(") ");
+    qCritical() << color;
     str.insert(offset, QString("<span style=\"white-space: nowrap\" style=\"color: " % color % ";\">" % date %
                                hostname % ":&nbsp;</span>"));
 
@@ -645,11 +628,8 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
     if (sender == localUuid && !fromServer) {
         color = selfColor;
     } else if (global) {
-        for (int i = 0; i < ui->listWidget->count(); i++) {
-            if (ui->listWidget->item(i)->data(Qt::UserRole) == uuid) {
-                color = ui->listWidget->item(i)->data(Qt::UserRole + 1).toString();
-            }
-        }
+        color = ui->listWidget->itemAtUuid(uuid)->getTextColor();
+        qCritical() << color;
     }
 
     if (global) {
@@ -658,7 +638,7 @@ int PXMWindow::printToTextBrowser(QSharedPointer<QString> str,
 
     if (alert) {
         if (ui->listWidget->currentItem()) {
-            if (ui->listWidget->currentItem()->data(Qt::UserRole) != uuid) {
+            if (ui->listWidget->currentItem()->getUuid() != uuid) {
                 changeListItemColor(uuid, 1);
             }
         } else {

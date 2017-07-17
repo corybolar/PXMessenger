@@ -53,7 +53,7 @@ public:
     // void restartServer();
    signals:
     void msgRecieved(QSharedPointer<QString>, QString, QUuid, QUuid, bool, bool, bool);
-    void newAuthedPeer(QUuid, QString);
+    void newAuthedPeer(Peers::PeerData);
     void sendMsg(QSharedPointer<Peers::BevWrapper>, QByteArray, size_t,
                  PXMConsts::MESSAGE_TYPE, QUuid = QUuid());
     void sendUDP(const char*, unsigned short);

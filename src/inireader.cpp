@@ -40,14 +40,14 @@ unsigned int PXMIniReader::getUUIDNumber() const
     unsigned int i  = 0;
     QString uuidStr = "uuid/";
     QLockFile* lockFile;
-    QUuid uuid = getUUID(i, false);
+    QUuid uuid = getUUID(i);
     lockFile   = new QLockFile(QDir::tempPath() + "/pxmessenger_" +
                              iniFile->value(uuidStr + QString::number(i), uuid).toString() + ".lock");
 
     while (!lockFile->tryLock(100)) {
         delete lockFile;
         i++;
-        uuid     = getUUID(i, false);
+        uuid     = getUUID(i);
         lockFile = new QLockFile(QDir::tempPath() + "/pxmessenger_" +
                                  iniFile->value(uuidStr + QString::number(i), uuid).toString() + ".lock");
     }
@@ -66,7 +66,7 @@ unsigned int PXMIniReader::getUUIDNumber() const
         }
         */
 }
-QUuid PXMIniReader::getUUID(unsigned int num, bool takeIt) const
+QUuid PXMIniReader::getUUID(unsigned int num) const
 {
     QUuid uuid = iniFile->value("uuid/" + QString::number(num), QUuid()).toUuid();
     if (uuid.isNull()) {

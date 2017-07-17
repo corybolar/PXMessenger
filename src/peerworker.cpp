@@ -492,7 +492,7 @@ void PXMPeerWorkerPrivate::nameHandler(QString hname, const QUuid uuid)
 {
     if (peersHash.contains(uuid)) {
         peersHash[uuid].hostname = hname.left(PXMConsts::MAX_HOSTNAME_LENGTH + PXMConsts::MAX_COMPUTER_NAME_LENGTH);
-        emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
+        emit q_ptr->newAuthedPeer(peersHash.value(uuid));
     }
 }
 
@@ -683,7 +683,7 @@ void PXMPeerWorkerPrivate::authHandler(const QStringList authInfo,
     peersHash[uuid].connectTo = true;
     peersHash[uuid].isAuthed  = true;
 
-    emit q_ptr->newAuthedPeer(uuid, peersHash.value(uuid).hostname);
+    emit q_ptr->newAuthedPeer(peersHash.value(uuid));
     emit requestSyncPacket(peersHash.value(uuid).bw, uuid);
 }
 int PXMPeerWorkerPrivate::msgHandler(QByteArray msg, QUuid uuid, const bufferevent* bev, bool global)
@@ -770,7 +770,7 @@ void PXMPeerWorkerPrivate::setSelfCommsBufferevent(bufferevent* bev)
     peersHash.value(localUUID).bw->setBev(bev);
     peersHash.value(localUUID).bw->unlockBev();
 
-    q_ptr->newAuthedPeer(localUUID, localHostname);
+    q_ptr->newAuthedPeer(peersHash.value(localUUID));
     // addMessageToPeer("<!DOCTYPE html><html><body><style>h2, p {margin:"
     // "0;}h2 {text-align: center;}p {text-align: left;}</style><h2>" %
     // d_ptr->localHostname % "</h2></body></html>",

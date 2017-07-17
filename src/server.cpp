@@ -46,7 +46,7 @@ using namespace PXMServer;
 struct UUIDStruct {
     QUuid uuid;
     ServerThreadPrivate* st;
-    bool isSSL = false;
+    bool isSSL;
 };
 
 class ServerThreadPrivate
@@ -330,7 +330,6 @@ void ServerThreadPrivate::packetLenRecv(struct bufferevent* bev)
     uint16_t bufLen;
     evbuffer* input = bufferevent_get_input(bev);
 
-    qDebug().noquote() << "Recieved bufferlength value";
     evbuffer_copyout(input, &nboBufLen, PACKET_HEADER_LEN);
     bufLen = ntohs(nboBufLen);
     if (bufLen == 0) {
@@ -340,9 +339,6 @@ void ServerThreadPrivate::packetLenRecv(struct bufferevent* bev)
     }
     bufferevent_setwatermark(bev, EV_READ, bufLen + PACKET_HEADER_LEN, bufLen + PACKET_HEADER_LEN);
     bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
-    qDebug().noquote() << "Setting watermark to" << QString::number(bufLen) << "bytes";
-    qDebug().noquote() << "Setting timeout to"
-                       << QString::asprintf("%ld.%06ld", READ_TIMEOUT.tv_sec, READ_TIMEOUT.tv_usec) << "seconds";
 }
 
 void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
@@ -351,7 +347,6 @@ void ServerThreadPrivate::tcpRead(struct bufferevent* bev, void* arg)
     evbuffer* input         = bufferevent_get_input(bev);
 
     if (evbuffer_get_length(input) == 1) {
-        qDebug().noquote() << "Setting timeout, 1 byte recieved";
         bufferevent_set_timeouts(bev, &READ_TIMEOUT, NULL);
     } else if (evbuffer_get_length(input) == PACKET_HEADER_LEN) {
         packetLenRecv(bev);

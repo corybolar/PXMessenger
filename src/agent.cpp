@@ -74,7 +74,7 @@ struct initialSettings {
 class PXMAgentPrivate
 {
    public:
-    PXMAgentPrivate() {}
+    PXMAgentPrivate(PXMAgent* parent) : q_ptr(parent) {}
     ~PXMAgentPrivate()
     {
         if (workerThread) {
@@ -86,6 +86,7 @@ class PXMAgentPrivate
         iniReader.resetUUID(presets.uuidNum, presets.uuid);
     }
 
+    PXMAgent* q_ptr;
     QScopedPointer<PXMWindow> window;
     PXMPeerWorker* peerWorker;
     PXMIniReader iniReader;
@@ -100,11 +101,12 @@ class PXMAgentPrivate
 #endif
     QThread* workerThread = nullptr;
     // Functions
+    void init();
     QByteArray getUsername();
     int setupHostname(const unsigned int uuidNum, QString& username);
 };
 
-PXMAgent::PXMAgent(QObject* parent) : QObject(parent), d_ptr(new PXMAgentPrivate)
+PXMAgent::PXMAgent(QObject* parent) : QObject(parent), d_ptr(new PXMAgentPrivate(this))
 {
     PXMAgent::defaultPalette = QGuiApplication::palette();
 }
@@ -158,6 +160,25 @@ int PXMAgent::init()
 
 int PXMAgent::postInit()
 {
+    d_ptr->init();
+
+    return 0;
+}
+void PXMAgent::doneChkUpdt(const QString&)
+{
+#ifdef __WIN32
+    if (!d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
+        qDebug() << "No update Available";
+        this->postInit();
+    } else {
+        qDebug() << "Update Available";
+    }
+
+#endif
+}
+
+void PXMAgentPrivate::init()
+{
 #ifndef QT_DEBUG
     QImage splashImage(":/resources/PXMessenger_wBackground.png");
     QSplashScreen splash(QPixmap::fromImage(splashImage));
@@ -188,104 +209,101 @@ int PXMAgent::postInit()
     qRegisterMetaType<bufferevent*>();
     qRegisterMetaType<PXMConsts::MESSAGE_TYPE>();
     qRegisterMetaType<QSharedPointer<Peers::BevWrapper>>();
+    qRegisterMetaType<Peers::PeerData>();
     qRegisterMetaType<QSharedPointer<QString>>();
 
-    QString username      = d_ptr->getUsername();
-    QString localHostname = d_ptr->iniReader.getHostname(username);
+    QString username      = getUsername();
+    QString localHostname = iniReader.getHostname(username);
 
-    bool allowMoreThanOne = d_ptr->iniReader.checkAllowMoreThanOne();
+    bool allowMoreThanOne = iniReader.checkAllowMoreThanOne();
     if (allowMoreThanOne) {
-        d_ptr->presets.uuidNum = d_ptr->iniReader.getUUIDNumber();
-        d_ptr->presets.uuid    = d_ptr->iniReader.getUUID(d_ptr->presets.uuidNum, allowMoreThanOne);
+        presets.uuidNum = iniReader.getUUIDNumber();
+        presets.uuid    = iniReader.getUUID(presets.uuidNum);
     } else {
-        d_ptr->presets.uuid = d_ptr->iniReader.getUUID(0, allowMoreThanOne);
+        presets.uuid = iniReader.getUUID(0);
     }
     QString tmpDir = QDir::tempPath();
-    d_ptr->lockFile.reset(new QLockFile(tmpDir + "/pxmessenger_" + d_ptr->presets.uuid.toString() + ".lock"));
+    lockFile.reset(new QLockFile(tmpDir + "/pxmessenger_" + presets.uuid.toString() + ".lock"));
     if (!allowMoreThanOne) {
-        if (!d_ptr->lockFile->tryLock(100)) {
+        if (!lockFile->tryLock(100)) {
             QMessageBox msgBox(QMessageBox::Warning, qApp->applicationName(), QString("PXMessenger is already "
                                                                                       "running.\r\nOnly one instance "
                                                                                       "is allowed"));
             msgBox.exec();
-            emit alreadyRunning();
-            return -1;
+            emit q_ptr->alreadyRunning();
+            return;
         }
     } else {
-        d_ptr->lockFile->lock();
+        lockFile->lock();
     }
 
-    d_ptr->logger = PXMConsole::Logger::getInstance();
-    d_ptr->logger->setVerbosityLevel(d_ptr->iniReader.getVerbosity());
-    d_ptr->logger->setLogStatus(d_ptr->iniReader.getLogActive());
+    logger = PXMConsole::Logger::getInstance();
+    logger->setVerbosityLevel(iniReader.getVerbosity());
+    logger->setLogStatus(iniReader.getLogActive());
 
-    d_ptr->presets.username = localHostname.left(PXMConsts::MAX_HOSTNAME_LENGTH);
-    d_ptr->setupHostname(d_ptr->presets.uuidNum, d_ptr->presets.username);
-    d_ptr->presets.tcpPort      = d_ptr->iniReader.getPort("TCP");
-    d_ptr->presets.udpPort      = d_ptr->iniReader.getPort("UDP");
-    d_ptr->presets.windowSize   = d_ptr->iniReader.getWindowSize(QSize(700, 500));
-    d_ptr->presets.mute         = d_ptr->iniReader.getMute();
-    d_ptr->presets.preventFocus = d_ptr->iniReader.getFocus();
-    d_ptr->presets.multicast    = d_ptr->iniReader.getMulticastAddress();
-    d_ptr->presets.darkColor    = d_ptr->iniReader.getDarkColorScheme();
+    presets.username = localHostname.left(PXMConsts::MAX_HOSTNAME_LENGTH);
+    setupHostname(presets.uuidNum, presets.username);
+    presets.tcpPort      = iniReader.getPort("TCP");
+    presets.udpPort      = iniReader.getPort("UDP");
+    presets.windowSize   = iniReader.getWindowSize(QSize(700, 500));
+    presets.mute         = iniReader.getMute();
+    presets.preventFocus = iniReader.getFocus();
+    presets.multicast    = iniReader.getMulticastAddress();
+    presets.darkColor    = iniReader.getDarkColorScheme();
 
-    if (d_ptr->presets.darkColor) {
-        changeToDark();
+    if (presets.darkColor) {
+        q_ptr->changeToDark();
     }
     QUuid globalChat = QUuid::createUuid();
-    if (!(d_ptr->iniReader.getFont().isEmpty())) {
+    if (!(iniReader.getFont().isEmpty())) {
         QFont font;
-        font.fromString(d_ptr->iniReader.getFont());
+        font.fromString(iniReader.getFont());
         qApp->setFont(font);
     }
 
-    d_ptr->workerThread = new QThread(this);
-    d_ptr->workerThread->setObjectName("WorkerThread");
-    d_ptr->peerWorker =
-        new PXMPeerWorker(nullptr, d_ptr->presets.username, d_ptr->presets.uuid, d_ptr->presets.multicast,
-                          d_ptr->presets.tcpPort, d_ptr->presets.udpPort, globalChat);
-    d_ptr->peerWorker->moveToThread(d_ptr->workerThread);
-    // QObject::connect(d_ptr->workerThread, &QThread::started, d_ptr->peerWorker, &PXMPeerWorker::init);
-    QObject::connect(d_ptr->workerThread, &QThread::finished, d_ptr->peerWorker, &PXMPeerWorker::deleteLater);
-    d_ptr->window.reset(new PXMWindow(d_ptr->presets.username, d_ptr->presets.windowSize, d_ptr->presets.mute,
-                                      d_ptr->presets.preventFocus, d_ptr->presets.uuid, globalChat));
+    workerThread = new QThread(q_ptr);
+    workerThread->setObjectName("WorkerThread");
+    peerWorker = new PXMPeerWorker(nullptr, presets.username, presets.uuid, presets.multicast, presets.tcpPort,
+                                   presets.udpPort, globalChat);
+    peerWorker->moveToThread(workerThread);
+    // QObject::connect(workerThread, &QThread::started, peerWorker, &PXMPeerWorker::init);
+    QObject::connect(workerThread, &QThread::finished, peerWorker, &PXMPeerWorker::deleteLater);
+    window.reset(new PXMWindow(presets.username, presets.windowSize, presets.mute, presets.preventFocus, presets.uuid,
+                               globalChat));
 
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::msgRecieved, d_ptr->window.data(),
-                     &PXMWindow::printToTextBrowser, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::connectionStatusChange, d_ptr->window.data(),
-                     &PXMWindow::setItalicsOnItem, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::newAuthedPeer, d_ptr->window.data(),
-                     &PXMWindow::updateListWidget, Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::warnBox,
-                     [=](QString title, QString msg) { QMessageBox::warning(d_ptr->window.data(), title, msg); });
-    QObject::connect(d_ptr->window.data(), SIGNAL(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
-                     d_ptr->peerWorker, SLOT(addMessageToPeer(QString, QUuid, QUuid, bool, bool)),
+    QObject::connect(peerWorker, &PXMPeerWorker::msgRecieved, window.data(), &PXMWindow::printToTextBrowser,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::sendMsg, d_ptr->peerWorker, &PXMPeerWorker::sendMsgAccessor,
+    QObject::connect(peerWorker, &PXMPeerWorker::connectionStatusChange, window.data(), &PXMWindow::setItalicsOnItem,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::sendUDP, d_ptr->peerWorker, &PXMPeerWorker::sendUDPAccessor,
+    QObject::connect(peerWorker, &PXMPeerWorker::newAuthedPeer, window.data(), &PXMWindow::updateListWidget,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::syncWithPeers, d_ptr->peerWorker, &PXMPeerWorker::beginPeerSync,
+    QObject::connect(peerWorker, &PXMPeerWorker::warnBox,
+                     [=](QString title, QString msg) { QMessageBox::warning(window.data(), title, msg); });
+    QObject::connect(window.data(), SIGNAL(addMessageToPeer(QString, QUuid, QUuid, bool, bool)), peerWorker,
+                     SLOT(addMessageToPeer(QString, QUuid, QUuid, bool, bool)), Qt::QueuedConnection);
+    QObject::connect(window.data(), &PXMWindow::sendMsg, peerWorker, &PXMPeerWorker::sendMsgAccessor,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::printInfoToDebug, d_ptr->peerWorker,
-                     &PXMPeerWorker::printInfoToDebug, Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::typing, d_ptr->peerWorker, &PXMPeerWorker::typing,
+    QObject::connect(window.data(), &PXMWindow::sendUDP, peerWorker, &PXMPeerWorker::sendUDPAccessor,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::endOfTextEntered, d_ptr->peerWorker,
-                     &PXMPeerWorker::endOfTextEntered, Qt::QueuedConnection);
-    QObject::connect(d_ptr->window.data(), &PXMWindow::textEntered, d_ptr->peerWorker, &PXMPeerWorker::textEntered,
+    QObject::connect(window.data(), &PXMWindow::syncWithPeers, peerWorker, &PXMPeerWorker::beginPeerSync,
                      Qt::QueuedConnection);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::typingAlert, d_ptr->window.data(), &PXMWindow::typingAlert);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::textEnteredAlert, d_ptr->window.data(),
-                     &PXMWindow::textEnteredAlert);
-    QObject::connect(d_ptr->peerWorker, &PXMPeerWorker::endOfTextEnteredAlert, d_ptr->window.data(),
+    QObject::connect(window.data(), &PXMWindow::printInfoToDebug, peerWorker, &PXMPeerWorker::printInfoToDebug,
+                     Qt::QueuedConnection);
+    QObject::connect(window.data(), &PXMWindow::typing, peerWorker, &PXMPeerWorker::typing, Qt::QueuedConnection);
+    QObject::connect(window.data(), &PXMWindow::endOfTextEntered, peerWorker, &PXMPeerWorker::endOfTextEntered,
+                     Qt::QueuedConnection);
+    QObject::connect(window.data(), &PXMWindow::textEntered, peerWorker, &PXMPeerWorker::textEntered,
+                     Qt::QueuedConnection);
+    QObject::connect(peerWorker, &PXMPeerWorker::typingAlert, window.data(), &PXMWindow::typingAlert);
+    QObject::connect(peerWorker, &PXMPeerWorker::textEnteredAlert, window.data(), &PXMWindow::textEnteredAlert);
+    QObject::connect(peerWorker, &PXMPeerWorker::endOfTextEnteredAlert, window.data(),
                      &PXMWindow::endOfTextEnteredAlert);
 
 #ifdef QT_DEBUG
     qInfo().noquote() << "Built in debug mode";
 #else
     qInfo().noquote() << "Built in release mode";
-    splash.finish(d_ptr->window.data());
+    splash.finish(window.data());
     qApp->processEvents();
     while (startupTimer.elapsed() < 1500) {
         qApp->processEvents();
@@ -295,25 +313,11 @@ int PXMAgent::postInit()
 #ifdef _WIN32
     qInfo().noquote() << "Architecture:" << arch;
 #endif
-    qInfo().noquote() << "Our UUID:" << d_ptr->presets.uuid.toString();
+    qInfo().noquote() << "Our UUID:" << presets.uuid.toString();
 
-    d_ptr->workerThread->start();
+    workerThread->start();
 
-    d_ptr->window->show();
-
-    return 0;
-}
-void PXMAgent::doneChkUpdt(const QString&)
-{
-#ifdef __WIN32
-    if (!d_ptr->qupdater->getUpdateAvailable(d_ptr->address)) {
-        qDebug() << "No update Available";
-        this->postInit();
-    } else {
-        qDebug() << "Update Available";
-    }
-
-#endif
+    window->show();
 }
 
 QByteArray PXMAgentPrivate::getUsername()

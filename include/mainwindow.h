@@ -9,7 +9,7 @@
 #include <QTimer>
 
 #include "consts.h"
-//#include "ui_pxmmainwindow.h"
+#include "peers.h"
 #include "ui_aboutdialog.h"
 #include "ui_settingsdialog.h"
 
@@ -29,17 +29,7 @@ class PXMWindow : public QMainWindow {
 
   const QString selfColor = "#6495ED";  // Cornflower Blue
   const QString peerColor = "#FF0000";  // Red
-  const QVector<QString> textColors = {
-      "#808000",  // Olive
-      "#FFA500",  // Orange
-      "#FF00FF",  // Fuschia
-      "#DC143C",  // Crimson
-      "#FF69B4",  // HotPink
-      "#708090",  // SlateGrey
-      "#008000",  // Green
-      "#00FF00"   // Lime
-  };
-  unsigned int textColorsNext;
+
   QScopedPointer<Ui::PXMWindow> ui;
   QAction* messSystemTrayExitAction;
   QMenu* sysTrayMenu;
@@ -117,7 +107,7 @@ public:
   void bloomActionsSlot();
   int printToTextBrowser(QSharedPointer<QString> str, QString hostname, QUuid uuid, QUuid sender, bool alert, bool fromServer, bool global);
   void setItalicsOnItem(QUuid uuid, bool italics);
-  void updateListWidget(QUuid uuid, QString hostname);
+  void updateListWidget(Peers::PeerData peer);
   void typingAlert(QUuid);
   void textEnteredAlert(QUuid);
   void endOfTextEnteredAlert(QUuid);
